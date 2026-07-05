@@ -1,0 +1,739 @@
+// CoBuddy Companion Backend — Complete Prisma Schema
+// Maps exactly to store.types.ts interfaces in CoBuddyCompanion frontend
+// Every model field aligns with the frontend data contracts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ProfileStatus {
+  INCOMPLETE
+  COMPLETE
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  SUSPENDED
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+  DELETED
+}
+
+enum TrustLevel {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum SessionStatus {
+  UPCOMING
+  PRE_ARRIVAL
+  CHECKED_IN
+  ACTIVE
+  EXTENDING
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+  DISPUTED
+}
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COUNTER_PROPOSED
+  EXPIRED
+}
+
+enum TransactionType {
+  SESSION_EARNING
+  EXTENSION_EARNING
+  SAFETY_BONUS
+  REFERRAL_BONUS
+  ADJUSTMENT
+  DEDUCTION
+  PAYOUT_TRANSFER
+}
+
+enum TransactionStatus {
+  PENDING_REVIEW
+  APPROVED
+  PAYOUT_ELIGIBLE
+  DEDUCTED
+  ON_HOLD
+  REFUNDED
+}
+
+enum PayoutStatus {
+  REQUESTED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum Category {
+  CAFE_CONVERSATION
+  CITY_WALK
+  MUSEUM_TOUR
+  EVENT_PLUS_ONE
+  SHOPPING_COMPANION
+  AIRPORT_COMPANION
+  OUTDOOR_ACTIVITY
+  GAMING_BUDDY
+  FITNESS_PARTNER
+  MOVIE_BUDDY
+}
+
+enum TimerStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum NotificationType {
+  NEW_REQUEST
+  REQUEST_CANCELLED
+  SESSION_REMINDER
+  SESSION_STARTED
+  SESSION_COMPLETED
+  EARNINGS_CREDITED
+  PAYOUT_PROCESSED
+  KYC_UPDATE
+  TRUST_SCORE_UPDATE
+  SAFETY_ALERT
+  SYSTEM_MESSAGE
+  PROMOTION
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPANION (core entity)
+// Maps to CompanionProfile interface in store.types.ts
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Companion {
+  id                 String             @id @default(cuid())
+  phone              String             @unique
+  countryCode        String             @default("+91")
+  displayName        String?
+  city               String?
+  bio                String?            @db.Text
+  photoUrl           String?
+  hourlyRate         Decimal?           @db.Decimal(10, 2)
+  profileStatus      ProfileStatus      @default(INCOMPLETE)
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  accountStatus      AccountStatus      @default(ACTIVE)
+  trustScore         Int                @default(0)
+  trustLevel         TrustLevel         @default(BRONZE)
+  rating             Decimal            @default(0.0) @db.Decimal(3, 1)
+  totalReviews       Int                @default(0)
+  totalSessions      Int                @default(0)
+  isAvailable        Boolean            @default(false)
+  isOnline           Boolean            @default(false)
+  lastActiveAt       DateTime?
+  deletedAt          DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  // Relations
+  serviceAreas       CompanionServiceArea[]
+  categories         CompanionCategory[]
+  languages          CompanionLanguage[]
+  galleryPhotos      CompanionPhoto[]
+  kyc                CompanionKYC?
+  pin                CompanionPIN?
+  biometrics         CompanionBiometric[]
+  refreshTokens      RefreshToken[]
+  otpSessions        OTPSession[]
+  sessions           Session[]
+  bookingRequests    BookingRequest[]
+  earningsTxns       EarningsTransaction[]
+  payouts            PayoutRecord[]
+  sosEvents          SOSEvent[]
+  safetyTimer        SafetyTimer?
+  trustedContacts    TrustedContact[]
+  blockedCustomers   BlockedCustomer[]
+  incidentReports    IncidentReport[]
+  reviews            CompanionReview[]
+  badges             CompanionBadge[]
+  trustTasks         TrustTask[]
+  notifications      Notification[]
+  pushTokens         PushToken[]
+  timeSlots          TimeSlot[]
+  holidays           Holiday[]
+  moduleCompletions  ModuleCompletion[]
+  uploadedFiles      UploadedFile[]
+
+  @@map("companions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTH MODELS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model OTPSession {
+  id          String    @id @default(cuid())
+  phone       String
+  otp         String    // bcrypt hash
+  attempts    Int       @default(0)
+  verified    Boolean   @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  companion   Companion? @relation(fields: [phone], references: [phone])
+
+  @@map("otp_sessions")
+}
+
+model RefreshToken {
+  id          String    @id @default(cuid())
+  companionId String
+  token       String    @unique
+  deviceId    String?
+  isRevoked   Boolean   @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model CompanionPIN {
+  id          String    @id @default(cuid())
+  companionId String    @unique
+  pinHash     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("companion_pins")
+}
+
+model CompanionBiometric {
+  id          String    @id @default(cuid())
+  companionId String
+  deviceId    String
+  publicKey   String    @db.Text
+  createdAt   DateTime  @default(now())
+
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@unique([companionId, deviceId])
+  @@map("companion_biometrics")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROFILE RELATED MODELS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CompanionServiceArea {
+  id          String    @id @default(cuid())
+  companionId String
+  area        String
+  city        String    @default("")
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("companion_service_areas")
+}
+
+model CompanionCategory {
+  id          String    @id @default(cuid())
+  companionId String
+  category    Category
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@unique([companionId, category])
+  @@map("companion_categories")
+}
+
+model CompanionLanguage {
+  id           String    @id @default(cuid())
+  companionId  String
+  language     String
+  proficiency  String    @default("fluent")
+  companion    Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@unique([companionId, language])
+  @@map("companion_languages")
+}
+
+model CompanionPhoto {
+  id          String    @id @default(cuid())
+  companionId String
+  url         String
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("companion_photos")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KYC
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CompanionKYC {
+  id                     String    @id @default(cuid())
+  companionId            String    @unique
+  identityDocumentType   String?
+  identityDocumentUrl    String?
+  selfieVideoUrl         String?
+  addressDocumentUrl     String?
+  policeVerificationUrl  String?
+  rejectionReason        String?
+  submittedAt            DateTime?
+  approvedAt             DateTime?
+  rejectedAt             DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  companion              Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("companion_kyc")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOOKING REQUESTS
+// Maps to BookingRequest interface from store.types.ts
+// ─────────────────────────────────────────────────────────────────────────────
+
+model BookingRequest {
+  id                      String        @id @default(cuid())
+  companionId             String
+  customerId              String
+  status                  RequestStatus @default(PENDING)
+  category                Category
+  // Customer info (denormalized for performance)
+  customerInitials        String
+  customerTrustScore      Int           @default(0)
+  customerVerified        Boolean       @default(false)
+  customerSessionCount    Int           @default(0)
+  customerSafetyConsent   Boolean       @default(false)
+  customerIdentityVerified Boolean      @default(false)
+  // Venue info
+  venueId                 String?
+  venueName               String
+  venueArea               String
+  venueCity               String
+  venueType               String        @default("PUBLIC")
+  venueMeetingPoint       String?
+  venueLandmark           String?
+  isVenueApproved         Boolean       @default(true)
+  // Timing
+  proposedStart           DateTime
+  proposedEnd             DateTime
+  counterProposedStart    DateTime?
+  counterProposedEnd      DateTime?
+  durationMinutes         Int
+  language                String        @default("Hindi")
+  estimatedEarning        Decimal       @default(0) @db.Decimal(10, 2)
+  matchScore              Int           @default(0)
+  customerNote            String?
+  declineReason           String?
+  expiresAt               DateTime
+  receivedAt              DateTime      @default(now())
+  respondedAt             DateTime?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  companion               Companion     @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  session                 Session?
+
+  @@map("booking_requests")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SESSIONS
+// Maps to Session interface from store.types.ts
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Session {
+  id                       String        @id @default(cuid())
+  companionId              String
+  customerId               String
+  requestId                String?       @unique
+  status                   SessionStatus @default(UPCOMING)
+  category                 Category
+  // Customer snapshot
+  customerInitials         String
+  customerTrustScore       Int           @default(0)
+  customerVerified         Boolean       @default(false)
+  customerSessionCount     Int           @default(0)
+  customerSafetyConsent    Boolean       @default(false)
+  customerIdentityVerified Boolean       @default(false)
+  // Venue snapshot
+  venueId                  String?
+  venueName                String
+  venueArea                String
+  venueCity                String
+  venueType                String        @default("PUBLIC")
+  venueMeetingPoint        String?
+  venueLandmark            String?
+  isVenueApproved          Boolean       @default(true)
+  // Timing
+  scheduledStart           DateTime
+  scheduledEnd             DateTime
+  durationMinutes          Int
+  language                 String        @default("Hindi")
+  // Earnings
+  baseEarning              Decimal       @default(0) @db.Decimal(10, 2)
+  bonusEarning             Decimal       @default(0) @db.Decimal(10, 2)
+  estimatedTotal           Decimal       @default(0) @db.Decimal(10, 2)
+  confirmedEarning         Decimal?      @db.Decimal(10, 2)
+  // Session flow
+  sessionPassCode          String?
+  checkInTime              DateTime?
+  checkOutTime             DateTime?
+  completedAt              DateTime?
+  cancelReason             String?
+  cancelledBy              String?
+  noShowAt                 DateTime?
+  safetyTimerActive        Boolean       @default(false)
+  notes                    String?       @db.Text
+  customerRating           Int?
+  customerFeedback         String?
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+
+  companion                Companion     @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  request                  BookingRequest? @relation(fields: [requestId], references: [id])
+  earningsTxns             EarningsTransaction[]
+
+  @@map("sessions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EARNINGS
+// Maps to EarningsTransaction + PayoutRecord from store.types.ts
+// ─────────────────────────────────────────────────────────────────────────────
+
+model EarningsTransaction {
+  id                  String            @id @default(cuid())
+  companionId         String
+  sessionId           String?
+  payoutId            String?
+  type                TransactionType
+  status              TransactionStatus
+  amount              Decimal           @db.Decimal(10, 2)
+  customerInitials    String?
+  description         String
+  payoutEligibleAt    DateTime?
+  createdAt           DateTime          @default(now())
+
+  companion           Companion         @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  session             Session?          @relation(fields: [sessionId], references: [id])
+
+  @@map("earnings_transactions")
+}
+
+model PayoutRecord {
+  id              String      @id @default(cuid())
+  companionId     String
+  status          PayoutStatus @default(REQUESTED)
+  amount          Decimal     @db.Decimal(10, 2)
+  platformFee     Decimal     @default(0) @db.Decimal(10, 2)
+  maskedBank      String
+  utrNumber       String?
+  failureReason   String?
+  requestedAt     DateTime    @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  companion       Companion   @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("payout_records")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SAFETY
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SOSEvent {
+  id          String    @id @default(cuid())
+  companionId String
+  sessionId   String?
+  latitude    Decimal?  @db.Decimal(10, 8)
+  longitude   Decimal?  @db.Decimal(11, 8)
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime  @default(now())
+
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("sos_events")
+}
+
+model SafetyTimer {
+  id              String      @id @default(cuid())
+  companionId     String      @unique
+  sessionId       String?
+  status          TimerStatus @default(ACTIVE)
+  durationMinutes Int
+  startedAt       DateTime    @default(now())
+  expiresAt       DateTime
+  lastCheckinAt   DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime    @default(now())
+
+  companion       Companion   @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("safety_timers")
+}
+
+model TrustedContact {
+  id                 String    @id @default(cuid())
+  companionId        String
+  name               String
+  phone              String
+  maskedPhone        String
+  relationship       String
+  isEmergencyContact Boolean   @default(false)
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+
+  companion          Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("trusted_contacts")
+}
+
+model BlockedCustomer {
+  id          String    @id @default(cuid())
+  companionId String
+  customerId  String
+  reason      String?
+  createdAt   DateTime  @default(now())
+
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@unique([companionId, customerId])
+  @@map("blocked_customers")
+}
+
+model IncidentReport {
+  id           String    @id @default(cuid())
+  companionId  String
+  sessionId    String?
+  description  String    @db.Text
+  evidenceUrls String[]  @default([])
+  status       String    @default("submitted")
+  createdAt    DateTime  @default(now())
+
+  companion    Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("incident_reports")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REVIEWS & TRUST
+// Maps to CompanionReview interface from store.types.ts
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CompanionReview {
+  id              String    @id @default(cuid())
+  companionId     String
+  sessionId       String    @unique
+  customerInitials String
+  rating          Int       // 1–5
+  isPublic        Boolean   @default(true)
+  highlights      String[]  @default([])
+  comment         String?
+  sessionCategory Category
+  sessionDate     DateTime
+  createdAt       DateTime  @default(now())
+
+  companion       Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("companion_reviews")
+}
+
+model CompanionBadge {
+  id          String    @id @default(cuid())
+  companionId String
+  badgeKey    String
+  badgeName   String
+  earnedAt    DateTime  @default(now())
+
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@unique([companionId, badgeKey])
+  @@map("companion_badges")
+}
+
+model TrustTask {
+  id           String    @id @default(cuid())
+  companionId  String
+  title        String
+  description  String
+  category     String
+  points       Int       @default(0)
+  isCompleted  Boolean   @default(false)
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  companion    Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("trust_tasks")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUPPORT
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SupportTicket {
+  id          String    @id @default(cuid())
+  companionId String
+  sessionId   String?
+  subject     String
+  description String    @db.Text
+  category    String
+  priority    String    @default("NORMAL")
+  status      String    @default("OPEN")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("support_tickets")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTIFICATIONS
+// Maps to Notification interface from store.types.ts
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Notification {
+  id          String           @id @default(cuid())
+  companionId String
+  type        NotificationType
+  title       String
+  body        String
+  isRead      Boolean          @default(false)
+  readAt      DateTime?
+  data        String?          // JSON string for deep link data
+  createdAt   DateTime         @default(now())
+
+  companion   Companion        @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@index([companionId, isRead])
+  @@map("notifications")
+}
+
+model PushToken {
+  id          String    @id @default(cuid())
+  companionId String
+  token       String
+  deviceId    String
+  platform    String    // ios | android
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@unique([companionId, deviceId])
+  @@map("push_tokens")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AVAILABILITY
+// ─────────────────────────────────────────────────────────────────────────────
+
+model TimeSlot {
+  id          String    @id @default(cuid())
+  companionId String
+  dayOfWeek   Int       // 0=Sun, 1=Mon … 6=Sat
+  startTime   String    // "09:00"
+  endTime     String    // "18:00"
+  createdAt   DateTime  @default(now())
+
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("time_slots")
+}
+
+model Holiday {
+  id          String    @id @default(cuid())
+  companionId String
+  date        DateTime  @db.Date
+  note        String?
+  createdAt   DateTime  @default(now())
+
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@unique([companionId, date])
+  @@map("holidays")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRAINING
+// ─────────────────────────────────────────────────────────────────────────────
+
+model TrainingModule {
+  id              String    @id @default(cuid())
+  title           String
+  description     String
+  category        String
+  content         String?   @db.Text // JSON string
+  durationMinutes Int
+  isRequired      Boolean   @default(false)
+  sortOrder       Int       @default(0)
+  createdAt       DateTime  @default(now())
+
+  completions     ModuleCompletion[]
+
+  @@map("training_modules")
+}
+
+model ModuleCompletion {
+  id          String    @id @default(cuid())
+  companionId String
+  moduleId    String
+  score       Int       @default(0)
+  completedAt DateTime  @default(now())
+
+  companion   Companion      @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  module      TrainingModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([companionId, moduleId])
+  @@map("module_completions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UPLOADS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model UploadedFile {
+  id           String    @id @default(cuid())
+  companionId  String
+  url          String
+  key          String    @unique
+  category     String
+  originalName String
+  mimeType     String
+  size         Int
+  createdAt    DateTime  @default(now())
+
+  companion    Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("uploaded_files")
+}

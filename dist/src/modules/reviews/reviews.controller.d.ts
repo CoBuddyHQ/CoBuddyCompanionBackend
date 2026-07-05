@@ -1,0 +1,64 @@
+import { ReviewsService } from './reviews.service';
+import { JwtPayload } from '../auth/strategies/jwt.strategy';
+export declare class ReviewsController {
+    private readonly reviewsService;
+    constructor(reviewsService: ReviewsService);
+    getReviews(c: JwtPayload, page?: number): Promise<{
+        reviews: {
+            reviewId: any;
+            sessionId: any;
+            customerInitials: any;
+            rating: any;
+            isPublic: any;
+            highlights: any;
+            comment: any;
+            sessionCategory: any;
+            sessionDate: any;
+            createdAt: any;
+        }[];
+        total: number;
+        page: number;
+        averageRating: number;
+    }>;
+    getReview(c: JwtPayload, id: string): Promise<{
+        reviewId: any;
+        sessionId: any;
+        customerInitials: any;
+        rating: any;
+        isPublic: any;
+        highlights: any;
+        comment: any;
+        sessionCategory: any;
+        sessionDate: any;
+        createdAt: any;
+    }>;
+    getTrustScore(c: JwtPayload): Promise<{
+        trustScore: number;
+        trustLevel: string;
+        totalSessions: number;
+        rating: number;
+        totalReviews: number;
+        breakdown: {
+            identityVerification: number;
+            safetyCompliance: number;
+            sessionHistory: number;
+            reviewScore: number;
+            platformEngagement: number;
+        };
+    }>;
+    getTrustTasks(c: JwtPayload): Promise<{
+        taskId: string;
+        title: string;
+        description: string;
+        category: string;
+        points: number;
+        isCompleted: boolean;
+        completedAt: any;
+    }[]>;
+    getBadges(c: JwtPayload): Promise<{
+        badgeId: string;
+        badgeKey: string;
+        badgeName: string;
+        earnedAt: string;
+    }[]>;
+}
