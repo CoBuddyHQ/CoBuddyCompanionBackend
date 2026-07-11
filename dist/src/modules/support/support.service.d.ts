@@ -4,11 +4,11 @@ export declare class SupportService {
     constructor(prisma: PrismaService);
     getTickets(companionId: string): Promise<{
         tickets: {
-            description: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             companionId: string;
+            description: string;
             category: string;
             status: string;
             sessionId: string | null;
@@ -17,11 +17,11 @@ export declare class SupportService {
         }[];
     }>;
     getTicket(companionId: string, ticketId: string): Promise<{
-        description: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         companionId: string;
+        description: string;
         category: string;
         status: string;
         sessionId: string | null;
@@ -37,11 +37,11 @@ export declare class SupportService {
     }>;
     getDisputes(companionId: string): Promise<{
         disputes: {
-            description: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             companionId: string;
+            description: string;
             category: string;
             status: string;
             sessionId: string | null;
@@ -50,11 +50,11 @@ export declare class SupportService {
         }[];
     }>;
     getDispute(companionId: string, disputeId: string): Promise<{
-        description: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         companionId: string;
+        description: string;
         category: string;
         status: string;
         sessionId: string | null;
@@ -82,5 +82,21 @@ export declare class SupportService {
         id: string;
         title: string;
         content: string;
+    }>;
+    getChatHistory(companionId: string, ticketId: string): Promise<{
+        ticketId: string;
+        messages: {
+            id: string;
+            sender: string;
+            content: string;
+            timestamp: string;
+        }[];
+    }>;
+    appealDispute(companionId: string, disputeId: string, dto: {
+        reason: string;
+        evidenceUrls?: string[];
+    }): Promise<{
+        success: boolean;
+        message: string;
     }>;
 }

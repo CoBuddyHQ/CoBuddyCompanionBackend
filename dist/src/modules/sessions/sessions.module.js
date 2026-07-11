@@ -10,13 +10,16 @@ exports.SessionsModule = void 0;
 const common_1 = require("@nestjs/common");
 const sessions_controller_1 = require("./sessions.controller");
 const sessions_service_1 = require("./sessions.service");
+const session_gateway_1 = require("./session.gateway");
+const auth_module_1 = require("../auth/auth.module");
 let SessionsModule = class SessionsModule {
 };
 exports.SessionsModule = SessionsModule;
 exports.SessionsModule = SessionsModule = __decorate([
     (0, common_1.Module)({
+        imports: [auth_module_1.AuthModule],
         controllers: [sessions_controller_1.SessionsController],
-        providers: [sessions_service_1.SessionsService],
+        providers: [sessions_service_1.SessionsService, session_gateway_1.SessionGateway],
         exports: [sessions_service_1.SessionsService],
     })
 ], SessionsModule);

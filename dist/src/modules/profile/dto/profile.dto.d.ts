@@ -1,5 +1,17 @@
+export declare class ProfileSetupBulkDto {
+    bio?: string;
+    interestTags?: string[];
+    categories?: string[];
+    languages?: {
+        language: string;
+        proficiency?: string;
+    }[];
+}
 export declare class UpdateBasicProfileDto {
     displayName?: string;
+    tagline?: string;
+    gender?: string;
+    bio?: string;
     city?: string;
 }
 export declare class UpdateBioDto {

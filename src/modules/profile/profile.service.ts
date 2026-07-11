@@ -9,6 +9,8 @@ import {
   UpdatePricingDto,
   ToggleAvailabilityDto,
   ReorderPhotosDto,
+  ProfileSetupBulkDto,
+  UpdatePhotoDto,
 } from './dto/profile.dto';
 
 @Injectable()
@@ -36,6 +38,75 @@ export class ProfileService {
 
     // Return EXACT CompanionProfile interface from store.types.ts
     return this.toProfileResponse(companion);
+  }
+
+  // ── PUT /companion/profile/photo ──────────────────────────────────────────
+
+  async updatePhoto(companionId: string, dto: UpdatePhotoDto) {
+    const companion = await this.prisma.companion.update({
+      where: { id: companionId },
+      data: { photoUrl: dto.photoUrl },
+    });
+    return this.toProfileResponse(companion);
+  }
+
+  // ── POST /companion/profile/setup-bulk ────────────────────────────────────
+
+  async setupBulk(companionId: string, dto: ProfileSetupBulkDto) {
+    // We use a Prisma transaction to ensure all these operations succeed or fail together
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Update Bio and Interest Tags
+      const companionUpdateData: any = {};
+      if (dto.bio !== undefined) companionUpdateData.bio = dto.bio;
+      if (dto.interestTags !== undefined) companionUpdateData.interestTags = dto.interestTags;
+
+      if (Object.keys(companionUpdateData).length > 0) {
+        await tx.companion.update({
+          where: { id: companionId },
+          data: companionUpdateData,
+        });
+      }
+
+      // 2. Update Categories
+      if (dto.categories !== undefined) {
+        // Delete old categories
+        await tx.companionCategory.deleteMany({
+          where: { companionId },
+        });
+
+        if (dto.categories.length > 0) {
+          // Insert new categories
+          await tx.companionCategory.createMany({
+            data: dto.categories.map((c: any) => ({
+              companionId,
+              category: c,
+            })),
+          });
+        }
+      }
+
+      // 3. Update Languages
+      if (dto.languages !== undefined) {
+        // Delete old languages
+        await tx.companionLanguage.deleteMany({
+          where: { companionId },
+        });
+
+        if (dto.languages.length > 0) {
+          // Insert new languages
+          await tx.companionLanguage.createMany({
+            data: dto.languages.map(l => ({
+              companionId,
+              language: l.language,
+              proficiency: l.proficiency || 'conversational',
+            })),
+          });
+        }
+      }
+
+      // Return the updated profile (outside transaction for simplicity, or just success msg)
+      return { success: true, message: 'Profile setup data saved successfully in bulk.' };
+    });
   }
 
   // ── PUT /companion/profile/basic ──────────────────────────────────────────

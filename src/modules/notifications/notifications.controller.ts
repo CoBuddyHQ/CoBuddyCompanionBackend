@@ -32,12 +32,19 @@ export class NotificationsController {
     return this.notificationsService.getUnreadCount(c.sub);
   }
 
-  /** POST /companion/notifications/mark-all-read — Endpoints.NOTIFICATIONS.MARK_ALL_READ */
-  @Post('mark-all-read')
+  /** PATCH /companion/notifications/read-all — Endpoints.NOTIFICATIONS.MARK_ALL_READ */
+  @Patch('read-all')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark all notifications as read' })
   markAllRead(@CurrentCompanion() c: JwtPayload) {
     return this.notificationsService.markAllRead(c.sub);
+  }
+
+  /** GET /companion/notifications/announcements — Endpoints.NOTIFICATIONS.ANNOUNCEMENTS */
+  @Get('announcements')
+  @ApiOperation({ summary: 'Get system announcements' })
+  getAnnouncements(@CurrentCompanion() c: JwtPayload) {
+    return this.notificationsService.getAnnouncements(c.sub);
   }
 
   /** PATCH /companion/notifications/:notificationId/read — Endpoints.NOTIFICATIONS.MARK_READ */

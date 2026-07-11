@@ -96,6 +96,39 @@ let SupportService = class SupportService {
     async getHelpArticle(articleId) {
         return { id: articleId, title: 'Help Article', content: 'Details here...' };
     }
+    async getChatHistory(companionId, ticketId) {
+        const ticket = await this.prisma.supportTicket.findFirst({
+            where: { id: ticketId, companionId },
+        });
+        if (!ticket)
+            throw new common_1.NotFoundException('Ticket not found');
+        return {
+            ticketId,
+            messages: [
+                {
+                    id: 'msg-1',
+                    sender: 'system',
+                    content: 'Ticket opened. We will connect you to an agent shortly.',
+                    timestamp: ticket.createdAt.toISOString(),
+                },
+            ],
+        };
+    }
+    async appealDispute(companionId, disputeId, dto) {
+        const dispute = await this.prisma.supportTicket.findFirst({
+            where: { id: disputeId, companionId, category: 'DISPUTE' },
+        });
+        if (!dispute)
+            throw new common_1.NotFoundException('Dispute not found');
+        await this.prisma.supportTicket.update({
+            where: { id: disputeId },
+            data: {
+                description: dispute.description + '\n\n[APPEAL]: ' + dto.reason,
+                status: 'OPEN',
+            },
+        });
+        return { success: true, message: 'Dispute appeal submitted successfully.' };
+    }
 };
 exports.SupportService = SupportService;
 exports.SupportService = SupportService = __decorate([

@@ -25,10 +25,12 @@ let SupportController = class SupportController {
     getTickets(c) { return this.supportService.getTickets(c.sub); }
     getTicket(c, id) { return this.supportService.getTicket(c.sub, id); }
     createTicket(c, dto) { return this.supportService.createTicket(c.sub, dto); }
+    getChatHistory(c, id) { return this.supportService.getChatHistory(c.sub, id); }
     addTicketMessage(c, id, dto) { return this.supportService.addTicketMessage(c.sub, id, dto.message); }
     getDisputes(c) { return this.supportService.getDisputes(c.sub); }
     getDispute(c, id) { return this.supportService.getDispute(c.sub, id); }
     createDispute(c, dto) { return this.supportService.createDispute(c.sub, dto); }
+    appealDispute(c, id, dto) { return this.supportService.appealDispute(c.sub, id, dto); }
     uploadDisputeEvidence(c, id, dto) { return this.supportService.uploadDisputeEvidence(c.sub, id, dto.evidenceUrls); }
     getHelpArticles() { return this.supportService.getHelpArticles(); }
     getHelpArticle(id) { return this.supportService.getHelpArticle(id); }
@@ -52,7 +54,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], SupportController.prototype, "getTicket", null);
 __decorate([
-    (0, common_1.Post)('tickets'),
+    (0, common_1.Post)('tickets/create'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiOperation)({ summary: 'Create support ticket' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
@@ -61,6 +63,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], SupportController.prototype, "createTicket", null);
+__decorate([
+    (0, common_1.Get)('chat/:ticketId'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get chat history for a ticket' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('ticketId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], SupportController.prototype, "getChatHistory", null);
 __decorate([
     (0, common_1.Post)('tickets/:ticketId/messages'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
@@ -100,6 +111,17 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], SupportController.prototype, "createDispute", null);
 __decorate([
+    (0, common_1.Post)('disputes/:disputeId/appeal'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Appeal a dispute decision' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('disputeId')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", void 0)
+], SupportController.prototype, "appealDispute", null);
+__decorate([
     (0, common_1.Post)('disputes/:disputeId/evidence'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiOperation)({ summary: 'Upload dispute evidence' }),
@@ -118,7 +140,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], SupportController.prototype, "getHelpArticles", null);
 __decorate([
-    (0, common_1.Get)('help/articles/:articleId'),
+    (0, common_1.Get)('help/:articleId'),
     (0, swagger_1.ApiOperation)({ summary: 'Get help article' }),
     __param(0, (0, common_1.Param)('articleId')),
     __metadata("design:type", Function),

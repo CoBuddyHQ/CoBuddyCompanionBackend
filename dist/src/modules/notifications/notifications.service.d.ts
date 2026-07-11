@@ -36,4 +36,15 @@ export declare class NotificationsService {
         preferences: any;
         message: string;
     }>;
+    getAnnouncements(companionId: string): Promise<{
+        announcements: {
+            notificationId: any;
+            type: any;
+            title: any;
+            body: any;
+            isRead: any;
+            data: any;
+            createdAt: any;
+        }[];
+    }>;
 }

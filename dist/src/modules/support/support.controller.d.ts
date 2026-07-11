@@ -5,11 +5,11 @@ export declare class SupportController {
     constructor(supportService: SupportService);
     getTickets(c: JwtPayload): Promise<{
         tickets: {
-            description: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             companionId: string;
+            description: string;
             category: string;
             status: string;
             sessionId: string | null;
@@ -18,11 +18,11 @@ export declare class SupportController {
         }[];
     }>;
     getTicket(c: JwtPayload, id: string): Promise<{
-        description: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         companionId: string;
+        description: string;
         category: string;
         status: string;
         sessionId: string | null;
@@ -33,16 +33,25 @@ export declare class SupportController {
         ticketId: string;
         message: string;
     }>;
+    getChatHistory(c: JwtPayload, id: string): Promise<{
+        ticketId: string;
+        messages: {
+            id: string;
+            sender: string;
+            content: string;
+            timestamp: string;
+        }[];
+    }>;
     addTicketMessage(c: JwtPayload, id: string, dto: any): Promise<{
         message: string;
     }>;
     getDisputes(c: JwtPayload): Promise<{
         disputes: {
-            description: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             companionId: string;
+            description: string;
             category: string;
             status: string;
             sessionId: string | null;
@@ -51,11 +60,11 @@ export declare class SupportController {
         }[];
     }>;
     getDispute(c: JwtPayload, id: string): Promise<{
-        description: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         companionId: string;
+        description: string;
         category: string;
         status: string;
         sessionId: string | null;
@@ -64,6 +73,10 @@ export declare class SupportController {
     }>;
     createDispute(c: JwtPayload, dto: any): Promise<{
         disputeId: string;
+        message: string;
+    }>;
+    appealDispute(c: JwtPayload, id: string, dto: any): Promise<{
+        success: boolean;
         message: string;
     }>;
     uploadDisputeEvidence(c: JwtPayload, id: string, dto: any): Promise<{

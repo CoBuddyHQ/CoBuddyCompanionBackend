@@ -10,10 +10,17 @@ exports.SupportModule = void 0;
 const common_1 = require("@nestjs/common");
 const support_controller_1 = require("./support.controller");
 const support_service_1 = require("./support.service");
+const support_gateway_1 = require("./support.gateway");
+const auth_module_1 = require("../auth/auth.module");
 let SupportModule = class SupportModule {
 };
 exports.SupportModule = SupportModule;
 exports.SupportModule = SupportModule = __decorate([
-    (0, common_1.Module)({ controllers: [support_controller_1.SupportController], providers: [support_service_1.SupportService] })
+    (0, common_1.Module)({
+        imports: [auth_module_1.AuthModule],
+        controllers: [support_controller_1.SupportController],
+        providers: [support_service_1.SupportService, support_gateway_1.SupportGateway],
+        exports: [support_service_1.SupportService],
+    })
 ], SupportModule);
 //# sourceMappingURL=support.module.js.map

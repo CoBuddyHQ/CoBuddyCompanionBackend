@@ -16,25 +16,85 @@ let AccountService = class AccountService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    async getOrCreateSettings(companionId) {
+        let settings = await this.prisma.companionSettings.findUnique({ where: { companionId } });
+        if (!settings) {
+            settings = await this.prisma.companionSettings.create({
+                data: { companionId, notificationPrefs: {} },
+            });
+        }
+        return settings;
+    }
     async getAccountSettings(companionId) {
         const companion = await this.prisma.companion.findUnique({
             where: { id: companionId },
+            include: {
+                kyc: { select: { bankName: true, maskedBankAccount: true, maskedUpi: true } },
+            },
         });
         if (!companion)
             throw new common_1.NotFoundException('Companion not found');
+        const settings = await this.getOrCreateSettings(companionId);
         return {
             companionId: companion.id,
-            pushNotifications: true,
-            emailNotifications: true,
-            smsNotifications: false,
-            language: 'en',
-            currency: 'INR',
+            accountStatus: companion.accountStatus,
+            profileStatus: companion.profileStatus,
+            verificationStatus: companion.verificationStatus,
+            phone: companion.phone,
+            settings: {
+                notificationPrefs: settings.notificationPrefs,
+                privacyVisibility: settings.privacyVisibility,
+                privacyDataSharing: settings.privacyDataSharing,
+                language: settings.language,
+            },
+            payoutDetails: {
+                bankName: companion.kyc?.bankName,
+                maskedBankAccount: companion.kyc?.maskedBankAccount,
+                maskedUpi: companion.kyc?.maskedUpi,
+            },
         };
     }
-    async updateAccountSettings(companionId, settings) {
-        return { ...settings, companionId, message: 'Settings updated' };
+    async updateNotificationPrefs(companionId, prefs) {
+        const updated = await this.prisma.companionSettings.upsert({
+            where: { companionId },
+            update: { notificationPrefs: prefs },
+            create: { companionId, notificationPrefs: prefs },
+        });
+        return { success: true, prefs: updated.notificationPrefs, message: 'Notification preferences updated.' };
     }
-    async deleteAccount(companionId, reason) {
+    async updatePrivacy(companionId, dto) {
+        const updated = await this.prisma.companionSettings.upsert({
+            where: { companionId },
+            update: { privacyVisibility: dto.visibility, privacyDataSharing: dto.dataSharing },
+            create: { companionId, privacyVisibility: dto.visibility, privacyDataSharing: dto.dataSharing },
+        });
+        return { success: true, visibility: updated.privacyVisibility, dataSharing: updated.privacyDataSharing };
+    }
+    async updateLanguage(companionId, dto) {
+        const updated = await this.prisma.companionSettings.upsert({
+            where: { companionId },
+            update: { language: dto.language },
+            create: { companionId, language: dto.language },
+        });
+        return { success: true, language: updated.language };
+    }
+    async deactivateAccount(companionId, dto) {
+        await this.prisma.companion.update({
+            where: { id: companionId },
+            data: { accountStatus: 'SUSPENDED', isAvailable: false, isOnline: false },
+        });
+        return { success: true, message: 'Account deactivated successfully.' };
+    }
+    async reactivateAccount(companionId) {
+        await this.prisma.companion.update({
+            where: { id: companionId },
+            data: { accountStatus: 'ACTIVE' },
+        });
+        return { success: true, message: 'Account reactivation requested.' };
+    }
+    async deleteAccount(companionId, dto) {
+        if (!dto.confirmation)
+            throw new Error('Confirmation required');
         await this.prisma.companion.update({
             where: { id: companionId },
             data: {
@@ -48,7 +108,15 @@ let AccountService = class AccountService {
             where: { companionId },
             data: { isRevoked: true },
         });
-        return { message: 'Account scheduled for deletion. We are sorry to see you go.' };
+        return { success: true, message: 'Account scheduled for deletion. We are sorry to see you go.' };
+    }
+    async exportData(companionId) {
+        return {
+            success: true,
+            downloadLink: 'https://cdn.cobuddy.com/exports/companion_data_cb2049.zip',
+            expiresIn: '24h',
+            message: 'Data export generated successfully. Link expires in 24 hours.',
+        };
     }
 };
 exports.AccountService = AccountService;

@@ -18,80 +18,197 @@ const swagger_1 = require("@nestjs/swagger");
 const kyc_service_1 = require("./kyc.service");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
 const current_companion_decorator_1 = require("../../common/decorators/current-companion.decorator");
+const kyc_dto_1 = require("./dto/kyc.dto");
 let KycController = class KycController {
     constructor(kycService) {
         this.kycService = kycService;
     }
+    saveBasicDetails(c, dto) {
+        return this.kycService.saveBasicDetails(c.sub, dto);
+    }
     getStatus(c) {
         return this.kycService.getKycStatus(c.sub);
     }
-    uploadIdentity(c, dto) {
-        return this.kycService.uploadIdentity(c.sub, dto);
+    saveDraft(c, dto) {
+        return this.kycService.saveDraft(c.sub, dto);
     }
-    uploadSelfie(c, dto) {
-        return this.kycService.uploadSelfie(c.sub, dto);
+    submitGovernmentId(c, dto) {
+        return this.kycService.submitGovernmentId(c.sub, dto);
     }
-    uploadAddress(c, dto) {
-        return this.kycService.uploadAddress(c.sub, dto);
+    submitSelfie(c, dto) {
+        return this.kycService.submitSelfie(c.sub, dto);
     }
-    uploadPolice(c, dto) {
-        return this.kycService.uploadPolice(c.sub, dto);
+    submitAddress(c, dto) {
+        return this.kycService.submitAddress(c.sub, dto);
+    }
+    savePan(c, dto) {
+        return this.kycService.savePan(c.sub, dto);
+    }
+    saveBank(c, dto) {
+        return this.kycService.saveBank(c.sub, dto);
+    }
+    verifyBank(c, dto) {
+        return this.kycService.verifyBank(c.sub, dto);
+    }
+    saveUpi(c, dto) {
+        return this.kycService.saveUpi(c.sub, dto);
+    }
+    saveEmergencyContact(c, dto) {
+        return this.kycService.saveEmergencyContact(c.sub, dto);
+    }
+    saveDeclaration(c, dto) {
+        return this.kycService.saveDeclaration(c.sub, dto);
+    }
+    submitKyc(c) {
+        return this.kycService.submitKyc(c.sub);
+    }
+    resubmitKyc(c, dto) {
+        return this.kycService.resubmitKyc(c.sub, dto);
     }
 };
 exports.KycController = KycController;
 __decorate([
-    (0, common_1.Get)('status'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get KYC status' }),
+    (0, common_1.Post)('companion/kyc/basic-details'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Save basic details (Name, DOB, Gender, Email) — BasicDetailsScreen' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, kyc_dto_1.BasicDetailsDto]),
+    __metadata("design:returntype", void 0)
+], KycController.prototype, "saveBasicDetails", null);
+__decorate([
+    (0, common_1.Get)('companion/kyc/status'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get full KYC + verification status — VerificationHubScreen' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], KycController.prototype, "getStatus", null);
 __decorate([
-    (0, common_1.Post)('identity'),
+    (0, common_1.Post)('companion/application/draft'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, swagger_1.ApiOperation)({ summary: 'Upload identity document' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Save application progress as draft — ApplicationSavedDraftScreen' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
-], KycController.prototype, "uploadIdentity", null);
+], KycController.prototype, "saveDraft", null);
 __decorate([
-    (0, common_1.Post)('selfie'),
+    (0, common_1.Post)('companion/kyc/government-id'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, swagger_1.ApiOperation)({ summary: 'Upload selfie video' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Upload government ID — GovernmentIDUploadScreen' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
-], KycController.prototype, "uploadSelfie", null);
+], KycController.prototype, "submitGovernmentId", null);
 __decorate([
-    (0, common_1.Post)('address'),
+    (0, common_1.Post)('companion/kyc/selfie'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, swagger_1.ApiOperation)({ summary: 'Upload address document' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Submit selfie/liveness video — SelfieCaptureScreen' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
-], KycController.prototype, "uploadAddress", null);
+], KycController.prototype, "submitSelfie", null);
 __decorate([
-    (0, common_1.Post)('police'),
+    (0, common_1.Post)('companion/kyc/address'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, swagger_1.ApiOperation)({ summary: 'Upload police verification' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Submit address document — AddressVerificationScreen' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
-], KycController.prototype, "uploadPolice", null);
+], KycController.prototype, "submitAddress", null);
+__decorate([
+    (0, common_1.Post)('companion/kyc/pan'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Save PAN details (masked) — PANTaxDetailsScreen' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], KycController.prototype, "savePan", null);
+__decorate([
+    (0, common_1.Post)('companion/kyc/bank'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Save bank account (last 4 digits only) — AddBankAccountScreen' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], KycController.prototype, "saveBank", null);
+__decorate([
+    (0, common_1.Post)('companion/kyc/bank/verify'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Verify bank account via penny drop — BankAccountVerificationScreen' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], KycController.prototype, "verifyBank", null);
+__decorate([
+    (0, common_1.Post)('companion/kyc/upi'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Save UPI ID (masked) — UPIDetailsScreen' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], KycController.prototype, "saveUpi", null);
+__decorate([
+    (0, common_1.Post)('companion/kyc/emergency-contact'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Save emergency contact — EmergencyContactSetupScreen' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], KycController.prototype, "saveEmergencyContact", null);
+__decorate([
+    (0, common_1.Post)('companion/kyc/declaration'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Confirm background declaration — BackgroundDeclarationScreen' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], KycController.prototype, "saveDeclaration", null);
+__decorate([
+    (0, common_1.Post)('companion/kyc/submit'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Final KYC submission — SubmitProfileForApprovalScreen' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], KycController.prototype, "submitKyc", null);
+__decorate([
+    (0, common_1.Post)('companion/kyc/resubmit'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Resubmit after rejection — ResubmitVerificationScreen' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], KycController.prototype, "resubmitKyc", null);
 exports.KycController = KycController = __decorate([
     (0, swagger_1.ApiTags)('KYC'),
     (0, swagger_1.ApiBearerAuth)('companion-jwt'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Controller)('companion/kyc'),
+    (0, common_1.Controller)('api/v1'),
     __metadata("design:paramtypes", [kyc_service_1.KycService])
 ], KycController);
 //# sourceMappingURL=kyc.controller.js.map

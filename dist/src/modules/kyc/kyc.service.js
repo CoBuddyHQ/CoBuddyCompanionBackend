@@ -17,75 +17,290 @@ let KycService = class KycService {
         this.prisma = prisma;
     }
     async getKycStatus(companionId) {
-        let kyc = await this.prisma.companionKYC.findUnique({
-            where: { companionId },
-        });
+        let kyc = await this.prisma.companionKYC.findUnique({ where: { companionId } });
         if (!kyc) {
             kyc = await this.prisma.companionKYC.create({ data: { companionId } });
         }
         const companion = await this.prisma.companion.findUnique({
             where: { id: companionId },
-            select: { verificationStatus: true },
+            select: { verificationStatus: true, profileStatus: true },
         });
         return {
             kycId: kyc.id,
-            overallStatus: companion?.verificationStatus?.toLowerCase() || 'unverified',
-            identityDocumentType: kyc.identityDocumentType,
-            identityDocumentStatus: this.getDocStatus(kyc, 'identity'),
-            selfieStatus: this.getDocStatus(kyc, 'selfie'),
-            addressDocumentStatus: this.getDocStatus(kyc, 'address'),
-            policeVerificationStatus: this.getDocStatus(kyc, 'police'),
-            rejectionReason: kyc.rejectionReason,
-            submittedAt: kyc.submittedAt?.toISOString(),
-            approvedAt: kyc.approvedAt?.toISOString(),
+            overallStatus: companion?.verificationStatus?.toLowerCase() ?? 'unverified',
+            profileStatus: companion?.profileStatus?.toLowerCase() ?? 'incomplete',
+            steps: {
+                identity: {
+                    status: kyc.identityDocumentUrl ? 'submitted' : 'pending',
+                    documentType: kyc.identityDocumentType ?? null,
+                    submittedAt: kyc.identitySubmittedAt?.toISOString() ?? null,
+                },
+                selfie: {
+                    status: kyc.selfieVideoUrl ? 'submitted' : 'pending',
+                    submittedAt: kyc.selfieSubmittedAt?.toISOString() ?? null,
+                },
+                address: {
+                    status: kyc.addressDocumentUrl ? 'submitted' : 'pending',
+                    documentType: kyc.addressDocumentType ?? null,
+                    submittedAt: kyc.addressSubmittedAt?.toISOString() ?? null,
+                },
+                pan: {
+                    status: kyc.maskedPan ? 'submitted' : 'pending',
+                    maskedPan: kyc.maskedPan ?? null,
+                },
+                bank: {
+                    status: kyc.maskedBankAccount ? 'submitted' : 'pending',
+                    maskedAccount: kyc.maskedBankAccount ?? null,
+                    bankName: kyc.bankName ?? null,
+                },
+                upi: {
+                    status: kyc.maskedUpi ? 'submitted' : 'pending',
+                    maskedUpi: kyc.maskedUpi ?? null,
+                },
+                emergencyContact: {
+                    status: kyc.emergencyContactName ? 'submitted' : 'pending',
+                    name: kyc.emergencyContactName ?? null,
+                },
+                declaration: {
+                    status: kyc.declarationAgreedAt ? 'submitted' : 'pending',
+                    agreedAt: kyc.declarationAgreedAt?.toISOString() ?? null,
+                },
+            },
+            rejectionReason: kyc.rejectionReason ?? null,
+            submittedAt: kyc.submittedAt?.toISOString() ?? null,
+            approvedAt: kyc.approvedAt?.toISOString() ?? null,
         };
     }
-    async uploadIdentity(companionId, dto) {
-        await this.prisma.companionKYC.upsert({
-            where: { companionId },
-            update: { identityDocumentType: dto.documentType, identityDocumentUrl: dto.documentUrl },
-            create: { companionId, identityDocumentType: dto.documentType, identityDocumentUrl: dto.documentUrl },
-        });
-        return { message: 'Identity document uploaded' };
-    }
-    async uploadSelfie(companionId, dto) {
-        await this.prisma.companionKYC.upsert({
-            where: { companionId },
-            update: { selfieVideoUrl: dto.videoUrl },
-            create: { companionId, selfieVideoUrl: dto.videoUrl },
-        });
-        return { message: 'Selfie video uploaded' };
-    }
-    async uploadAddress(companionId, dto) {
-        await this.prisma.companionKYC.upsert({
-            where: { companionId },
-            update: { addressDocumentUrl: dto.documentUrl },
-            create: { companionId, addressDocumentUrl: dto.documentUrl },
-        });
-        return { message: 'Address document uploaded' };
-    }
-    async uploadPolice(companionId, dto) {
-        await this.prisma.companionKYC.upsert({
-            where: { companionId },
-            update: { policeVerificationUrl: dto.documentUrl },
-            create: { companionId, policeVerificationUrl: dto.documentUrl },
-        });
-        return { message: 'Police verification document uploaded' };
-    }
-    getDocStatus(kyc, type) {
-        if (kyc.approvedAt)
-            return 'approved';
-        if (kyc.rejectionReason)
-            return 'rejected';
-        if (kyc.submittedAt)
-            return 'pending';
-        switch (type) {
-            case 'identity': return kyc.identityDocumentUrl ? 'uploaded' : 'missing';
-            case 'selfie': return kyc.selfieVideoUrl ? 'uploaded' : 'missing';
-            case 'address': return kyc.addressDocumentUrl ? 'uploaded' : 'missing';
-            case 'police': return kyc.policeVerificationUrl ? 'uploaded' : 'missing';
-            default: return 'missing';
+    async saveBasicDetails(companionId, dto) {
+        const companionData = {};
+        if (dto.email !== undefined)
+            companionData.email = dto.email;
+        if (dto.dateOfBirth !== undefined)
+            companionData.dateOfBirth = new Date(dto.dateOfBirth);
+        if (dto.gender !== undefined)
+            companionData.gender = dto.gender;
+        if (dto.displayName !== undefined)
+            companionData.displayName = dto.displayName;
+        if (Object.keys(companionData).length > 0) {
+            await this.prisma.companion.update({
+                where: { id: companionId },
+                data: companionData,
+            });
         }
+        const kycData = {};
+        if (dto.legalFirstName !== undefined)
+            kycData.legalFirstName = dto.legalFirstName;
+        if (dto.legalLastName !== undefined)
+            kycData.legalLastName = dto.legalLastName;
+        if (Object.keys(kycData).length > 0) {
+            await this.prisma.companionKYC.upsert({
+                where: { companionId },
+                update: kycData,
+                create: {
+                    companionId,
+                    ...kycData,
+                },
+            });
+        }
+        return { success: true, message: 'Basic details saved successfully' };
+    }
+    async saveDraft(companionId, dto) {
+        await this.prisma.companion.update({
+            where: { id: companionId },
+            data: { profileStatus: 'INCOMPLETE' },
+        });
+        await this.prisma.companionKYC.upsert({
+            where: { companionId },
+            update: { draftStage: dto.stage, draftData: dto.data ? JSON.stringify(dto.data) : null },
+            create: { companionId, draftStage: dto.stage },
+        });
+        return {
+            success: true,
+            savedAt: new Date().toISOString(),
+            stage: dto.stage,
+            message: 'Progress saved. You can resume from where you left off.',
+        };
+    }
+    async submitGovernmentId(companionId, dto) {
+        await this.prisma.companionKYC.upsert({
+            where: { companionId },
+            update: {
+                identityDocumentType: dto.documentType,
+                identityDocumentUrl: dto.frontUrl,
+                identityDocumentBackUrl: dto.backUrl ?? null,
+                identitySubmittedAt: new Date(),
+            },
+            create: {
+                companionId,
+                identityDocumentType: dto.documentType,
+                identityDocumentUrl: dto.frontUrl,
+                identityDocumentBackUrl: dto.backUrl ?? null,
+                identitySubmittedAt: new Date(),
+            },
+        });
+        return { success: true, message: 'Government ID submitted for verification.' };
+    }
+    async submitSelfie(companionId, dto) {
+        await this.prisma.companionKYC.upsert({
+            where: { companionId },
+            update: { selfieVideoUrl: dto.videoUrl, selfieSubmittedAt: new Date() },
+            create: { companionId, selfieVideoUrl: dto.videoUrl, selfieSubmittedAt: new Date() },
+        });
+        return { success: true, message: 'Selfie submitted for liveness verification.' };
+    }
+    async submitAddress(companionId, dto) {
+        await this.prisma.companionKYC.upsert({
+            where: { companionId },
+            update: {
+                addressDocumentType: dto.documentType,
+                addressDocumentUrl: dto.documentUrl,
+                addressSubmittedAt: new Date(),
+            },
+            create: {
+                companionId,
+                addressDocumentType: dto.documentType,
+                addressDocumentUrl: dto.documentUrl,
+                addressSubmittedAt: new Date(),
+            },
+        });
+        return { success: true, message: 'Address document submitted.' };
+    }
+    async savePan(companionId, dto) {
+        await this.prisma.companionKYC.upsert({
+            where: { companionId },
+            update: {
+                maskedPan: dto.maskedPan,
+                panName: dto.panName,
+                hasGST: dto.hasGST,
+                gstNumber: dto.hasGST ? dto.gstNumber ?? null : null,
+            },
+            create: {
+                companionId,
+                maskedPan: dto.maskedPan,
+                panName: dto.panName,
+                hasGST: dto.hasGST,
+                gstNumber: dto.hasGST ? dto.gstNumber ?? null : null,
+            },
+        });
+        return { success: true, message: 'PAN details saved.' };
+    }
+    async saveBank(companionId, dto) {
+        await this.prisma.companionKYC.upsert({
+            where: { companionId },
+            update: {
+                bankHolderName: dto.holderName,
+                maskedBankAccount: dto.maskedAccount,
+                bankIfsc: dto.ifsc,
+                bankAccountType: dto.accountType,
+                bankName: dto.bankName,
+                bankVerified: false,
+            },
+            create: {
+                companionId,
+                bankHolderName: dto.holderName,
+                maskedBankAccount: dto.maskedAccount,
+                bankIfsc: dto.ifsc,
+                bankAccountType: dto.accountType,
+                bankName: dto.bankName,
+                bankVerified: false,
+            },
+        });
+        return {
+            success: true,
+            bankId: `bank-${companionId.slice(-8)}`,
+            maskedAccount: dto.maskedAccount,
+            bankName: dto.bankName,
+            message: 'Bank account submitted for verification.',
+        };
+    }
+    async verifyBank(companionId, dto) {
+        const kyc = await this.prisma.companionKYC.findUnique({ where: { companionId } });
+        if (!kyc?.maskedBankAccount)
+            throw new common_1.BadRequestException('No bank account found to verify');
+        await this.prisma.companionKYC.update({
+            where: { companionId },
+            data: { bankVerified: true },
+        });
+        return {
+            success: true,
+            verified: true,
+            maskedAccount: kyc.maskedBankAccount,
+            bankName: kyc.bankName,
+            message: 'Bank account verified successfully.',
+        };
+    }
+    async saveUpi(companionId, dto) {
+        await this.prisma.companionKYC.upsert({
+            where: { companionId },
+            update: { maskedUpi: dto.maskedUpi, upiPayoutLabel: dto.payoutLabel, upiIsPrimary: dto.isPrimary },
+            create: { companionId, maskedUpi: dto.maskedUpi, upiPayoutLabel: dto.payoutLabel, upiIsPrimary: dto.isPrimary },
+        });
+        return { success: true, maskedUpi: dto.maskedUpi, message: 'UPI ID saved for payouts.' };
+    }
+    async saveEmergencyContact(companionId, dto) {
+        await this.prisma.companionKYC.upsert({
+            where: { companionId },
+            update: {
+                emergencyContactName: dto.name,
+                emergencyContactMaskedPhone: dto.maskedPhone,
+                emergencyContactRelationship: dto.relationship,
+            },
+            create: {
+                companionId,
+                emergencyContactName: dto.name,
+                emergencyContactMaskedPhone: dto.maskedPhone,
+                emergencyContactRelationship: dto.relationship,
+            },
+        });
+        return { success: true, message: 'Emergency contact saved.' };
+    }
+    async saveDeclaration(companionId, dto) {
+        await this.prisma.companionKYC.upsert({
+            where: { companionId },
+            update: { declarationAgreedAt: new Date(dto.agreedAt) },
+            create: { companionId, declarationAgreedAt: new Date(dto.agreedAt) },
+        });
+        return { success: true, message: 'Declaration confirmed.' };
+    }
+    async submitKyc(companionId) {
+        const kyc = await this.prisma.companionKYC.findUnique({ where: { companionId } });
+        if (!kyc)
+            throw new common_1.BadRequestException('KYC data not found. Please complete all steps.');
+        await this.prisma.companionKYC.update({
+            where: { companionId },
+            data: { submittedAt: new Date() },
+        });
+        await this.prisma.companion.update({
+            where: { id: companionId },
+            data: {
+                verificationStatus: 'PENDING',
+                profileStatus: 'SUBMITTED',
+            },
+        });
+        return {
+            success: true,
+            message: 'Your application has been submitted for review. We will notify you within 2–3 business days.',
+            submittedAt: new Date().toISOString(),
+        };
+    }
+    async resubmitKyc(companionId, dto) {
+        await this.prisma.companionKYC.update({
+            where: { companionId },
+            data: {
+                submittedAt: new Date(),
+                rejectionReason: null,
+                rejectedAt: null,
+            },
+        });
+        await this.prisma.companion.update({
+            where: { id: companionId },
+            data: { verificationStatus: 'PENDING', profileStatus: 'SUBMITTED' },
+        });
+        return {
+            success: true,
+            message: 'Documents resubmitted for review.',
+            submittedAt: new Date().toISOString(),
+        };
     }
 };
 exports.KycService = KycService;

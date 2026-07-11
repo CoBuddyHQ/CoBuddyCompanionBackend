@@ -22,54 +22,96 @@ let AvailabilityController = class AvailabilityController {
     constructor(availabilityService) {
         this.availabilityService = availabilityService;
     }
-    getSchedule(c) {
-        return this.availabilityService.getSchedule(c.sub);
+    getSlots(c) {
+        return this.availabilityService.getSlots(c.sub);
     }
-    updateSchedule(c, dto) {
-        return this.availabilityService.updateSchedule(c.sub, dto);
+    addSlot(c, dto) {
+        return this.availabilityService.addSlot(c.sub, dto);
     }
-    getHolidays(c) {
-        return this.availabilityService.getHolidays(c.sub);
+    updateSlot(c, slotId, dto) {
+        return this.availabilityService.updateSlot(c.sub, slotId, dto);
     }
-    setHolidays(c, dto) {
-        return this.availabilityService.setHolidays(c.sub, dto);
+    deleteSlot(c, slotId) {
+        return this.availabilityService.deleteSlot(c.sub, slotId);
+    }
+    addRecurring(c, dto) {
+        return this.availabilityService.addRecurring(c.sub, dto);
+    }
+    blockTime(c, dto) {
+        return this.availabilityService.blockTime(c.sub, dto);
+    }
+    setVacationMode(c, dto) {
+        return this.availabilityService.setVacationMode(c.sub, dto);
     }
 };
 exports.AvailabilityController = AvailabilityController;
 __decorate([
-    (0, common_1.Get)('schedule'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get regular schedule' }),
+    (0, common_1.Get)('slots'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all slots, blocked times, vacation mode' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
-], AvailabilityController.prototype, "getSchedule", null);
+], AvailabilityController.prototype, "getSlots", null);
 __decorate([
-    (0, common_1.Put)('schedule'),
-    (0, swagger_1.ApiOperation)({ summary: 'Update regular schedule' }),
+    (0, common_1.Post)('slots/add'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Add a time slot' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
-], AvailabilityController.prototype, "updateSchedule", null);
+], AvailabilityController.prototype, "addSlot", null);
 __decorate([
-    (0, common_1.Get)('holidays'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get planned holidays' }),
+    (0, common_1.Put)('slots/:slotId'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update a specific slot' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('slotId')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, String, Object]),
     __metadata("design:returntype", void 0)
-], AvailabilityController.prototype, "getHolidays", null);
+], AvailabilityController.prototype, "updateSlot", null);
 __decorate([
-    (0, common_1.Put)('holidays'),
-    (0, swagger_1.ApiOperation)({ summary: 'Update planned holidays' }),
+    (0, common_1.Delete)('slots/:slotId'),
+    (0, swagger_1.ApiOperation)({ summary: 'Delete a specific slot' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('slotId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], AvailabilityController.prototype, "deleteSlot", null);
+__decorate([
+    (0, common_1.Post)('recurring/add'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Add recurring weekly schedule' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
-], AvailabilityController.prototype, "setHolidays", null);
+], AvailabilityController.prototype, "addRecurring", null);
+__decorate([
+    (0, common_1.Post)('block'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Block a specific date/time' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], AvailabilityController.prototype, "blockTime", null);
+__decorate([
+    (0, common_1.Post)('vacation'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Enable or disable vacation mode' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], AvailabilityController.prototype, "setVacationMode", null);
 exports.AvailabilityController = AvailabilityController = __decorate([
     (0, swagger_1.ApiTags)('Availability'),
     (0, swagger_1.ApiBearerAuth)('companion-jwt'),

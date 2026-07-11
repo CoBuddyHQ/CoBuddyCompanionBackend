@@ -9,7 +9,8 @@ import { JwtPayload } from '../auth/strategies/jwt.strategy';
 import {
   UpdateBasicProfileDto, UpdateBioDto, UpdateCategoriesDto,
   UpdateLanguagesDto, UpdateServiceAreasDto, UpdatePricingDto,
-  ToggleAvailabilityDto, ReorderPhotosDto,
+  ToggleAvailabilityDto, ReorderPhotosDto, ProfileSetupBulkDto,
+  UpdatePhotoDto,
 } from './dto/profile.dto';
 
 @ApiTags('Profile')
@@ -18,6 +19,21 @@ import {
 @Controller('companion/profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
+
+  /** PUT /api/v1/companion/profile/photo — Endpoints.PROFILE.UPDATE_PHOTO */
+  @Put('photo')
+  @ApiOperation({ summary: 'Update primary profile photo' })
+  updatePhoto(@CurrentCompanion() c: JwtPayload, @Body() dto: UpdatePhotoDto) {
+    return this.profileService.updatePhoto(c.sub, dto);
+  }
+
+  /** POST /api/v1/companion/profile/setup-bulk — Endpoints.PROFILE.SETUP_BULK */
+  @Post('setup-bulk')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Save bio, interests, categories, and languages in one bulk request' })
+  setupBulk(@CurrentCompanion() c: JwtPayload, @Body() dto: ProfileSetupBulkDto) {
+    return this.profileService.setupBulk(c.sub, dto);
+  }
 
   /** GET /api/v1/companion/profile — Endpoints.PROFILE.GET */
   @Get()

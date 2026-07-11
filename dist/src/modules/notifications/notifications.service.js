@@ -78,6 +78,16 @@ let NotificationsService = class NotificationsService {
     async updateNotificationPreferences(companionId, preferences) {
         return { companionId, preferences, message: 'Notification preferences updated' };
     }
+    async getAnnouncements(companionId) {
+        const announcements = await this.prisma.notification.findMany({
+            where: { type: 'SYSTEM_MESSAGE', isRead: false },
+            orderBy: { createdAt: 'desc' },
+            take: 10,
+        });
+        return {
+            announcements: announcements.map(n => this.toNotificationResponse(n)),
+        };
+    }
 };
 exports.NotificationsService = NotificationsService;
 exports.NotificationsService = NotificationsService = __decorate([

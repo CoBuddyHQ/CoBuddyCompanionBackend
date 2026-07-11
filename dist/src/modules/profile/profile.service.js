@@ -33,6 +33,56 @@ let ProfileService = ProfileService_1 = class ProfileService {
             throw new common_1.NotFoundException('Companion not found');
         return this.toProfileResponse(companion);
     }
+    async updatePhoto(companionId, dto) {
+        const companion = await this.prisma.companion.update({
+            where: { id: companionId },
+            data: { photoUrl: dto.photoUrl },
+        });
+        return this.toProfileResponse(companion);
+    }
+    async setupBulk(companionId, dto) {
+        return this.prisma.$transaction(async (tx) => {
+            const companionUpdateData = {};
+            if (dto.bio !== undefined)
+                companionUpdateData.bio = dto.bio;
+            if (dto.interestTags !== undefined)
+                companionUpdateData.interestTags = dto.interestTags;
+            if (Object.keys(companionUpdateData).length > 0) {
+                await tx.companion.update({
+                    where: { id: companionId },
+                    data: companionUpdateData,
+                });
+            }
+            if (dto.categories !== undefined) {
+                await tx.companionCategory.deleteMany({
+                    where: { companionId },
+                });
+                if (dto.categories.length > 0) {
+                    await tx.companionCategory.createMany({
+                        data: dto.categories.map((c) => ({
+                            companionId,
+                            category: c,
+                        })),
+                    });
+                }
+            }
+            if (dto.languages !== undefined) {
+                await tx.companionLanguage.deleteMany({
+                    where: { companionId },
+                });
+                if (dto.languages.length > 0) {
+                    await tx.companionLanguage.createMany({
+                        data: dto.languages.map(l => ({
+                            companionId,
+                            language: l.language,
+                            proficiency: l.proficiency || 'conversational',
+                        })),
+                    });
+                }
+            }
+            return { success: true, message: 'Profile setup data saved successfully in bulk.' };
+        });
+    }
     async updateBasic(companionId, dto) {
         const companion = await this.prisma.companion.update({
             where: { id: companionId },

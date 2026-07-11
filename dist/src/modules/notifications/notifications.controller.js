@@ -31,6 +31,9 @@ let NotificationsController = class NotificationsController {
     markAllRead(c) {
         return this.notificationsService.markAllRead(c.sub);
     }
+    getAnnouncements(c) {
+        return this.notificationsService.getAnnouncements(c.sub);
+    }
     markRead(c, id) {
         return this.notificationsService.markRead(c.sub, id);
     }
@@ -61,7 +64,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], NotificationsController.prototype, "getUnreadCount", null);
 __decorate([
-    (0, common_1.Post)('mark-all-read'),
+    (0, common_1.Patch)('read-all'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiOperation)({ summary: 'Mark all notifications as read' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
@@ -69,6 +72,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], NotificationsController.prototype, "markAllRead", null);
+__decorate([
+    (0, common_1.Get)('announcements'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get system announcements' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], NotificationsController.prototype, "getAnnouncements", null);
 __decorate([
     (0, common_1.Patch)(':notificationId/read'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),

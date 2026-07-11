@@ -135,9 +135,14 @@ model Companion {
   id                 String             @id @default(cuid())
   phone              String             @unique
   countryCode        String             @default("+91")
+  email              String?            @unique
+  dateOfBirth        DateTime?
   displayName        String?
+  tagline            String?
+  gender             String?
   city               String?
   bio                String?            @db.Text
+  interestTags       String[]           @default([])
   photoUrl           String?
   hourlyRate         Decimal?           @db.Decimal(10, 2)
   profileStatus      ProfileStatus      @default(INCOMPLETE)
@@ -163,6 +168,7 @@ model Companion {
   kyc                CompanionKYC?
   pin                CompanionPIN?
   biometrics         CompanionBiometric[]
+  settings           CompanionSettings?
   refreshTokens      RefreshToken[]
   otpSessions        OTPSession[]
   sessions           Session[]
@@ -180,11 +186,38 @@ model Companion {
   notifications      Notification[]
   pushTokens         PushToken[]
   timeSlots          TimeSlot[]
-  holidays           Holiday[]
+  blockedTimes       BlockedTime[]
+  vacationMode       VacationMode?
   moduleCompletions  ModuleCompletion[]
   uploadedFiles      UploadedFile[]
 
   @@map("companions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACCOUNT SETTINGS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CompanionSettings {
+  id                   String    @id @default(cuid())
+  companionId          String    @unique
+  notificationPrefs    Json      @default("{}") // Store { new_booking_push: true, etc. }
+  privacyVisibility    String    @default("public")
+  privacyDataSharing   Boolean   @default(true)
+  language             String    @default("en")
+
+  // Onboarding tracking & consents
+  termsAccepted        Boolean   @default(false)
+  safetyRulesAccepted  Boolean   @default(false)
+  locationEnabled      Boolean   @default(false)
+  notificationsEnabled Boolean   @default(false)
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  companion            Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("companion_settings")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -220,11 +253,12 @@ model RefreshToken {
 }
 
 model CompanionPIN {
-  id          String    @id @default(cuid())
-  companionId String    @unique
-  pinHash     String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  companionId        String    @unique
+  pinHash            String
+  biometricsEnabled  Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
@@ -295,24 +329,75 @@ model CompanionPhoto {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model CompanionKYC {
-  id                     String    @id @default(cuid())
-  companionId            String    @unique
-  identityDocumentType   String?
-  identityDocumentUrl    String?
-  selfieVideoUrl         String?
-  addressDocumentUrl     String?
-  policeVerificationUrl  String?
-  rejectionReason        String?
-  submittedAt            DateTime?
-  approvedAt             DateTime?
-  rejectedAt             DateTime?
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  id                              String    @id @default(cuid())
+  companionId                     String    @unique
 
-  companion              Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  // Basic Info
+  legalFirstName                  String?
+  legalLastName                   String?
+
+  // Identity document
+  identityDocumentType            String?
+  identityDocumentUrl             String?
+  identityDocumentBackUrl         String?
+  identitySubmittedAt             DateTime?
+
+  // Selfie / liveness
+  selfieVideoUrl                  String?
+  selfieSubmittedAt               DateTime?
+
+  // Address
+  addressDocumentType             String?
+  addressDocumentUrl              String?
+  addressSubmittedAt              DateTime?
+
+  // Police verification
+  policeVerificationUrl           String?
+
+  // PAN (privacy: masked only)
+  maskedPan                       String?
+  panName                         String?
+  hasGST                          Boolean   @default(false)
+  gstNumber                       String?
+
+  // Bank account (privacy: last 4 digits only)
+  bankHolderName                  String?
+  maskedBankAccount               String?   // e.g. "•••• 4821"
+  bankIfsc                        String?
+  bankAccountType                 String?   // savings | current
+  bankName                        String?
+  bankVerified                    Boolean   @default(false)
+
+  // UPI (privacy: masked only)
+  maskedUpi                       String?   // e.g. "ra••••@okaxis"
+  upiPayoutLabel                  String?
+  upiIsPrimary                    Boolean   @default(true)
+
+  // Emergency contact (from KYC form)
+  emergencyContactName            String?
+  emergencyContactMaskedPhone     String?
+  emergencyContactRelationship    String?
+
+  // Declaration
+  declarationAgreedAt             DateTime?
+
+  // Draft resume support
+  draftStage                      String?
+  draftData                       String?   @db.Text
+
+  // Review lifecycle
+  rejectionReason                 String?
+  submittedAt                     DateTime?
+  approvedAt                      DateTime?
+  rejectedAt                      DateTime?
+  createdAt                       DateTime  @default(now())
+  updatedAt                       DateTime  @updatedAt
+
+  companion                       Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("companion_kyc")
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BOOKING REQUESTS
@@ -671,17 +756,30 @@ model TimeSlot {
   @@map("time_slots")
 }
 
-model Holiday {
+model BlockedTime {
   id          String    @id @default(cuid())
   companionId String
   date        DateTime  @db.Date
-  note        String?
+  reason      String?
   createdAt   DateTime  @default(now())
 
   companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@unique([companionId, date])
-  @@map("holidays")
+  @@map("blocked_times")
+}
+
+model VacationMode {
+  id          String    @id @default(cuid())
+  companionId String    @unique
+  enabled     Boolean   @default(false)
+  startDate   DateTime? @db.Date
+  endDate     DateTime? @db.Date
+  updatedAt   DateTime  @updatedAt
+
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("vacation_modes")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

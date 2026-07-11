@@ -19,7 +19,7 @@ async function bootstrap() {
     app.use((0, helmet_1.default)());
     app.use(compression());
     app.enableCors({
-        origin: process.env.CORS_ORIGIN || '*',
+        origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*',
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         credentials: true,
     });

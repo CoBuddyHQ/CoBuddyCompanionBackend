@@ -1,9 +1,36 @@
 import { ProfileService } from './profile.service';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
-import { UpdateBasicProfileDto, UpdateBioDto, UpdateCategoriesDto, UpdateLanguagesDto, UpdateServiceAreasDto, UpdatePricingDto, ToggleAvailabilityDto, ReorderPhotosDto } from './dto/profile.dto';
+import { UpdateBasicProfileDto, UpdateBioDto, UpdateCategoriesDto, UpdateLanguagesDto, UpdateServiceAreasDto, UpdatePricingDto, ToggleAvailabilityDto, ReorderPhotosDto, ProfileSetupBulkDto, UpdatePhotoDto } from './dto/profile.dto';
 export declare class ProfileController {
     private readonly profileService;
     constructor(profileService: ProfileService);
+    updatePhoto(c: JwtPayload, dto: UpdatePhotoDto): Promise<{
+        companionId: any;
+        displayName: any;
+        maskedPhone: string;
+        city: any;
+        serviceAreas: any;
+        categories: any;
+        languages: any;
+        bio: any;
+        hourlyRate: number;
+        profileStatus: any;
+        verificationStatus: any;
+        trustScore: any;
+        trustLevel: any;
+        rating: number;
+        totalReviews: any;
+        totalSessions: any;
+        isAvailable: any;
+        isOnline: any;
+        photoUrl: any;
+        galleryPhotos: any;
+        joinedAt: any;
+    }>;
+    setupBulk(c: JwtPayload, dto: ProfileSetupBulkDto): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     getProfile(c: JwtPayload): Promise<{
         companionId: any;
         displayName: any;

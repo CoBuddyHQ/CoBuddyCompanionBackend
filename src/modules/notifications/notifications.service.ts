@@ -74,4 +74,17 @@ export class NotificationsService {
   async updateNotificationPreferences(companionId: string, preferences: any) {
     return { companionId, preferences, message: 'Notification preferences updated' };
   }
+
+  // ─── Missing Endpoint from Audit ───────────────────────────────────────────
+  async getAnnouncements(companionId: string) {
+    // Return system-wide announcements
+    const announcements = await this.prisma.notification.findMany({
+      where: { type: 'SYSTEM_MESSAGE', isRead: false }, // Simplification for mock
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+    return {
+      announcements: announcements.map(n => this.toNotificationResponse(n)),
+    };
+  }
 }

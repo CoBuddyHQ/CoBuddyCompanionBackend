@@ -3,42 +3,52 @@ import { JwtPayload } from '../auth/strategies/jwt.strategy';
 export declare class AvailabilityController {
     private readonly availabilityService;
     constructor(availabilityService: AvailabilityService);
-    getSchedule(c: JwtPayload): Promise<{
+    getSlots(c: JwtPayload): Promise<{
         slots: {
-            id: string;
-            createdAt: Date;
-            companionId: string;
+            slotId: string;
             dayOfWeek: number;
             startTime: string;
             endTime: string;
         }[];
-    }>;
-    updateSchedule(c: JwtPayload, dto: any): Promise<{
-        slots: {
-            id: string;
-            createdAt: Date;
-            companionId: string;
-            dayOfWeek: number;
-            startTime: string;
-            endTime: string;
+        blockedTimes: {
+            blockId: string;
+            date: string;
+            reason: string;
         }[];
+        vacationMode: {
+            enabled: boolean;
+            startDate: string;
+            endDate: string;
+        };
     }>;
-    getHolidays(c: JwtPayload): Promise<{
-        holidays: {
-            id: string;
-            createdAt: Date;
-            companionId: string;
-            date: Date;
-            note: string | null;
-        }[];
+    addSlot(c: JwtPayload, dto: any): Promise<{
+        slotId: string;
+        dayOfWeek: number;
+        startTime: string;
+        endTime: string;
     }>;
-    setHolidays(c: JwtPayload, dto: any): Promise<{
-        holidays: {
-            id: string;
-            createdAt: Date;
-            companionId: string;
-            date: Date;
-            note: string | null;
-        }[];
+    updateSlot(c: JwtPayload, slotId: string, dto: any): Promise<{
+        slotId: string;
+        startTime: string;
+        endTime: string;
+    }>;
+    deleteSlot(c: JwtPayload, slotId: string): Promise<{
+        message: string;
+    }>;
+    addRecurring(c: JwtPayload, dto: any): Promise<{
+        created: number;
+        message: string;
+    }>;
+    blockTime(c: JwtPayload, dto: any): Promise<{
+        blockId: string;
+        date: string;
+        reason: string;
+        message: string;
+    }>;
+    setVacationMode(c: JwtPayload, dto: any): Promise<{
+        enabled: boolean;
+        startDate: string;
+        endDate: string;
+        message: string;
     }>;
 }

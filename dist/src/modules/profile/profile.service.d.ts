@@ -1,5 +1,5 @@
 import { PrismaService } from '../../prisma/prisma.service';
-import { UpdateBasicProfileDto, UpdateBioDto, UpdateCategoriesDto, UpdateLanguagesDto, UpdateServiceAreasDto, UpdatePricingDto, ToggleAvailabilityDto, ReorderPhotosDto } from './dto/profile.dto';
+import { UpdateBasicProfileDto, UpdateBioDto, UpdateCategoriesDto, UpdateLanguagesDto, UpdateServiceAreasDto, UpdatePricingDto, ToggleAvailabilityDto, ReorderPhotosDto, ProfileSetupBulkDto, UpdatePhotoDto } from './dto/profile.dto';
 export declare class ProfileService {
     private prisma;
     private readonly logger;
@@ -26,6 +26,33 @@ export declare class ProfileService {
         photoUrl: any;
         galleryPhotos: any;
         joinedAt: any;
+    }>;
+    updatePhoto(companionId: string, dto: UpdatePhotoDto): Promise<{
+        companionId: any;
+        displayName: any;
+        maskedPhone: string;
+        city: any;
+        serviceAreas: any;
+        categories: any;
+        languages: any;
+        bio: any;
+        hourlyRate: number;
+        profileStatus: any;
+        verificationStatus: any;
+        trustScore: any;
+        trustLevel: any;
+        rating: number;
+        totalReviews: any;
+        totalSessions: any;
+        isAvailable: any;
+        isOnline: any;
+        photoUrl: any;
+        galleryPhotos: any;
+        joinedAt: any;
+    }>;
+    setupBulk(companionId: string, dto: ProfileSetupBulkDto): Promise<{
+        success: boolean;
+        message: string;
     }>;
     updateBasic(companionId: string, dto: UpdateBasicProfileDto): Promise<{
         companionId: any;

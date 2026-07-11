@@ -5,10 +5,40 @@ import {
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
+export class ProfileSetupBulkDto {
+  @ApiPropertyOptional({ example: 'I love meaningful conversations...' })
+  @IsOptional() @IsString()
+  bio?: string;
+
+  @ApiPropertyOptional({ isArray: true, example: ['great_listener', 'art_lover'] })
+  @IsOptional() @IsArray() @IsString({ each: true })
+  interestTags?: string[];
+
+  @ApiPropertyOptional({ isArray: true, example: ['CAFE_CONVERSATION', 'CITY_WALK'] })
+  @IsOptional() @IsArray() @IsString({ each: true })
+  categories?: string[];
+
+  @ApiPropertyOptional({ isArray: true })
+  @IsOptional() @IsArray()
+  languages?: { language: string; proficiency?: string }[];
+}
+
 export class UpdateBasicProfileDto {
   @ApiPropertyOptional({ example: 'Priya' })
   @IsOptional() @IsString()
   displayName?: string;
+
+  @ApiPropertyOptional({ example: 'Food Explorer' })
+  @IsOptional() @IsString()
+  tagline?: string;
+
+  @ApiPropertyOptional({ example: 'Female' })
+  @IsOptional() @IsString()
+  gender?: string;
+
+  @ApiPropertyOptional({ example: 'I love showing people around...' })
+  @IsOptional() @IsString()
+  bio?: string;
 
   @ApiPropertyOptional({ example: 'Bhopal' })
   @IsOptional() @IsString()

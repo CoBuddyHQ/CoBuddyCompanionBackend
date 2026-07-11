@@ -94,4 +94,44 @@ export class SupportService {
   async getHelpArticle(articleId: string) {
     return { id: articleId, title: 'Help Article', content: 'Details here...' };
   }
+
+  // ─── Missing Endpoints from Audit ──────────────────────────────────────────
+  
+  async getChatHistory(companionId: string, ticketId: string) {
+    const ticket = await this.prisma.supportTicket.findFirst({
+      where: { id: ticketId, companionId },
+    });
+    if (!ticket) throw new NotFoundException('Ticket not found');
+    
+    // In actual implementation, we would have a TicketMessage model.
+    // For now, return a mock response matching frontend expectations.
+    return {
+      ticketId,
+      messages: [
+        {
+          id: 'msg-1',
+          sender: 'system',
+          content: 'Ticket opened. We will connect you to an agent shortly.',
+          timestamp: ticket.createdAt.toISOString(),
+        },
+      ],
+    };
+  }
+
+  async appealDispute(companionId: string, disputeId: string, dto: { reason: string; evidenceUrls?: string[] }) {
+    const dispute = await this.prisma.supportTicket.findFirst({
+      where: { id: disputeId, companionId, category: 'DISPUTE' },
+    });
+    if (!dispute) throw new NotFoundException('Dispute not found');
+
+    await this.prisma.supportTicket.update({
+      where: { id: disputeId },
+      data: {
+        description: dispute.description + '\n\n[APPEAL]: ' + dto.reason,
+        status: 'OPEN',
+      },
+    });
+
+    return { success: true, message: 'Dispute appeal submitted successfully.' };
+  }
 }

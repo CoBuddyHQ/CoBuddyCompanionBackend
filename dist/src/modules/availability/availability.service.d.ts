@@ -2,42 +2,73 @@ import { PrismaService } from '../../prisma/prisma.service';
 export declare class AvailabilityService {
     private prisma;
     constructor(prisma: PrismaService);
-    getSchedule(companionId: string): Promise<{
+    getSlots(companionId: string): Promise<{
         slots: {
-            id: string;
-            createdAt: Date;
-            companionId: string;
+            slotId: string;
             dayOfWeek: number;
             startTime: string;
             endTime: string;
         }[];
+        blockedTimes: {
+            blockId: string;
+            date: string;
+            reason: string;
+        }[];
+        vacationMode: {
+            enabled: boolean;
+            startDate: string;
+            endDate: string;
+        };
     }>;
-    updateSchedule(companionId: string, dto: any): Promise<{
+    addSlot(companionId: string, dto: {
+        dayOfWeek: number;
+        startTime: string;
+        endTime: string;
+    }): Promise<{
+        slotId: string;
+        dayOfWeek: number;
+        startTime: string;
+        endTime: string;
+    }>;
+    updateSlot(companionId: string, slotId: string, dto: {
+        startTime?: string;
+        endTime?: string;
+    }): Promise<{
+        slotId: string;
+        startTime: string;
+        endTime: string;
+    }>;
+    deleteSlot(companionId: string, slotId: string): Promise<{
+        message: string;
+    }>;
+    addRecurring(companionId: string, dto: {
+        pattern: string;
         slots: {
-            id: string;
-            createdAt: Date;
-            companionId: string;
             dayOfWeek: number;
             startTime: string;
             endTime: string;
         }[];
+    }): Promise<{
+        created: number;
+        message: string;
     }>;
-    getHolidays(companionId: string): Promise<{
-        holidays: {
-            id: string;
-            createdAt: Date;
-            companionId: string;
-            date: Date;
-            note: string | null;
-        }[];
+    blockTime(companionId: string, dto: {
+        date: string;
+        reason?: string;
+    }): Promise<{
+        blockId: string;
+        date: string;
+        reason: string;
+        message: string;
     }>;
-    setHolidays(companionId: string, dto: any): Promise<{
-        holidays: {
-            id: string;
-            createdAt: Date;
-            companionId: string;
-            date: Date;
-            note: string | null;
-        }[];
+    setVacationMode(companionId: string, dto: {
+        enabled: boolean;
+        startDate?: string;
+        endDate?: string;
+    }): Promise<{
+        enabled: boolean;
+        startDate: string;
+        endDate: string;
+        message: string;
     }>;
 }

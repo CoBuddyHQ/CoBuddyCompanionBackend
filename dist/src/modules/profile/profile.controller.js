@@ -23,6 +23,12 @@ let ProfileController = class ProfileController {
     constructor(profileService) {
         this.profileService = profileService;
     }
+    updatePhoto(c, dto) {
+        return this.profileService.updatePhoto(c.sub, dto);
+    }
+    setupBulk(c, dto) {
+        return this.profileService.setupBulk(c.sub, dto);
+    }
     getProfile(c) {
         return this.profileService.getProfile(c.sub);
     }
@@ -58,6 +64,25 @@ let ProfileController = class ProfileController {
     }
 };
 exports.ProfileController = ProfileController;
+__decorate([
+    (0, common_1.Put)('photo'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update primary profile photo' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, profile_dto_1.UpdatePhotoDto]),
+    __metadata("design:returntype", void 0)
+], ProfileController.prototype, "updatePhoto", null);
+__decorate([
+    (0, common_1.Post)('setup-bulk'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Save bio, interests, categories, and languages in one bulk request' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, profile_dto_1.ProfileSetupBulkDto]),
+    __metadata("design:returntype", void 0)
+], ProfileController.prototype, "setupBulk", null);
 __decorate([
     (0, common_1.Get)(),
     (0, swagger_1.ApiOperation)({ summary: 'Get companion profile (CompanionProfile interface)' }),

@@ -25,43 +25,102 @@ let AccountController = class AccountController {
     getSettings(c) {
         return this.accountService.getAccountSettings(c.sub);
     }
-    updateSettings(c, dto) {
-        return this.accountService.updateAccountSettings(c.sub, dto);
+    updateNotificationPrefs(c, dto) {
+        return this.accountService.updateNotificationPrefs(c.sub, dto.prefs || dto);
+    }
+    updatePrivacy(c, dto) {
+        return this.accountService.updatePrivacy(c.sub, dto);
+    }
+    updateLanguage(c, dto) {
+        return this.accountService.updateLanguage(c.sub, dto);
+    }
+    deactivateAccount(c, dto) {
+        return this.accountService.deactivateAccount(c.sub, dto);
+    }
+    reactivateAccount(c) {
+        return this.accountService.reactivateAccount(c.sub);
     }
     deleteAccount(c, dto) {
-        return this.accountService.deleteAccount(c.sub, dto?.reason);
+        return this.accountService.deleteAccount(c.sub, dto);
+    }
+    exportData(c) {
+        return this.accountService.exportData(c.sub);
     }
 };
 exports.AccountController = AccountController;
 __decorate([
     (0, common_1.Get)('settings'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get account settings' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Get full account settings and preferences' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AccountController.prototype, "getSettings", null);
 __decorate([
-    (0, common_1.Put)('settings'),
-    (0, swagger_1.ApiOperation)({ summary: 'Update account settings' }),
+    (0, common_1.Put)('notification-preferences'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update push/email notification preferences' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
-], AccountController.prototype, "updateSettings", null);
+], AccountController.prototype, "updateNotificationPrefs", null);
+__decorate([
+    (0, common_1.Put)('privacy'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update privacy controls' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], AccountController.prototype, "updatePrivacy", null);
+__decorate([
+    (0, common_1.Put)('language'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update app language setting' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], AccountController.prototype, "updateLanguage", null);
+__decorate([
+    (0, common_1.Post)('deactivate'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Temporarily deactivate account' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], AccountController.prototype, "deactivateAccount", null);
+__decorate([
+    (0, common_1.Post)('reactivate'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Request account reactivation' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AccountController.prototype, "reactivateAccount", null);
 __decorate([
     (0, common_1.Delete)('delete'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, swagger_1.ApiOperation)({ summary: 'Delete account' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Permanently delete account' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], AccountController.prototype, "deleteAccount", null);
+__decorate([
+    (0, common_1.Get)('data-export'),
+    (0, swagger_1.ApiOperation)({ summary: 'Request data export download link' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AccountController.prototype, "exportData", null);
 exports.AccountController = AccountController = __decorate([
-    (0, swagger_1.ApiTags)('Account'),
+    (0, swagger_1.ApiTags)('Account & Settings'),
     (0, swagger_1.ApiBearerAuth)('companion-jwt'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('companion/account'),

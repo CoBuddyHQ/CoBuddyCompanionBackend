@@ -25,6 +25,17 @@ export declare class NotificationsController {
     markAllRead(c: JwtPayload): Promise<{
         message: string;
     }>;
+    getAnnouncements(c: JwtPayload): Promise<{
+        announcements: {
+            notificationId: any;
+            type: any;
+            title: any;
+            body: any;
+            isRead: any;
+            data: any;
+            createdAt: any;
+        }[];
+    }>;
     markRead(c: JwtPayload, id: string): Promise<{
         message: string;
     }>;

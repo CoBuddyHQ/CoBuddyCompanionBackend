@@ -18,8 +18,11 @@ export class SupportController {
   @Get('tickets/:ticketId') @ApiOperation({ summary: 'Get ticket detail' })
   getTicket(@CurrentCompanion() c: JwtPayload, @Param('ticketId') id: string) { return this.supportService.getTicket(c.sub, id); }
 
-  @Post('tickets') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Create support ticket' })
+  @Post('tickets/create') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Create support ticket' })
   createTicket(@CurrentCompanion() c: JwtPayload, @Body() dto: any) { return this.supportService.createTicket(c.sub, dto); }
+
+  @Get('chat/:ticketId') @ApiOperation({ summary: 'Get chat history for a ticket' })
+  getChatHistory(@CurrentCompanion() c: JwtPayload, @Param('ticketId') id: string) { return this.supportService.getChatHistory(c.sub, id); }
 
   @Post('tickets/:ticketId/messages') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Reply to ticket' })
   addTicketMessage(@CurrentCompanion() c: JwtPayload, @Param('ticketId') id: string, @Body() dto: any) { return this.supportService.addTicketMessage(c.sub, id, dto.message); }
@@ -33,12 +36,15 @@ export class SupportController {
   @Post('disputes') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'File a dispute' })
   createDispute(@CurrentCompanion() c: JwtPayload, @Body() dto: any) { return this.supportService.createDispute(c.sub, dto); }
 
+  @Post('disputes/:disputeId/appeal') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Appeal a dispute decision' })
+  appealDispute(@CurrentCompanion() c: JwtPayload, @Param('disputeId') id: string, @Body() dto: any) { return this.supportService.appealDispute(c.sub, id, dto); }
+
   @Post('disputes/:disputeId/evidence') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Upload dispute evidence' })
   uploadDisputeEvidence(@CurrentCompanion() c: JwtPayload, @Param('disputeId') id: string, @Body() dto: any) { return this.supportService.uploadDisputeEvidence(c.sub, id, dto.evidenceUrls); }
 
   @Get('help/categories') @ApiOperation({ summary: 'Get help categories' })
   getHelpArticles() { return this.supportService.getHelpArticles(); }
 
-  @Get('help/articles/:articleId') @ApiOperation({ summary: 'Get help article' })
+  @Get('help/:articleId') @ApiOperation({ summary: 'Get help article' })
   getHelpArticle(@Param('articleId') id: string) { return this.supportService.getHelpArticle(id); }
 }
