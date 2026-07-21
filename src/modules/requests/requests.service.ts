@@ -49,7 +49,7 @@ export class RequestsService {
   async getRequests(companionId: string, status?: string, page = 1, limit = 20) {
     const where: any = { companionId };
     if (status && status !== 'all') where.status = status.toUpperCase();
-    else where.status = { in: ['PENDING', 'EXPIRED', 'COUNTER_PROPOSED'] };
+    else where.status = { in: ['pending', 'expired', 'counter_proposed'] };
 
     const [requests, total] = await Promise.all([
       this.prisma.bookingRequest.findMany({
@@ -64,12 +64,12 @@ export class RequestsService {
     // Auto-expire overdue requests
     const now = new Date();
     await this.prisma.bookingRequest.updateMany({
-      where: { companionId, status: 'PENDING', expiresAt: { lt: now } },
-      data: { status: 'EXPIRED' },
+      where: { companionId, status: 'pending', expiresAt: { lt: now } },
+      data: { status: 'expired' },
     });
 
     const unreadCount = await this.prisma.bookingRequest.count({
-      where: { companionId, status: 'PENDING' },
+      where: { companionId, status: 'pending' },
     });
 
     return {
@@ -120,7 +120,7 @@ export class RequestsService {
 
     const updated = await this.prisma.bookingRequest.update({
       where: { id: requestId },
-      data: { status: 'ACCEPTED', respondedAt: new Date() },
+      data: { status: 'accepted', respondedAt: new Date() },
     });
 
     // Create Session from accepted request
@@ -130,7 +130,7 @@ export class RequestsService {
         companionId,
         customerId: req.customerId,
         requestId,
-        status: 'UPCOMING',
+        status: 'upcoming',
         category: req.category,
         customerInitials: req.customerInitials,
         customerTrustScore: req.customerTrustScore,
@@ -170,7 +170,7 @@ export class RequestsService {
     const req = await this.findPendingOrThrow(companionId, requestId);
     const updated = await this.prisma.bookingRequest.update({
       where: { id: requestId },
-      data: { status: 'DECLINED', declineReason: reason, respondedAt: new Date() },
+      data: { status: 'declined', declineReason: reason, respondedAt: new Date() },
     });
     return {
       request: this.toRequestResponse(updated),
@@ -184,7 +184,7 @@ export class RequestsService {
     const updated = await this.prisma.bookingRequest.update({
       where: { id: requestId },
       data: {
-        status: 'COUNTER_PROPOSED',
+        status: 'counter_proposed',
         counterProposedStart: new Date(newStart),
         counterProposedEnd: new Date(newEnd),
         respondedAt: new Date(),
@@ -198,7 +198,7 @@ export class RequestsService {
 
   private async findPendingOrThrow(companionId: string, requestId: string) {
     const req = await this.prisma.bookingRequest.findFirst({
-      where: { id: requestId, companionId, status: 'PENDING' },
+      where: { id: requestId, companionId, status: 'pending' },
     });
     if (!req) throw new NotFoundException('Pending booking request not found');
     if (new Date() > req.expiresAt) throw new BadRequestException('This request has expired');

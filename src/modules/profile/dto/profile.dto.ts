@@ -2,7 +2,7 @@ import {
   IsString, IsOptional, IsArray, IsNumber, IsBoolean,
   Min, Max, ArrayMaxSize, IsUrl, IsEnum,
 } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 export class ProfileSetupBulkDto {
@@ -14,7 +14,7 @@ export class ProfileSetupBulkDto {
   @IsOptional() @IsArray() @IsString({ each: true })
   interestTags?: string[];
 
-  @ApiPropertyOptional({ isArray: true, example: ['CAFE_CONVERSATION', 'CITY_WALK'] })
+  @ApiPropertyOptional({ isArray: true, example: ['cafe_conversation', 'city_walk'] })
   @IsOptional() @IsArray() @IsString({ each: true })
   categories?: string[];
 
@@ -52,7 +52,7 @@ export class UpdateBioDto {
 }
 
 export class UpdateCategoriesDto {
-  @ApiPropertyOptional({ isArray: true, example: ['CAFE_CONVERSATION', 'CITY_WALK'] })
+  @ApiPropertyOptional({ isArray: true, example: ['cafe_conversation', 'city_walk'] })
   @IsOptional() @IsArray() @IsString({ each: true })
   categories?: string[];
 }
@@ -63,10 +63,39 @@ export class UpdateLanguagesDto {
   languages?: { language: string; proficiency?: string }[];
 }
 
+export class UpdateWorkPreferenceDto {
+  @ApiPropertyOptional()
+  @IsArray()
+  @IsString({ each: true })
+  durations: string[];
+
+  @ApiPropertyOptional()
+  @IsArray()
+  @IsString({ each: true })
+  days: string[];
+
+  @ApiPropertyOptional()
+  @IsArray()
+  @IsString({ each: true })
+  timeRanges: string[];
+
+  @ApiPropertyOptional()
+  @IsString()
+  frequency: string;
+}
+
 export class UpdateServiceAreasDto {
+  @ApiPropertyOptional()
+  @IsOptional() @IsString()
+  city?: string;
+
   @ApiPropertyOptional({ isArray: true })
-  @IsOptional() @IsArray()
-  serviceAreas?: { area: string; city: string }[];
+  @IsOptional() @IsArray() @IsString({ each: true })
+  broadAreas?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional() @IsBoolean()
+  willingToTravel?: boolean;
 }
 
 export class UpdatePricingDto {
@@ -74,12 +103,57 @@ export class UpdatePricingDto {
   @IsOptional() @IsNumber() @Min(0) @Max(99999)
   @Type(() => Number)
   hourlyRate?: number;
+
+  @ApiPropertyOptional({ example: 90 })
+  @IsOptional() @IsNumber() @Min(30) @Max(300)
+  @Type(() => Number)
+  sessionDuration?: number;
+}
+
+export class UpdateCommActivityDto {
+  @ApiPropertyOptional()
+  @IsOptional() @IsString()
+  commStyle?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional() @IsString()
+  activityPace?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional() @IsString()
+  groupPreference?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional() @IsString()
+  accessibilityNote?: string;
+}
+
+export class UpdateVenuesDto {
+  @ApiPropertyOptional({ isArray: true })
+  @IsOptional() @IsArray() @IsString({ each: true })
+  venuePreferences?: string[];
+}
+
+export class UpdateBoundariesDto {
+  @ApiProperty()
+  @IsBoolean()
+  boundariesAccepted: boolean;
 }
 
 export class UpdatePhotoDto {
   @ApiPropertyOptional()
   @IsOptional() @IsString()
   photoUrl?: string;
+}
+
+export class UpdatePhotosDto {
+  @ApiPropertyOptional()
+  @IsOptional() @IsString()
+  photoUrl?: string;
+
+  @ApiPropertyOptional({ isArray: true })
+  @IsOptional() @IsArray() @IsString({ each: true })
+  galleryPhotos?: string[];
 }
 
 export class ReorderPhotosDto {

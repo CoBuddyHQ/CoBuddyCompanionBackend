@@ -22,11 +22,11 @@ async function main() {
             bio: 'Hi, I am a test companion created by the seeder script. I love exploring cafes and cities.',
             photoUrl: 'https://i.pravatar.cc/300',
             hourlyRate: 500.0,
-            profileStatus: client_1.ProfileStatus.APPROVED,
-            verificationStatus: client_1.VerificationStatus.VERIFIED,
-            accountStatus: client_1.AccountStatus.ACTIVE,
+            profileStatus: client_1.ProfileStatus.approved,
+            verificationStatus: client_1.VerificationStatus.approved,
+            accountStatus: client_1.AccountStatus.active,
             trustScore: 85,
-            trustLevel: client_1.TrustLevel.SILVER,
+            trustLevel: client_1.TrustLevel.building,
             rating: 4.8,
             totalReviews: 12,
             totalSessions: 15,
@@ -68,8 +68,8 @@ async function main() {
     });
     await prisma.companionCategory.createMany({
         data: [
-            { companionId: companion.id, category: client_1.Category.CAFE_CONVERSATION },
-            { companionId: companion.id, category: client_1.Category.CITY_WALK },
+            { companionId: companion.id, category: client_1.Category.cafe_conversation },
+            { companionId: companion.id, category: client_1.Category.city_walk },
         ],
         skipDuplicates: true,
     });

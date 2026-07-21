@@ -32,6 +32,9 @@ let KycController = class KycController {
     saveDraft(c, dto) {
         return this.kycService.saveDraft(c.sub, dto);
     }
+    updateGovernmentIdType(c, dto) {
+        return this.kycService.updateGovernmentIdType(c.sub, dto);
+    }
     submitGovernmentId(c, dto) {
         return this.kycService.submitGovernmentId(c.sub, dto);
     }
@@ -96,13 +99,23 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], KycController.prototype, "saveDraft", null);
 __decorate([
+    (0, common_1.Post)('companion/kyc/government-id-type'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Save selected government ID type — GovernmentIDTypeScreen' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, kyc_dto_1.UpdateGovernmentIdTypeDto]),
+    __metadata("design:returntype", void 0)
+], KycController.prototype, "updateGovernmentIdType", null);
+__decorate([
     (0, common_1.Post)('companion/kyc/government-id'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiOperation)({ summary: 'Upload government ID — GovernmentIDUploadScreen' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, kyc_dto_1.SubmitGovernmentIdDto]),
     __metadata("design:returntype", void 0)
 ], KycController.prototype, "submitGovernmentId", null);
 __decorate([
@@ -112,7 +125,7 @@ __decorate([
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, kyc_dto_1.SubmitSelfieDto]),
     __metadata("design:returntype", void 0)
 ], KycController.prototype, "submitSelfie", null);
 __decorate([
@@ -182,7 +195,7 @@ __decorate([
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, kyc_dto_1.SaveDeclarationDto]),
     __metadata("design:returntype", void 0)
 ], KycController.prototype, "saveDeclaration", null);
 __decorate([

@@ -11,6 +11,11 @@ import {
   ReorderPhotosDto,
   ProfileSetupBulkDto,
   UpdatePhotoDto,
+  UpdatePhotosDto,
+  UpdateWorkPreferenceDto,
+  UpdateCommActivityDto,
+  UpdateVenuesDto,
+  UpdateBoundariesDto,
 } from './dto/profile.dto';
 
 @Injectable()
@@ -18,6 +23,42 @@ export class ProfileService {
   private readonly logger = new Logger(ProfileService.name);
 
   constructor(private prisma: PrismaService) {}
+
+  // ─── Update Work Preference ────────────────────────────────────────────────
+  async updateWorkPreference(companionId: string, dto: UpdateWorkPreferenceDto) {
+    await this.prisma.companion.update({
+      where: { id: companionId },
+      data: { workPreferences: dto as any },
+    });
+    return { success: true, message: 'Work preferences updated successfully' };
+  }
+
+  // ─── Update Communication & Activity Preferences ────────────────────────────
+  async updateCommActivity(companionId: string, dto: UpdateCommActivityDto) {
+    await this.prisma.companion.update({
+      where: { id: companionId },
+      data: { commActivityPrefs: dto as any },
+    });
+    return { success: true, message: 'Communication & activity preferences updated successfully' };
+  }
+
+  // ─── Update Public Venue Preferences ───────────────────────────────────────
+  async updateVenues(companionId: string, dto: UpdateVenuesDto) {
+    await this.prisma.companion.update({
+      where: { id: companionId },
+      data: { venuePreferences: dto.venuePreferences ?? [] },
+    });
+    return { success: true, message: 'Venue preferences updated successfully' };
+  }
+
+  // ─── Update Boundaries & Safety Acceptance ──────────────────────────────────
+  async updateBoundaries(companionId: string, dto: UpdateBoundariesDto) {
+    await this.prisma.companion.update({
+      where: { id: companionId },
+      data: { boundariesAccepted: dto.boundariesAccepted },
+    });
+    return { success: true, message: 'Boundaries acceptance updated successfully' };
+  }
 
   // ── GET /companion/profile ─────────────────────────────────────────────────
   // Returns exact CompanionProfile interface from store.types.ts
@@ -177,21 +218,48 @@ export class ProfileService {
   // ── PUT /companion/profile/service-areas ──────────────────────────────────
 
   async updateServiceAreas(companionId: string, dto: UpdateServiceAreasDto) {
-    await this.prisma.companionServiceArea.deleteMany({ where: { companionId } });
-    if (dto.serviceAreas?.length) {
-      await this.prisma.companionServiceArea.createMany({
-        data: dto.serviceAreas.map(a => ({ companionId, ...a })),
-      });
-    }
+    await this.prisma.$transaction(async (tx) => {
+      if (dto.city !== undefined || dto.willingToTravel !== undefined) {
+        const updateData: any = {};
+        if (dto.city !== undefined) updateData.city = dto.city;
+        if (dto.willingToTravel !== undefined) updateData.willingToTravel = dto.willingToTravel;
+        
+        await tx.companion.update({
+          where: { id: companionId },
+          data: updateData,
+        });
+      }
+
+      if (dto.broadAreas !== undefined) {
+        await tx.companionServiceArea.deleteMany({ where: { companionId } });
+        if (dto.broadAreas.length > 0) {
+          const companion = await tx.companion.findUnique({ where: { id: companionId }, select: { city: true } });
+          const currentCity = dto.city ?? companion?.city ?? '';
+          
+          await tx.companionServiceArea.createMany({
+            data: dto.broadAreas.map(area => ({
+              companionId,
+              area,
+              city: currentCity,
+            })),
+          });
+        }
+      }
+    });
+
     return this.getProfile(companionId);
   }
 
   // ── PUT /companion/profile/pricing ────────────────────────────────────────
 
   async updatePricing(companionId: string, dto: UpdatePricingDto) {
+    const data: any = {};
+    if (dto.hourlyRate !== undefined) data.hourlyRate = dto.hourlyRate;
+    if (dto.sessionDuration !== undefined) data.sessionDuration = dto.sessionDuration;
+
     const companion = await this.prisma.companion.update({
       where: { id: companionId },
-      data: { hourlyRate: dto.hourlyRate as any },
+      data,
       include: {
         serviceAreas: true, categories: true, languages: true,
         galleryPhotos: { orderBy: { sortOrder: 'asc' } },
@@ -202,12 +270,38 @@ export class ProfileService {
 
   // ── PUT /companion/profile/photos ─────────────────────────────────────────
 
-  async updatePhotos(companionId: string, photoUrl: string) {
-    await this.prisma.companion.update({
-      where: { id: companionId },
-      data: { photoUrl },
-    });
-    return { message: 'Profile photo updated', photoUrl };
+  async updatePhotos(companionId: string, dto: UpdatePhotosDto) {
+    if (dto.galleryPhotos !== undefined) {
+      await this.prisma.$transaction(async (tx) => {
+        if (dto.photoUrl !== undefined) {
+          await tx.companion.update({
+            where: { id: companionId },
+            data: { photoUrl: dto.photoUrl },
+          });
+        }
+        
+        await tx.companionPhoto.deleteMany({
+          where: { companionId },
+        });
+
+        if (dto.galleryPhotos.length > 0) {
+          await tx.companionPhoto.createMany({
+            data: dto.galleryPhotos.map((url, index) => ({
+              companionId,
+              url,
+              sortOrder: index,
+            })),
+          });
+        }
+      });
+    } else if (dto.photoUrl !== undefined) {
+      await this.prisma.companion.update({
+        where: { id: companionId },
+        data: { photoUrl: dto.photoUrl },
+      });
+    }
+
+    return this.getProfile(companionId);
   }
 
   // ── PUT /companion/profile/photos/reorder ─────────────────────────────────
@@ -261,7 +355,7 @@ export class ProfileService {
 
     const updated = await this.prisma.companion.update({
       where: { id: companionId },
-      data: { profileStatus: 'SUBMITTED' },
+      data: { profileStatus: 'submitted' },
     });
 
     // Also update KYC
@@ -297,6 +391,7 @@ export class ProfileService {
       languages: (companion.languages ?? []).map((l: any) => l.language),
       bio: companion.bio ?? '',
       hourlyRate: companion.hourlyRate ? Number(companion.hourlyRate) : 0,
+      sessionDuration: companion.sessionDuration ?? 90,
       profileStatus: companion.profileStatus.toLowerCase(),
       verificationStatus: companion.verificationStatus.toLowerCase(),
       trustScore: companion.trustScore,

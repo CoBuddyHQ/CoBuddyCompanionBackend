@@ -46,8 +46,8 @@ let SafetyService = SafetyService_1 = class SafetyService {
         const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
         await this.prisma.safetyTimer.upsert({
             where: { companionId },
-            update: { status: 'ACTIVE', durationMinutes, startedAt: new Date(), expiresAt, sessionId: sessionId ?? null, cancelledAt: null },
-            create: { companionId, sessionId: sessionId ?? null, status: 'ACTIVE', durationMinutes, startedAt: new Date(), expiresAt },
+            update: { status: 'active', durationMinutes, startedAt: new Date(), expiresAt, sessionId: sessionId ?? null, cancelledAt: null },
+            create: { companionId, sessionId: sessionId ?? null, status: 'active', durationMinutes, startedAt: new Date(), expiresAt },
         });
         if (sessionId) {
             await this.prisma.session.updateMany({ where: { id: sessionId }, data: { safetyTimerActive: true } });
@@ -61,7 +61,7 @@ let SafetyService = SafetyService_1 = class SafetyService {
     }
     async checkinTimer(companionId) {
         const timer = await this.prisma.safetyTimer.findUnique({ where: { companionId } });
-        if (!timer || timer.status !== 'ACTIVE')
+        if (!timer || timer.status !== 'active')
             throw new common_1.NotFoundException('No active safety timer');
         const newExpiry = new Date(Date.now() + timer.durationMinutes * 60 * 1000);
         await this.prisma.safetyTimer.update({
@@ -72,8 +72,8 @@ let SafetyService = SafetyService_1 = class SafetyService {
     }
     async cancelTimer(companionId) {
         await this.prisma.safetyTimer.updateMany({
-            where: { companionId, status: 'ACTIVE' },
-            data: { status: 'CANCELLED', cancelledAt: new Date() },
+            where: { companionId, status: 'active' },
+            data: { status: 'cancelled', cancelledAt: new Date() },
         });
         return { status: 'cancelled', message: 'Safety timer cancelled.' };
     }

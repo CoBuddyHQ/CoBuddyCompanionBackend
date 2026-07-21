@@ -80,7 +80,7 @@ let NotificationsService = class NotificationsService {
     }
     async getAnnouncements(companionId) {
         const announcements = await this.prisma.notification.findMany({
-            where: { type: 'SYSTEM_MESSAGE', isRead: false },
+            where: { type: 'system', isRead: false },
             orderBy: { createdAt: 'desc' },
             take: 10,
         });

@@ -26,6 +26,21 @@ let ProfileController = class ProfileController {
     updatePhoto(c, dto) {
         return this.profileService.updatePhoto(c.sub, dto);
     }
+    updatePhotos(c, dto) {
+        return this.profileService.updatePhotos(c.sub, dto);
+    }
+    updateWorkPreference(c, dto) {
+        return this.profileService.updateWorkPreference(c.sub, dto);
+    }
+    updateCommActivity(c, dto) {
+        return this.profileService.updateCommActivity(c.sub, dto);
+    }
+    updateVenues(c, dto) {
+        return this.profileService.updateVenues(c.sub, dto);
+    }
+    updateBoundaries(c, dto) {
+        return this.profileService.updateBoundaries(c.sub, dto);
+    }
     setupBulk(c, dto) {
         return this.profileService.setupBulk(c.sub, dto);
     }
@@ -73,6 +88,51 @@ __decorate([
     __metadata("design:paramtypes", [Object, profile_dto_1.UpdatePhotoDto]),
     __metadata("design:returntype", void 0)
 ], ProfileController.prototype, "updatePhoto", null);
+__decorate([
+    (0, common_1.Put)('photos'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update gallery photos and/or primary photo' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, profile_dto_1.UpdatePhotosDto]),
+    __metadata("design:returntype", void 0)
+], ProfileController.prototype, "updatePhotos", null);
+__decorate([
+    (0, common_1.Put)('work-preference'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update work preference' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, profile_dto_1.UpdateWorkPreferenceDto]),
+    __metadata("design:returntype", void 0)
+], ProfileController.prototype, "updateWorkPreference", null);
+__decorate([
+    (0, common_1.Put)('comm-activity'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update communication and activity preferences' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, profile_dto_1.UpdateCommActivityDto]),
+    __metadata("design:returntype", void 0)
+], ProfileController.prototype, "updateCommActivity", null);
+__decorate([
+    (0, common_1.Put)('venues'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update public venue preferences' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, profile_dto_1.UpdateVenuesDto]),
+    __metadata("design:returntype", void 0)
+], ProfileController.prototype, "updateVenues", null);
+__decorate([
+    (0, common_1.Put)('boundaries'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update boundaries and safety acceptance' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, profile_dto_1.UpdateBoundariesDto]),
+    __metadata("design:returntype", void 0)
+], ProfileController.prototype, "updateBoundaries", null);
 __decorate([
     (0, common_1.Post)('setup-bulk'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),

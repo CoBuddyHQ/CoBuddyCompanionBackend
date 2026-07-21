@@ -107,7 +107,7 @@ let KycService = class KycService {
     async saveDraft(companionId, dto) {
         await this.prisma.companion.update({
             where: { id: companionId },
-            data: { profileStatus: 'INCOMPLETE' },
+            data: { profileStatus: 'draft' },
         });
         await this.prisma.companionKYC.upsert({
             where: { companionId },
@@ -120,6 +120,14 @@ let KycService = class KycService {
             stage: dto.stage,
             message: 'Progress saved. You can resume from where you left off.',
         };
+    }
+    async updateGovernmentIdType(companionId, dto) {
+        await this.prisma.companionKYC.upsert({
+            where: { companionId },
+            update: { identityDocumentType: dto.documentType },
+            create: { companionId, identityDocumentType: dto.documentType },
+        });
+        return { success: true, message: 'Government ID type saved successfully.' };
     }
     async submitGovernmentId(companionId, dto) {
         await this.prisma.companionKYC.upsert({
@@ -143,8 +151,8 @@ let KycService = class KycService {
     async submitSelfie(companionId, dto) {
         await this.prisma.companionKYC.upsert({
             where: { companionId },
-            update: { selfieVideoUrl: dto.videoUrl, selfieSubmittedAt: new Date() },
-            create: { companionId, selfieVideoUrl: dto.videoUrl, selfieSubmittedAt: new Date() },
+            update: { selfieImageUrl: dto.imageUrl, selfieVideoUrl: dto.videoUrl, selfieSubmittedAt: new Date() },
+            create: { companionId, selfieImageUrl: dto.imageUrl, selfieVideoUrl: dto.videoUrl, selfieSubmittedAt: new Date() },
         });
         return { success: true, message: 'Selfie submitted for liveness verification.' };
     }
@@ -255,10 +263,19 @@ let KycService = class KycService {
         return { success: true, message: 'Emergency contact saved.' };
     }
     async saveDeclaration(companionId, dto) {
+        const { agreedAt, ...consents } = dto;
+        const dateAgreed = agreedAt ? new Date(agreedAt) : new Date();
         await this.prisma.companionKYC.upsert({
             where: { companionId },
-            update: { declarationAgreedAt: new Date(dto.agreedAt) },
-            create: { companionId, declarationAgreedAt: new Date(dto.agreedAt) },
+            update: {
+                declarationAgreedAt: dateAgreed,
+                declarationConsents: consents,
+            },
+            create: {
+                companionId,
+                declarationAgreedAt: dateAgreed,
+                declarationConsents: consents,
+            },
         });
         return { success: true, message: 'Declaration confirmed.' };
     }
@@ -273,8 +290,8 @@ let KycService = class KycService {
         await this.prisma.companion.update({
             where: { id: companionId },
             data: {
-                verificationStatus: 'PENDING',
-                profileStatus: 'SUBMITTED',
+                verificationStatus: 'pending_review',
+                profileStatus: 'submitted',
             },
         });
         return {
@@ -294,7 +311,7 @@ let KycService = class KycService {
         });
         await this.prisma.companion.update({
             where: { id: companionId },
-            data: { verificationStatus: 'PENDING', profileStatus: 'SUBMITTED' },
+            data: { verificationStatus: 'pending_review', profileStatus: 'submitted' },
         });
         return {
             success: true,

@@ -15,115 +15,113 @@ datasource db {
 // ─────────────────────────────────────────────────────────────────────────────
 
 enum ProfileStatus {
-  INCOMPLETE
-  COMPLETE
-  SUBMITTED
-  UNDER_REVIEW
-  APPROVED
-  REJECTED
+  draft
+  submitted
+  under_review
+  approved
+  published
+  edit_rejected
 }
 
 enum VerificationStatus {
-  UNVERIFIED
-  PENDING
-  VERIFIED
-  SUSPENDED
+  not_started
+  in_progress
+  pending_review
+  approved
+  rejected
+  resubmit_required
 }
 
 enum AccountStatus {
-  ACTIVE
-  SUSPENDED
-  DEACTIVATED
-  DELETED
+  active
+  suspended
+  deactivated
+  deleted
 }
 
 enum TrustLevel {
-  BRONZE
-  SILVER
-  GOLD
-  PLATINUM
+  new
+  building
+  trusted
+  highly_trusted
 }
 
 enum SessionStatus {
-  UPCOMING
-  PRE_ARRIVAL
-  CHECKED_IN
-  ACTIVE
-  EXTENDING
-  COMPLETED
-  CANCELLED
-  NO_SHOW
-  DISPUTED
+  upcoming
+  pre_arrival
+  checked_in
+  active
+  extending
+  completed
+  cancelled
+  no_show
+  disputed
 }
 
 enum RequestStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-  COUNTER_PROPOSED
-  EXPIRED
+  pending
+  accepted
+  declined
+  expired
+  counter_proposed
 }
 
 enum TransactionType {
-  SESSION_EARNING
-  EXTENSION_EARNING
-  SAFETY_BONUS
-  REFERRAL_BONUS
-  ADJUSTMENT
-  DEDUCTION
-  PAYOUT_TRANSFER
+  session_earning
+  extension_earning
+  safety_bonus
+  platform_fee
+  refund_deduction
+  cancellation_penalty
+  payout_transfer
 }
 
 enum TransactionStatus {
-  PENDING_REVIEW
-  APPROVED
-  PAYOUT_ELIGIBLE
-  DEDUCTED
-  ON_HOLD
-  REFUNDED
+  pending_review
+  approved
+  payout_eligible
+  paid
+  deducted
+  on_hold
 }
 
 enum PayoutStatus {
-  REQUESTED
-  PROCESSING
-  COMPLETED
-  FAILED
-  CANCELLED
+  idle
+  requested
+  processing
+  completed
+  failed
 }
 
 enum Category {
-  CAFE_CONVERSATION
-  CITY_WALK
-  MUSEUM_TOUR
-  EVENT_PLUS_ONE
-  SHOPPING_COMPANION
-  AIRPORT_COMPANION
-  OUTDOOR_ACTIVITY
-  GAMING_BUDDY
-  FITNESS_PARTNER
-  MOVIE_BUDDY
+  cafe_conversation
+  city_walk
+  art_culture
+  food_experience
+  shopping_assistance
+  events
+  business_networking
+  bookstore
+  wellness_walk
+  movies
 }
 
 enum TimerStatus {
-  ACTIVE
-  COMPLETED
-  CANCELLED
-  EXPIRED
+  idle
+  active
+  expired
+  cancelled
 }
 
 enum NotificationType {
-  NEW_REQUEST
-  REQUEST_CANCELLED
-  SESSION_REMINDER
-  SESSION_STARTED
-  SESSION_COMPLETED
-  EARNINGS_CREDITED
-  PAYOUT_PROCESSED
-  KYC_UPDATE
-  TRUST_SCORE_UPDATE
-  SAFETY_ALERT
-  SYSTEM_MESSAGE
-  PROMOTION
+  request
+  session
+  safety
+  payout
+  support
+  policy
+  training
+  system
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -141,15 +139,21 @@ model Companion {
   tagline            String?
   gender             String?
   city               String?
+  willingToTravel    Boolean            @default(true)
   bio                String?            @db.Text
   interestTags       String[]           @default([])
+  workPreferences    Json?
+  commActivityPrefs  Json?
+  venuePreferences   String[]           @default([])
+  boundariesAccepted Boolean            @default(false)
   photoUrl           String?
   hourlyRate         Decimal?           @db.Decimal(10, 2)
-  profileStatus      ProfileStatus      @default(INCOMPLETE)
-  verificationStatus VerificationStatus @default(UNVERIFIED)
-  accountStatus      AccountStatus      @default(ACTIVE)
+  sessionDuration    Int                @default(90) // 60, 90, 120
+  profileStatus      ProfileStatus      @default(draft)
+  verificationStatus VerificationStatus @default(not_started)
+  accountStatus      AccountStatus      @default(active)
   trustScore         Int                @default(0)
-  trustLevel         TrustLevel         @default(BRONZE)
+  trustLevel         TrustLevel         @default(new)
   rating             Decimal            @default(0.0) @db.Decimal(3, 1)
   totalReviews       Int                @default(0)
   totalSessions      Int                @default(0)
@@ -161,35 +165,35 @@ model Companion {
   updatedAt          DateTime           @updatedAt
 
   // Relations
-  serviceAreas       CompanionServiceArea[]
-  categories         CompanionCategory[]
-  languages          CompanionLanguage[]
-  galleryPhotos      CompanionPhoto[]
-  kyc                CompanionKYC?
-  pin                CompanionPIN?
-  biometrics         CompanionBiometric[]
-  settings           CompanionSettings?
-  refreshTokens      RefreshToken[]
-  otpSessions        OTPSession[]
-  sessions           Session[]
-  bookingRequests    BookingRequest[]
-  earningsTxns       EarningsTransaction[]
-  payouts            PayoutRecord[]
-  sosEvents          SOSEvent[]
-  safetyTimer        SafetyTimer?
-  trustedContacts    TrustedContact[]
-  blockedCustomers   BlockedCustomer[]
-  incidentReports    IncidentReport[]
-  reviews            CompanionReview[]
-  badges             CompanionBadge[]
-  trustTasks         TrustTask[]
-  notifications      Notification[]
-  pushTokens         PushToken[]
-  timeSlots          TimeSlot[]
-  blockedTimes       BlockedTime[]
-  vacationMode       VacationMode?
-  moduleCompletions  ModuleCompletion[]
-  uploadedFiles      UploadedFile[]
+  serviceAreas      CompanionServiceArea[]
+  categories        CompanionCategory[]
+  languages         CompanionLanguage[]
+  galleryPhotos     CompanionPhoto[]
+  kyc               CompanionKYC?
+  pin               CompanionPIN?
+  biometrics        CompanionBiometric[]
+  settings          CompanionSettings?
+  refreshTokens     RefreshToken[]
+  otpSessions       OTPSession[]
+  sessions          Session[]
+  bookingRequests   BookingRequest[]
+  earningsTxns      EarningsTransaction[]
+  payouts           PayoutRecord[]
+  sosEvents         SOSEvent[]
+  safetyTimer       SafetyTimer?
+  trustedContacts   TrustedContact[]
+  blockedCustomers  BlockedCustomer[]
+  incidentReports   IncidentReport[]
+  reviews           CompanionReview[]
+  badges            CompanionBadge[]
+  trustTasks        TrustTask[]
+  notifications     Notification[]
+  pushTokens        PushToken[]
+  timeSlots         TimeSlot[]
+  blockedTimes      BlockedTime[]
+  vacationMode      VacationMode?
+  moduleCompletions ModuleCompletion[]
+  uploadedFiles     UploadedFile[]
 
   @@map("companions")
 }
@@ -199,23 +203,23 @@ model Companion {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model CompanionSettings {
-  id                   String    @id @default(cuid())
-  companionId          String    @unique
-  notificationPrefs    Json      @default("{}") // Store { new_booking_push: true, etc. }
-  privacyVisibility    String    @default("public")
-  privacyDataSharing   Boolean   @default(true)
-  language             String    @default("en")
+  id                 String  @id @default(cuid())
+  companionId        String  @unique
+  notificationPrefs  Json    @default("{}") // Store { new_booking_push: true, etc. }
+  privacyVisibility  String  @default("public")
+  privacyDataSharing Boolean @default(true)
+  language           String  @default("en")
 
   // Onboarding tracking & consents
-  termsAccepted        Boolean   @default(false)
-  safetyRulesAccepted  Boolean   @default(false)
-  locationEnabled      Boolean   @default(false)
-  notificationsEnabled Boolean   @default(false)
+  termsAccepted        Boolean @default(false)
+  safetyRulesAccepted  Boolean @default(false)
+  locationEnabled      Boolean @default(false)
+  notificationsEnabled Boolean @default(false)
 
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  companion            Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("companion_settings")
 }
@@ -225,54 +229,54 @@ model CompanionSettings {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model OTPSession {
-  id          String    @id @default(cuid())
-  phone       String
-  otp         String    // bcrypt hash
-  attempts    Int       @default(0)
-  verified    Boolean   @default(false)
-  expiresAt   DateTime
-  createdAt   DateTime  @default(now())
+  id        String   @id @default(cuid())
+  phone     String
+  otp       String // bcrypt hash
+  attempts  Int      @default(0)
+  verified  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
-  companion   Companion? @relation(fields: [phone], references: [phone])
+  companion Companion? @relation(fields: [phone], references: [phone])
 
   @@map("otp_sessions")
 }
 
 model RefreshToken {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   companionId String
-  token       String    @unique
+  token       String   @unique
   deviceId    String?
-  isRevoked   Boolean   @default(false)
+  isRevoked   Boolean  @default(false)
   expiresAt   DateTime
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
 
-  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
 }
 
 model CompanionPIN {
-  id                 String    @id @default(cuid())
-  companionId        String    @unique
-  pinHash            String
-  biometricsEnabled  Boolean   @default(false)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                String   @id @default(cuid())
+  companionId       String   @unique
+  pinHash           String
+  biometricsEnabled Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("companion_pins")
 }
 
 model CompanionBiometric {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   companionId String
   deviceId    String
-  publicKey   String    @db.Text
-  createdAt   DateTime  @default(now())
+  publicKey   String   @db.Text
+  createdAt   DateTime @default(now())
 
-  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@unique([companionId, deviceId])
   @@map("companion_biometrics")
@@ -303,11 +307,11 @@ model CompanionCategory {
 }
 
 model CompanionLanguage {
-  id           String    @id @default(cuid())
-  companionId  String
-  language     String
-  proficiency  String    @default("fluent")
-  companion    Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  companionId String
+  language    String
+  proficiency String    @default("fluent")
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@unique([companionId, language])
   @@map("companion_languages")
@@ -329,75 +333,84 @@ model CompanionPhoto {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model CompanionKYC {
-  id                              String    @id @default(cuid())
-  companionId                     String    @unique
+  id          String @id @default(cuid())
+  companionId String @unique
 
   // Basic Info
-  legalFirstName                  String?
-  legalLastName                   String?
+  legalFirstName String?
+  legalLastName  String?
 
   // Identity document
-  identityDocumentType            String?
-  identityDocumentUrl             String?
-  identityDocumentBackUrl         String?
-  identitySubmittedAt             DateTime?
+  identityDocumentType    String?
+  identityDocumentUrl     String?
+  identityDocumentBackUrl String?
+  identitySubmittedAt     DateTime?
 
   // Selfie / liveness
-  selfieVideoUrl                  String?
-  selfieSubmittedAt               DateTime?
+  selfieImageUrl    String?
+  selfieVideoUrl    String?
+  selfieSubmittedAt DateTime?
 
   // Address
-  addressDocumentType             String?
-  addressDocumentUrl              String?
-  addressSubmittedAt              DateTime?
+  addressLine1        String?
+  addressLine2        String?
+  addressCity         String?
+  addressState        String?
+  addressPinCode      String?
+  addressType         String?
+  addressIdMatch      Boolean @default(false)
+  addressDocumentType String?
+  addressDocumentUrl  String?
+  addressSubmittedAt  DateTime?
 
   // Police verification
-  policeVerificationUrl           String?
+  policeVerificationUrl String?
 
   // PAN (privacy: masked only)
-  maskedPan                       String?
-  panName                         String?
-  hasGST                          Boolean   @default(false)
-  gstNumber                       String?
+  maskedPan    String?
+  panName      String?
+  taxResidency String?
+  hasGST       Boolean @default(false)
+  gstNumber    String?
 
   // Bank account (privacy: last 4 digits only)
-  bankHolderName                  String?
-  maskedBankAccount               String?   // e.g. "•••• 4821"
-  bankIfsc                        String?
-  bankAccountType                 String?   // savings | current
-  bankName                        String?
-  bankVerified                    Boolean   @default(false)
+  bankHolderName    String?
+  maskedBankAccount String? // e.g. "•••• 4821"
+  bankIfsc          String?
+  bankAccountType   String? // savings | current
+  bankName          String?
+  bankVerified      Boolean @default(false)
 
   // UPI (privacy: masked only)
-  maskedUpi                       String?   // e.g. "ra••••@okaxis"
-  upiPayoutLabel                  String?
-  upiIsPrimary                    Boolean   @default(true)
+  maskedUpi      String? // e.g. "ra••••@okaxis"
+  upiPayoutLabel String?
+  upiIsPrimary   Boolean @default(true)
 
   // Emergency contact (from KYC form)
-  emergencyContactName            String?
-  emergencyContactMaskedPhone     String?
-  emergencyContactRelationship    String?
+  emergencyContactName         String?
+  emergencyContactMaskedPhone  String?
+  emergencyContactRelationship String?
 
   // Declaration
-  declarationAgreedAt             DateTime?
+  declarationAgreedAt DateTime?
+  declarationConsents Json?
 
   // Draft resume support
-  draftStage                      String?
-  draftData                       String?   @db.Text
+  draftStage String?
+  draftData  String? @db.Text
 
   // Review lifecycle
-  rejectionReason                 String?
-  submittedAt                     DateTime?
-  approvedAt                      DateTime?
-  rejectedAt                      DateTime?
-  createdAt                       DateTime  @default(now())
-  updatedAt                       DateTime  @updatedAt
+  rejectionReason String?
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  companion                       Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("companion_kyc")
 }
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BOOKING REQUESTS
@@ -405,46 +418,46 @@ model CompanionKYC {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model BookingRequest {
-  id                      String        @id @default(cuid())
-  companionId             String
-  customerId              String
-  status                  RequestStatus @default(PENDING)
-  category                Category
+  id                       String        @id @default(cuid())
+  companionId              String
+  customerId               String
+  status                   RequestStatus @default(pending)
+  category                 Category
   // Customer info (denormalized for performance)
-  customerInitials        String
-  customerTrustScore      Int           @default(0)
-  customerVerified        Boolean       @default(false)
-  customerSessionCount    Int           @default(0)
-  customerSafetyConsent   Boolean       @default(false)
-  customerIdentityVerified Boolean      @default(false)
+  customerInitials         String
+  customerTrustScore       Int           @default(0)
+  customerVerified         Boolean       @default(false)
+  customerSessionCount     Int           @default(0)
+  customerSafetyConsent    Boolean       @default(false)
+  customerIdentityVerified Boolean       @default(false)
   // Venue info
-  venueId                 String?
-  venueName               String
-  venueArea               String
-  venueCity               String
-  venueType               String        @default("PUBLIC")
-  venueMeetingPoint       String?
-  venueLandmark           String?
-  isVenueApproved         Boolean       @default(true)
+  venueId                  String?
+  venueName                String
+  venueArea                String
+  venueCity                String
+  venueType                String        @default("PUBLIC")
+  venueMeetingPoint        String?
+  venueLandmark            String?
+  isVenueApproved          Boolean       @default(true)
   // Timing
-  proposedStart           DateTime
-  proposedEnd             DateTime
-  counterProposedStart    DateTime?
-  counterProposedEnd      DateTime?
-  durationMinutes         Int
-  language                String        @default("Hindi")
-  estimatedEarning        Decimal       @default(0) @db.Decimal(10, 2)
-  matchScore              Int           @default(0)
-  customerNote            String?
-  declineReason           String?
-  expiresAt               DateTime
-  receivedAt              DateTime      @default(now())
-  respondedAt             DateTime?
-  createdAt               DateTime      @default(now())
-  updatedAt               DateTime      @updatedAt
+  proposedStart            DateTime
+  proposedEnd              DateTime
+  counterProposedStart     DateTime?
+  counterProposedEnd       DateTime?
+  durationMinutes          Int
+  language                 String        @default("Hindi")
+  estimatedEarning         Decimal       @default(0) @db.Decimal(10, 2)
+  matchScore               Int           @default(0)
+  customerNote             String?
+  declineReason            String?
+  expiresAt                DateTime
+  receivedAt               DateTime      @default(now())
+  respondedAt              DateTime?
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
 
-  companion               Companion     @relation(fields: [companionId], references: [id], onDelete: Cascade)
-  session                 Session?
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  session   Session?
 
   @@map("booking_requests")
 }
@@ -459,7 +472,7 @@ model Session {
   companionId              String
   customerId               String
   requestId                String?       @unique
-  status                   SessionStatus @default(UPCOMING)
+  status                   SessionStatus @default(upcoming)
   category                 Category
   // Customer snapshot
   customerInitials         String
@@ -502,9 +515,9 @@ model Session {
   createdAt                DateTime      @default(now())
   updatedAt                DateTime      @updatedAt
 
-  companion                Companion     @relation(fields: [companionId], references: [id], onDelete: Cascade)
-  request                  BookingRequest? @relation(fields: [requestId], references: [id])
-  earningsTxns             EarningsTransaction[]
+  companion    Companion             @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  request      BookingRequest?       @relation(fields: [requestId], references: [id])
+  earningsTxns EarningsTransaction[]
 
   @@map("sessions")
 }
@@ -515,39 +528,39 @@ model Session {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model EarningsTransaction {
-  id                  String            @id @default(cuid())
-  companionId         String
-  sessionId           String?
-  payoutId            String?
-  type                TransactionType
-  status              TransactionStatus
-  amount              Decimal           @db.Decimal(10, 2)
-  customerInitials    String?
-  description         String
-  payoutEligibleAt    DateTime?
-  createdAt           DateTime          @default(now())
+  id               String            @id @default(cuid())
+  companionId      String
+  sessionId        String?
+  payoutId         String?
+  type             TransactionType
+  status           TransactionStatus
+  amount           Decimal           @db.Decimal(10, 2)
+  customerInitials String?
+  description      String
+  payoutEligibleAt DateTime?
+  createdAt        DateTime          @default(now())
 
-  companion           Companion         @relation(fields: [companionId], references: [id], onDelete: Cascade)
-  session             Session?          @relation(fields: [sessionId], references: [id])
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  session   Session?  @relation(fields: [sessionId], references: [id])
 
   @@map("earnings_transactions")
 }
 
 model PayoutRecord {
-  id              String      @id @default(cuid())
-  companionId     String
-  status          PayoutStatus @default(REQUESTED)
-  amount          Decimal     @db.Decimal(10, 2)
-  platformFee     Decimal     @default(0) @db.Decimal(10, 2)
-  maskedBank      String
-  utrNumber       String?
-  failureReason   String?
-  requestedAt     DateTime    @default(now())
-  completedAt     DateTime?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id            String       @id @default(cuid())
+  companionId   String
+  status        PayoutStatus @default(requested)
+  amount        Decimal      @db.Decimal(10, 2)
+  platformFee   Decimal      @default(0) @db.Decimal(10, 2)
+  maskedBank    String
+  utrNumber     String?
+  failureReason String?
+  requestedAt   DateTime     @default(now())
+  completedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-  companion       Companion   @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("payout_records")
 }
@@ -566,7 +579,7 @@ model SOSEvent {
   resolvedBy  String?
   createdAt   DateTime  @default(now())
 
-  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("sos_events")
 }
@@ -575,7 +588,7 @@ model SafetyTimer {
   id              String      @id @default(cuid())
   companionId     String      @unique
   sessionId       String?
-  status          TimerStatus @default(ACTIVE)
+  status          TimerStatus @default(active)
   durationMinutes Int
   startedAt       DateTime    @default(now())
   expiresAt       DateTime
@@ -583,7 +596,7 @@ model SafetyTimer {
   cancelledAt     DateTime?
   createdAt       DateTime    @default(now())
 
-  companion       Companion   @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("safety_timers")
 }
@@ -599,34 +612,34 @@ model TrustedContact {
   deletedAt          DateTime?
   createdAt          DateTime  @default(now())
 
-  companion          Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("trusted_contacts")
 }
 
 model BlockedCustomer {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   companionId String
   customerId  String
   reason      String?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
 
-  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@unique([companionId, customerId])
   @@map("blocked_customers")
 }
 
 model IncidentReport {
-  id           String    @id @default(cuid())
+  id           String   @id @default(cuid())
   companionId  String
   sessionId    String?
-  description  String    @db.Text
-  evidenceUrls String[]  @default([])
-  status       String    @default("submitted")
-  createdAt    DateTime  @default(now())
+  description  String   @db.Text
+  evidenceUrls String[] @default([])
+  status       String   @default("submitted")
+  createdAt    DateTime @default(now())
 
-  companion    Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("incident_reports")
 }
@@ -637,48 +650,48 @@ model IncidentReport {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model CompanionReview {
-  id              String    @id @default(cuid())
-  companionId     String
-  sessionId       String    @unique
+  id               String   @id @default(cuid())
+  companionId      String
+  sessionId        String   @unique
   customerInitials String
-  rating          Int       // 1–5
-  isPublic        Boolean   @default(true)
-  highlights      String[]  @default([])
-  comment         String?
-  sessionCategory Category
-  sessionDate     DateTime
-  createdAt       DateTime  @default(now())
+  rating           Int // 1–5
+  isPublic         Boolean  @default(true)
+  highlights       String[] @default([])
+  comment          String?
+  sessionCategory  Category
+  sessionDate      DateTime
+  createdAt        DateTime @default(now())
 
-  companion       Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("companion_reviews")
 }
 
 model CompanionBadge {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   companionId String
   badgeKey    String
   badgeName   String
-  earnedAt    DateTime  @default(now())
+  earnedAt    DateTime @default(now())
 
-  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@unique([companionId, badgeKey])
   @@map("companion_badges")
 }
 
 model TrustTask {
-  id           String    @id @default(cuid())
-  companionId  String
-  title        String
-  description  String
-  category     String
-  points       Int       @default(0)
-  isCompleted  Boolean   @default(false)
-  completedAt  DateTime?
-  createdAt    DateTime  @default(now())
+  id          String    @id @default(cuid())
+  companionId String
+  title       String
+  description String
+  category    String
+  points      Int       @default(0)
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
 
-  companion    Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("trust_tasks")
 }
@@ -688,16 +701,16 @@ model TrustTask {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model SupportTicket {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   companionId String
   sessionId   String?
   subject     String
-  description String    @db.Text
+  description String   @db.Text
   category    String
-  priority    String    @default("NORMAL")
-  status      String    @default("OPEN")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  priority    String   @default("NORMAL")
+  status      String   @default("OPEN")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("support_tickets")
 }
@@ -715,25 +728,25 @@ model Notification {
   body        String
   isRead      Boolean          @default(false)
   readAt      DateTime?
-  data        String?          // JSON string for deep link data
+  data        String? // JSON string for deep link data
   createdAt   DateTime         @default(now())
 
-  companion   Companion        @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@index([companionId, isRead])
   @@map("notifications")
 }
 
 model PushToken {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   companionId String
   token       String
   deviceId    String
-  platform    String    // ios | android
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  platform    String // ios | android
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@unique([companionId, deviceId])
   @@map("push_tokens")
@@ -744,26 +757,26 @@ model PushToken {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model TimeSlot {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   companionId String
-  dayOfWeek   Int       // 0=Sun, 1=Mon … 6=Sat
-  startTime   String    // "09:00"
-  endTime     String    // "18:00"
-  createdAt   DateTime  @default(now())
+  dayOfWeek   Int // 0=Sun, 1=Mon … 6=Sat
+  startTime   String // "09:00"
+  endTime     String // "18:00"
+  createdAt   DateTime @default(now())
 
-  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("time_slots")
 }
 
 model BlockedTime {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   companionId String
-  date        DateTime  @db.Date
+  date        DateTime @db.Date
   reason      String?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
 
-  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@unique([companionId, date])
   @@map("blocked_times")
@@ -777,7 +790,7 @@ model VacationMode {
   endDate     DateTime? @db.Date
   updatedAt   DateTime  @updatedAt
 
-  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("vacation_modes")
 }
@@ -787,30 +800,30 @@ model VacationMode {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model TrainingModule {
-  id              String    @id @default(cuid())
+  id              String   @id @default(cuid())
   title           String
   description     String
   category        String
-  content         String?   @db.Text // JSON string
+  content         String?  @db.Text // JSON string
   durationMinutes Int
-  isRequired      Boolean   @default(false)
-  sortOrder       Int       @default(0)
-  createdAt       DateTime  @default(now())
+  isRequired      Boolean  @default(false)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
 
-  completions     ModuleCompletion[]
+  completions ModuleCompletion[]
 
   @@map("training_modules")
 }
 
 model ModuleCompletion {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   companionId String
   moduleId    String
-  score       Int       @default(0)
-  completedAt DateTime  @default(now())
+  score       Int      @default(0)
+  completedAt DateTime @default(now())
 
-  companion   Companion      @relation(fields: [companionId], references: [id], onDelete: Cascade)
-  module      TrainingModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  companion Companion      @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  module    TrainingModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
   @@unique([companionId, moduleId])
   @@map("module_completions")
@@ -821,17 +834,17 @@ model ModuleCompletion {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model UploadedFile {
-  id           String    @id @default(cuid())
+  id           String   @id @default(cuid())
   companionId  String
   url          String
-  key          String    @unique
+  key          String   @unique
   category     String
   originalName String
   mimeType     String
   size         Int
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime @default(now())
 
-  companion    Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("uploaded_files")
 }

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { BasicDetailsDto } from './dto/kyc.dto';
+import { BasicDetailsDto, SaveDeclarationDto, SubmitGovernmentIdDto, UpdateGovernmentIdTypeDto, SubmitSelfieDto, SaveAddressDto, SavePanDto, SaveBankDto, VerifyBankDto, SaveUpiDto } from './dto/kyc.dto';
 
 @Injectable()
 export class KycService {
@@ -105,7 +105,7 @@ export class KycService {
   async saveDraft(companionId: string, dto: { stage: string; data?: any }) {
     await this.prisma.companion.update({
       where: { id: companionId },
-      data: { profileStatus: 'INCOMPLETE' },
+      data: { profileStatus: 'draft' },
     });
     // Store draft stage in KYC table for now
     await this.prisma.companionKYC.upsert({
@@ -121,9 +121,20 @@ export class KycService {
     };
   }
 
+  // ─── POST /companion/kyc/government-id-type ───────────────────────────────
+  // GovernmentIDTypeScreen — save selected ID type
+  async updateGovernmentIdType(companionId: string, dto: UpdateGovernmentIdTypeDto) {
+    await this.prisma.companionKYC.upsert({
+      where: { companionId },
+      update: { identityDocumentType: dto.documentType },
+      create: { companionId, identityDocumentType: dto.documentType },
+    });
+    return { success: true, message: 'Government ID type saved successfully.' };
+  }
+
   // ─── POST /companion/kyc/government-id ───────────────────────────────────────
   // GovernmentIDUploadScreen — uploads ID docs
-  async submitGovernmentId(companionId: string, dto: { documentType: string; frontUrl: string; backUrl?: string }) {
+  async submitGovernmentId(companionId: string, dto: SubmitGovernmentIdDto) {
     await this.prisma.companionKYC.upsert({
       where: { companionId },
       update: {
@@ -145,43 +156,78 @@ export class KycService {
 
   // ─── POST /companion/kyc/selfie ───────────────────────────────────────────────
   // SelfieCaptureScreen / LivenessDetectionScreen
-  async submitSelfie(companionId: string, dto: { videoUrl: string }) {
+  async submitSelfie(companionId: string, dto: SubmitSelfieDto) {
     await this.prisma.companionKYC.upsert({
       where: { companionId },
-      update: { selfieVideoUrl: dto.videoUrl, selfieSubmittedAt: new Date() },
-      create: { companionId, selfieVideoUrl: dto.videoUrl, selfieSubmittedAt: new Date() },
+      update: { selfieImageUrl: dto.imageUrl, selfieVideoUrl: dto.videoUrl, selfieSubmittedAt: new Date() },
+      create: { companionId, selfieImageUrl: dto.imageUrl, selfieVideoUrl: dto.videoUrl, selfieSubmittedAt: new Date() },
     });
     return { success: true, message: 'Selfie submitted for liveness verification.' };
   }
 
   // ─── POST /companion/kyc/address ─────────────────────────────────────────────
   // AddressVerificationScreen
-  async submitAddress(companionId: string, dto: { documentType: string; documentUrl: string }) {
+  async saveAddress(companionId: string, dto: SaveAddressDto) {
     await this.prisma.companionKYC.upsert({
       where: { companionId },
       update: {
-        addressDocumentType: dto.documentType,
-        addressDocumentUrl: dto.documentUrl,
+        addressLine1: dto.line1,
+        addressLine2: dto.line2,
+        addressCity: dto.city,
+        addressState: dto.state,
+        addressPinCode: dto.pinCode,
+        addressType: dto.addressType,
+        addressIdMatch: dto.idMatch,
+        addressDocumentType: dto.addressDocumentType,
+        addressDocumentUrl: dto.addressDocumentUrl,
         addressSubmittedAt: new Date(),
       },
       create: {
         companionId,
-        addressDocumentType: dto.documentType,
-        addressDocumentUrl: dto.documentUrl,
+        addressLine1: dto.line1,
+        addressLine2: dto.line2,
+        addressCity: dto.city,
+        addressState: dto.state,
+        addressPinCode: dto.pinCode,
+        addressType: dto.addressType,
+        addressIdMatch: dto.idMatch,
+        addressDocumentType: dto.addressDocumentType,
+        addressDocumentUrl: dto.addressDocumentUrl,
         addressSubmittedAt: new Date(),
       },
     });
-    return { success: true, message: 'Address document submitted.' };
+    return { success: true, message: 'Address details saved successfully.' };
+  }
+
+  // ─── POST /companion/kyc/upi ─────────────────────────────────────────────────
+  // UPIDetailsScreen
+  async saveUpi(companionId: string, dto: SaveUpiDto) {
+    await this.prisma.companionKYC.upsert({
+      where: { companionId },
+      update: {
+        maskedUpi: dto.maskedUpi,
+        upiPayoutLabel: dto.payoutLabel,
+        upiIsPrimary: dto.isPrimary ?? true,
+      },
+      create: {
+        companionId,
+        maskedUpi: dto.maskedUpi,
+        upiPayoutLabel: dto.payoutLabel,
+        upiIsPrimary: dto.isPrimary ?? true,
+      },
+    });
+    return { success: true, message: 'UPI details saved.' };
   }
 
   // ─── POST /companion/kyc/pan ─────────────────────────────────────────────────
-  // PANTaxDetailsScreen — only masked PAN stored (privacy P0)
-  async savePan(companionId: string, dto: { maskedPan: string; panName: string; hasGST: boolean; gstNumber?: string }) {
+  // PANTaxDetailsScreen
+  async savePan(companionId: string, dto: SavePanDto) {
     await this.prisma.companionKYC.upsert({
       where: { companionId },
       update: {
         maskedPan: dto.maskedPan,
         panName: dto.panName,
+        taxResidency: dto.taxResidency,
         hasGST: dto.hasGST,
         gstNumber: dto.hasGST ? dto.gstNumber ?? null : null,
       },
@@ -189,6 +235,7 @@ export class KycService {
         companionId,
         maskedPan: dto.maskedPan,
         panName: dto.panName,
+        taxResidency: dto.taxResidency,
         hasGST: dto.hasGST,
         gstNumber: dto.hasGST ? dto.gstNumber ?? null : null,
       },
@@ -198,7 +245,7 @@ export class KycService {
 
   // ─── POST /companion/kyc/bank ────────────────────────────────────────────────
   // AddBankAccountScreen — only last 4 digits stored (privacy P0)
-  async saveBank(companionId: string, dto: { holderName: string; maskedAccount: string; ifsc: string; accountType: string; bankName: string }) {
+  async saveBank(companionId: string, dto: SaveBankDto) {
     await this.prisma.companionKYC.upsert({
       where: { companionId },
       update: {
@@ -230,7 +277,7 @@ export class KycService {
 
   // ─── POST /companion/kyc/bank/verify ─────────────────────────────────────────
   // BankAccountVerificationScreen
-  async verifyBank(companionId: string, dto: { bankId: string }) {
+  async verifyBank(companionId: string, dto: VerifyBankDto) {
     const kyc = await this.prisma.companionKYC.findUnique({ where: { companionId } });
     if (!kyc?.maskedBankAccount) throw new BadRequestException('No bank account found to verify');
     // Simulate penny drop verification
@@ -245,17 +292,6 @@ export class KycService {
       bankName: kyc.bankName,
       message: 'Bank account verified successfully.',
     };
-  }
-
-  // ─── POST /companion/kyc/upi ─────────────────────────────────────────────────
-  // UPIDetailsScreen — only masked UPI stored (privacy P0)
-  async saveUpi(companionId: string, dto: { maskedUpi: string; payoutLabel: string; isPrimary: boolean }) {
-    await this.prisma.companionKYC.upsert({
-      where: { companionId },
-      update: { maskedUpi: dto.maskedUpi, upiPayoutLabel: dto.payoutLabel, upiIsPrimary: dto.isPrimary },
-      create: { companionId, maskedUpi: dto.maskedUpi, upiPayoutLabel: dto.payoutLabel, upiIsPrimary: dto.isPrimary },
-    });
-    return { success: true, maskedUpi: dto.maskedUpi, message: 'UPI ID saved for payouts.' };
   }
 
   // ─── POST /companion/kyc/emergency-contact ───────────────────────────────────
@@ -280,11 +316,21 @@ export class KycService {
 
   // ─── POST /companion/kyc/declaration ─────────────────────────────────────────
   // BackgroundDeclarationScreen
-  async saveDeclaration(companionId: string, dto: { agreedAt: string }) {
+  async saveDeclaration(companionId: string, dto: SaveDeclarationDto) {
+    const { agreedAt, ...consents } = dto;
+    const dateAgreed = agreedAt ? new Date(agreedAt) : new Date();
+    
     await this.prisma.companionKYC.upsert({
       where: { companionId },
-      update: { declarationAgreedAt: new Date(dto.agreedAt) },
-      create: { companionId, declarationAgreedAt: new Date(dto.agreedAt) },
+      update: { 
+        declarationAgreedAt: dateAgreed,
+        declarationConsents: consents,
+      },
+      create: { 
+        companionId, 
+        declarationAgreedAt: dateAgreed,
+        declarationConsents: consents,
+      },
     });
     return { success: true, message: 'Declaration confirmed.' };
   }
@@ -303,8 +349,8 @@ export class KycService {
     await this.prisma.companion.update({
       where: { id: companionId },
       data: {
-        verificationStatus: 'PENDING',
-        profileStatus: 'SUBMITTED',
+        verificationStatus: 'pending_review',
+        profileStatus: 'submitted',
       },
     });
 
@@ -328,7 +374,7 @@ export class KycService {
     });
     await this.prisma.companion.update({
       where: { id: companionId },
-      data: { verificationStatus: 'PENDING', profileStatus: 'SUBMITTED' },
+      data: { verificationStatus: 'pending_review', profileStatus: 'submitted' },
     });
     return {
       success: true,

@@ -10,7 +10,8 @@ import {
   UpdateBasicProfileDto, UpdateBioDto, UpdateCategoriesDto,
   UpdateLanguagesDto, UpdateServiceAreasDto, UpdatePricingDto,
   ToggleAvailabilityDto, ReorderPhotosDto, ProfileSetupBulkDto,
-  UpdatePhotoDto,
+  UpdatePhotoDto, UpdatePhotosDto, UpdateWorkPreferenceDto,
+  UpdateCommActivityDto, UpdateVenuesDto, UpdateBoundariesDto,
 } from './dto/profile.dto';
 
 @ApiTags('Profile')
@@ -25,6 +26,41 @@ export class ProfileController {
   @ApiOperation({ summary: 'Update primary profile photo' })
   updatePhoto(@CurrentCompanion() c: JwtPayload, @Body() dto: UpdatePhotoDto) {
     return this.profileService.updatePhoto(c.sub, dto);
+  }
+
+  /** PUT /api/v1/companion/profile/photos — Endpoints.PROFILE.UPDATE_PHOTOS */
+  @Put('photos')
+  @ApiOperation({ summary: 'Update gallery photos and/or primary photo' })
+  updatePhotos(@CurrentCompanion() c: JwtPayload, @Body() dto: UpdatePhotosDto) {
+    return this.profileService.updatePhotos(c.sub, dto);
+  }
+
+  /** PUT /api/v1/companion/profile/work-preference */
+  @Put('work-preference')
+  @ApiOperation({ summary: 'Update work preference' })
+  updateWorkPreference(@CurrentCompanion() c: JwtPayload, @Body() dto: UpdateWorkPreferenceDto) {
+    return this.profileService.updateWorkPreference(c.sub, dto);
+  }
+
+  /** PUT /api/v1/companion/profile/comm-activity */
+  @Put('comm-activity')
+  @ApiOperation({ summary: 'Update communication and activity preferences' })
+  updateCommActivity(@CurrentCompanion() c: JwtPayload, @Body() dto: UpdateCommActivityDto) {
+    return this.profileService.updateCommActivity(c.sub, dto);
+  }
+
+  /** PUT /api/v1/companion/profile/venues */
+  @Put('venues')
+  @ApiOperation({ summary: 'Update public venue preferences' })
+  updateVenues(@CurrentCompanion() c: JwtPayload, @Body() dto: UpdateVenuesDto) {
+    return this.profileService.updateVenues(c.sub, dto);
+  }
+
+  /** PUT /api/v1/companion/profile/boundaries */
+  @Put('boundaries')
+  @ApiOperation({ summary: 'Update boundaries and safety acceptance' })
+  updateBoundaries(@CurrentCompanion() c: JwtPayload, @Body() dto: UpdateBoundariesDto) {
+    return this.profileService.updateBoundaries(c.sub, dto);
   }
 
   /** POST /api/v1/companion/profile/setup-bulk — Endpoints.PROFILE.SETUP_BULK */

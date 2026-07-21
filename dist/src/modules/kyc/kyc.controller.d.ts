@@ -1,6 +1,6 @@
 import { KycService } from './kyc.service';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
-import { BasicDetailsDto } from './dto/kyc.dto';
+import { BasicDetailsDto, SaveDeclarationDto, SubmitGovernmentIdDto, UpdateGovernmentIdTypeDto, SubmitSelfieDto } from './dto/kyc.dto';
 export declare class KycController {
     private readonly kycService;
     constructor(kycService: KycService);
@@ -59,11 +59,15 @@ export declare class KycController {
         stage: string;
         message: string;
     }>;
-    submitGovernmentId(c: JwtPayload, dto: any): Promise<{
+    updateGovernmentIdType(c: JwtPayload, dto: UpdateGovernmentIdTypeDto): Promise<{
         success: boolean;
         message: string;
     }>;
-    submitSelfie(c: JwtPayload, dto: any): Promise<{
+    submitGovernmentId(c: JwtPayload, dto: SubmitGovernmentIdDto): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    submitSelfie(c: JwtPayload, dto: SubmitSelfieDto): Promise<{
         success: boolean;
         message: string;
     }>;
@@ -98,7 +102,7 @@ export declare class KycController {
         success: boolean;
         message: string;
     }>;
-    saveDeclaration(c: JwtPayload, dto: any): Promise<{
+    saveDeclaration(c: JwtPayload, dto: SaveDeclarationDto): Promise<{
         success: boolean;
         message: string;
     }>;

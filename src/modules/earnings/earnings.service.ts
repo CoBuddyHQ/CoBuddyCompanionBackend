@@ -11,10 +11,10 @@ export class EarningsService {
   async getSummary(companionId: string) {
     const [transactions, pendingTxs, companion] = await Promise.all([
       this.prisma.earningsTransaction.findMany({
-        where: { companionId, status: { in: ['PAYOUT_ELIGIBLE', 'APPROVED'] } },
+        where: { companionId, status: { in: ['payout_eligible', 'approved'] } },
       }),
       this.prisma.earningsTransaction.findMany({
-        where: { companionId, status: 'PENDING_REVIEW' },
+        where: { companionId, status: 'pending_review' },
       }),
       this.prisma.companion.findUnique({ where: { id: companionId } }),
     ]);
@@ -29,8 +29,8 @@ export class EarningsService {
       where: {
         companionId,
         createdAt: { gte: monthStart },
-        type: { in: ['SESSION_EARNING', 'EXTENSION_EARNING', 'SAFETY_BONUS'] },
-        status: { not: 'ON_HOLD' },
+        type: { in: ['session_earning', 'extension_earning', 'safety_bonus'] },
+        status: { not: 'on_hold' },
       },
     });
     const totalEarnedThisMonth = monthTxs.reduce((sum, t) => sum + Math.max(0, Number(t.amount)), 0);
@@ -38,13 +38,13 @@ export class EarningsService {
     const sessionsThisMonth = await this.prisma.session.count({
       where: {
         companionId,
-        status: 'COMPLETED',
+        status: 'completed',
         completedAt: { gte: monthStart },
       },
     });
 
     const onHold = await this.prisma.earningsTransaction.aggregate({
-      where: { companionId, status: 'ON_HOLD' },
+      where: { companionId, status: 'on_hold' },
       _sum: { amount: true },
     });
 
@@ -113,7 +113,7 @@ export class EarningsService {
     const payout = await this.prisma.payoutRecord.create({
       data: {
         companionId,
-        status: 'REQUESTED',
+        status: 'requested',
         amount: netAmount,
         platformFee,
         maskedBank: bankMasked,
@@ -125,8 +125,8 @@ export class EarningsService {
     await this.prisma.earningsTransaction.create({
       data: {
         companionId,
-        type: 'PAYOUT_TRANSFER',
-        status: 'DEDUCTED',
+        type: 'payout_transfer',
+        status: 'deducted',
         amount: -amount,
         description: `Payout to ${bankMasked}`,
         payoutId: payout.id,
@@ -181,7 +181,7 @@ export class EarningsService {
   async getInvoices(companionId: string, page = 1, limit = 20) {
     // Invoices are completed sessions with earnings
     const sessions = await this.prisma.session.findMany({
-      where: { companionId, status: 'COMPLETED' },
+      where: { companionId, status: 'completed' },
       orderBy: { completedAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
@@ -206,7 +206,7 @@ export class EarningsService {
     // Extract sessionId from invoiceId
     const sessionIdPrefix = invoiceId.replace('INV-', '').toLowerCase();
     const session = await this.prisma.session.findFirst({
-      where: { companionId, status: 'COMPLETED', id: { startsWith: sessionIdPrefix } },
+      where: { companionId, status: 'completed', id: { startsWith: sessionIdPrefix } },
     });
     if (!session) throw new NotFoundException('Invoice not found');
     return {

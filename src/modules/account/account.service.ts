@@ -80,7 +80,7 @@ export class AccountService {
   async deactivateAccount(companionId: string, dto: { reason?: string }) {
     await this.prisma.companion.update({
       where: { id: companionId },
-      data: { accountStatus: 'SUSPENDED', isAvailable: false, isOnline: false },
+      data: { accountStatus: 'suspended', isAvailable: false, isOnline: false },
     });
     return { success: true, message: 'Account deactivated successfully.' };
   }
@@ -89,7 +89,7 @@ export class AccountService {
   async reactivateAccount(companionId: string) {
     await this.prisma.companion.update({
       where: { id: companionId },
-      data: { accountStatus: 'ACTIVE' },
+      data: { accountStatus: 'active' },
     });
     return { success: true, message: 'Account reactivation requested.' };
   }
@@ -100,7 +100,7 @@ export class AccountService {
     await this.prisma.companion.update({
       where: { id: companionId },
       data: {
-        accountStatus: 'DELETED',
+        accountStatus: 'deleted',
         deletedAt: new Date(),
         isAvailable: false,
         isOnline: false,

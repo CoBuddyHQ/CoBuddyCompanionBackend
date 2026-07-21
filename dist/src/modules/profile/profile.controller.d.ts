@@ -1,6 +1,6 @@
 import { ProfileService } from './profile.service';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
-import { UpdateBasicProfileDto, UpdateBioDto, UpdateCategoriesDto, UpdateLanguagesDto, UpdateServiceAreasDto, UpdatePricingDto, ToggleAvailabilityDto, ReorderPhotosDto, ProfileSetupBulkDto, UpdatePhotoDto } from './dto/profile.dto';
+import { UpdateBasicProfileDto, UpdateBioDto, UpdateCategoriesDto, UpdateLanguagesDto, UpdateServiceAreasDto, UpdatePricingDto, ToggleAvailabilityDto, ReorderPhotosDto, ProfileSetupBulkDto, UpdatePhotoDto, UpdatePhotosDto, UpdateWorkPreferenceDto, UpdateCommActivityDto, UpdateVenuesDto, UpdateBoundariesDto } from './dto/profile.dto';
 export declare class ProfileController {
     private readonly profileService;
     constructor(profileService: ProfileService);
@@ -26,6 +26,45 @@ export declare class ProfileController {
         photoUrl: any;
         galleryPhotos: any;
         joinedAt: any;
+    }>;
+    updatePhotos(c: JwtPayload, dto: UpdatePhotosDto): Promise<{
+        companionId: any;
+        displayName: any;
+        maskedPhone: string;
+        city: any;
+        serviceAreas: any;
+        categories: any;
+        languages: any;
+        bio: any;
+        hourlyRate: number;
+        profileStatus: any;
+        verificationStatus: any;
+        trustScore: any;
+        trustLevel: any;
+        rating: number;
+        totalReviews: any;
+        totalSessions: any;
+        isAvailable: any;
+        isOnline: any;
+        photoUrl: any;
+        galleryPhotos: any;
+        joinedAt: any;
+    }>;
+    updateWorkPreference(c: JwtPayload, dto: UpdateWorkPreferenceDto): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    updateCommActivity(c: JwtPayload, dto: UpdateCommActivityDto): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    updateVenues(c: JwtPayload, dto: UpdateVenuesDto): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    updateBoundaries(c: JwtPayload, dto: UpdateBoundariesDto): Promise<{
+        success: boolean;
+        message: string;
     }>;
     setupBulk(c: JwtPayload, dto: ProfileSetupBulkDto): Promise<{
         success: boolean;

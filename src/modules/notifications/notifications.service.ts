@@ -79,7 +79,7 @@ export class NotificationsService {
   async getAnnouncements(companionId: string) {
     // Return system-wide announcements
     const announcements = await this.prisma.notification.findMany({
-      where: { type: 'SYSTEM_MESSAGE', isRead: false }, // Simplification for mock
+      where: { type: 'system', isRead: false }, // Simplification for mock
       orderBy: { createdAt: 'desc' },
       take: 10,
     });

@@ -1,5 +1,5 @@
 import { PrismaService } from '../../prisma/prisma.service';
-import { BasicDetailsDto } from './dto/kyc.dto';
+import { BasicDetailsDto, SaveDeclarationDto, SubmitGovernmentIdDto, UpdateGovernmentIdTypeDto, SubmitSelfieDto } from './dto/kyc.dto';
 export declare class KycService {
     private prisma;
     constructor(prisma: PrismaService);
@@ -61,17 +61,15 @@ export declare class KycService {
         stage: string;
         message: string;
     }>;
-    submitGovernmentId(companionId: string, dto: {
-        documentType: string;
-        frontUrl: string;
-        backUrl?: string;
-    }): Promise<{
+    updateGovernmentIdType(companionId: string, dto: UpdateGovernmentIdTypeDto): Promise<{
         success: boolean;
         message: string;
     }>;
-    submitSelfie(companionId: string, dto: {
-        videoUrl: string;
-    }): Promise<{
+    submitGovernmentId(companionId: string, dto: SubmitGovernmentIdDto): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    submitSelfie(companionId: string, dto: SubmitSelfieDto): Promise<{
         success: boolean;
         message: string;
     }>;
@@ -130,9 +128,7 @@ export declare class KycService {
         success: boolean;
         message: string;
     }>;
-    saveDeclaration(companionId: string, dto: {
-        agreedAt: string;
-    }): Promise<{
+    saveDeclaration(companionId: string, dto: SaveDeclarationDto): Promise<{
         success: boolean;
         message: string;
     }>;

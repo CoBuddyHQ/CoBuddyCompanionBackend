@@ -1,9 +1,25 @@
 import { PrismaService } from '../../prisma/prisma.service';
-import { UpdateBasicProfileDto, UpdateBioDto, UpdateCategoriesDto, UpdateLanguagesDto, UpdateServiceAreasDto, UpdatePricingDto, ToggleAvailabilityDto, ReorderPhotosDto, ProfileSetupBulkDto, UpdatePhotoDto } from './dto/profile.dto';
+import { UpdateBasicProfileDto, UpdateBioDto, UpdateCategoriesDto, UpdateLanguagesDto, UpdateServiceAreasDto, UpdatePricingDto, ToggleAvailabilityDto, ReorderPhotosDto, ProfileSetupBulkDto, UpdatePhotoDto, UpdatePhotosDto, UpdateWorkPreferenceDto, UpdateCommActivityDto, UpdateVenuesDto, UpdateBoundariesDto } from './dto/profile.dto';
 export declare class ProfileService {
     private prisma;
     private readonly logger;
     constructor(prisma: PrismaService);
+    updateWorkPreference(companionId: string, dto: UpdateWorkPreferenceDto): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    updateCommActivity(companionId: string, dto: UpdateCommActivityDto): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    updateVenues(companionId: string, dto: UpdateVenuesDto): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    updateBoundaries(companionId: string, dto: UpdateBoundariesDto): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     getProfile(companionId: string): Promise<{
         companionId: any;
         displayName: any;
@@ -192,9 +208,28 @@ export declare class ProfileService {
         galleryPhotos: any;
         joinedAt: any;
     }>;
-    updatePhotos(companionId: string, photoUrl: string): Promise<{
-        message: string;
-        photoUrl: string;
+    updatePhotos(companionId: string, dto: UpdatePhotosDto): Promise<{
+        companionId: any;
+        displayName: any;
+        maskedPhone: string;
+        city: any;
+        serviceAreas: any;
+        categories: any;
+        languages: any;
+        bio: any;
+        hourlyRate: number;
+        profileStatus: any;
+        verificationStatus: any;
+        trustScore: any;
+        trustLevel: any;
+        rating: number;
+        totalReviews: any;
+        totalSessions: any;
+        isAvailable: any;
+        isOnline: any;
+        photoUrl: any;
+        galleryPhotos: any;
+        joinedAt: any;
     }>;
     reorderPhotos(companionId: string, dto: ReorderPhotosDto): Promise<{
         galleryPhotos: string[];

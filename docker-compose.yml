@@ -5,9 +5,9 @@ services:
     image: postgres:15-alpine
     container_name: cobuddy_postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: cobuddy
+      POSTGRES_USER: cobuddy
+      POSTGRES_PASSWORD: cobuddy_secret
+      POSTGRES_DB: cobuddy_companion
     ports:
       - "5432:5432"
     volumes:

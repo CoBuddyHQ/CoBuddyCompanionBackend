@@ -38,7 +38,7 @@ export class UploadsController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     const result = await this.uploadsService.uploadFile(c.sub, file, 'profile_photo');
-    await this.profileService.updatePhotos(c.sub, result.url);
+    await this.profileService.updatePhotos(c.sub, { photoUrl: result.url });
     return { photoUrl: result.url, message: 'Profile photo updated successfully' };
   }
 

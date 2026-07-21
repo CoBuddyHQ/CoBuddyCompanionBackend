@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ToggleAvailabilityDto = exports.ReorderPhotosDto = exports.UpdatePhotoDto = exports.UpdatePricingDto = exports.UpdateServiceAreasDto = exports.UpdateLanguagesDto = exports.UpdateCategoriesDto = exports.UpdateBioDto = exports.UpdateBasicProfileDto = exports.ProfileSetupBulkDto = void 0;
+exports.ToggleAvailabilityDto = exports.ReorderPhotosDto = exports.UpdatePhotosDto = exports.UpdatePhotoDto = exports.UpdateBoundariesDto = exports.UpdateVenuesDto = exports.UpdateCommActivityDto = exports.UpdatePricingDto = exports.UpdateServiceAreasDto = exports.UpdateWorkPreferenceDto = exports.UpdateLanguagesDto = exports.UpdateCategoriesDto = exports.UpdateBioDto = exports.UpdateBasicProfileDto = exports.ProfileSetupBulkDto = void 0;
 const class_validator_1 = require("class-validator");
 const swagger_1 = require("@nestjs/swagger");
 const class_transformer_1 = require("class-transformer");
@@ -30,7 +30,7 @@ __decorate([
     __metadata("design:type", Array)
 ], ProfileSetupBulkDto.prototype, "interestTags", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ isArray: true, example: ['CAFE_CONVERSATION', 'CITY_WALK'] }),
+    (0, swagger_1.ApiPropertyOptional)({ isArray: true, example: ['cafe_conversation', 'city_walk'] }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
     (0, class_validator_1.IsString)({ each: true }),
@@ -88,7 +88,7 @@ class UpdateCategoriesDto {
 }
 exports.UpdateCategoriesDto = UpdateCategoriesDto;
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ isArray: true, example: ['CAFE_CONVERSATION', 'CITY_WALK'] }),
+    (0, swagger_1.ApiPropertyOptional)({ isArray: true, example: ['cafe_conversation', 'city_walk'] }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
     (0, class_validator_1.IsString)({ each: true }),
@@ -103,15 +103,54 @@ __decorate([
     (0, class_validator_1.IsArray)(),
     __metadata("design:type", Array)
 ], UpdateLanguagesDto.prototype, "languages", void 0);
+class UpdateWorkPreferenceDto {
+}
+exports.UpdateWorkPreferenceDto = UpdateWorkPreferenceDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], UpdateWorkPreferenceDto.prototype, "durations", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], UpdateWorkPreferenceDto.prototype, "days", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], UpdateWorkPreferenceDto.prototype, "timeRanges", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateWorkPreferenceDto.prototype, "frequency", void 0);
 class UpdateServiceAreasDto {
 }
 exports.UpdateServiceAreasDto = UpdateServiceAreasDto;
 __decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateServiceAreasDto.prototype, "city", void 0);
+__decorate([
     (0, swagger_1.ApiPropertyOptional)({ isArray: true }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
     __metadata("design:type", Array)
-], UpdateServiceAreasDto.prototype, "serviceAreas", void 0);
+], UpdateServiceAreasDto.prototype, "broadAreas", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], UpdateServiceAreasDto.prototype, "willingToTravel", void 0);
 class UpdatePricingDto {
 }
 exports.UpdatePricingDto = UpdatePricingDto;
@@ -124,6 +163,51 @@ __decorate([
     (0, class_transformer_1.Type)(() => Number),
     __metadata("design:type", Number)
 ], UpdatePricingDto.prototype, "hourlyRate", void 0);
+class UpdateCommActivityDto {
+}
+exports.UpdateCommActivityDto = UpdateCommActivityDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateCommActivityDto.prototype, "commStyle", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateCommActivityDto.prototype, "activityPace", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateCommActivityDto.prototype, "groupPreference", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateCommActivityDto.prototype, "accessibilityNote", void 0);
+class UpdateVenuesDto {
+}
+exports.UpdateVenuesDto = UpdateVenuesDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ isArray: true }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], UpdateVenuesDto.prototype, "venuePreferences", void 0);
+class UpdateBoundariesDto {
+}
+exports.UpdateBoundariesDto = UpdateBoundariesDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], UpdateBoundariesDto.prototype, "boundariesAccepted", void 0);
 class UpdatePhotoDto {
 }
 exports.UpdatePhotoDto = UpdatePhotoDto;
@@ -133,6 +217,22 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdatePhotoDto.prototype, "photoUrl", void 0);
+class UpdatePhotosDto {
+}
+exports.UpdatePhotosDto = UpdatePhotosDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdatePhotosDto.prototype, "photoUrl", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ isArray: true }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], UpdatePhotosDto.prototype, "galleryPhotos", void 0);
 class ReorderPhotosDto {
 }
 exports.ReorderPhotosDto = ReorderPhotosDto;

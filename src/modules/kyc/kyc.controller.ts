@@ -4,7 +4,7 @@ import { KycService } from './kyc.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentCompanion } from '../../common/decorators/current-companion.decorator';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
-import { BasicDetailsDto } from './dto/kyc.dto';
+import { BasicDetailsDto, SaveDeclarationDto, SubmitGovernmentIdDto, UpdateGovernmentIdTypeDto, SubmitSelfieDto, SaveAddressDto, SavePanDto, SaveBankDto, VerifyBankDto, SaveUpiDto } from './dto/kyc.dto';
 
 @ApiTags('KYC')
 @ApiBearerAuth('companion-jwt')
@@ -36,11 +36,19 @@ export class KycController {
     return this.kycService.saveDraft(c.sub, dto);
   }
 
+  /** PUT /companion/kyc/government-id-type — Save only the document type */
+  @Post('companion/kyc/government-id-type')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Save selected government ID type — GovernmentIDTypeScreen' })
+  updateGovernmentIdType(@CurrentCompanion() c: JwtPayload, @Body() dto: UpdateGovernmentIdTypeDto) {
+    return this.kycService.updateGovernmentIdType(c.sub, dto);
+  }
+
   /** POST /companion/kyc/government-id — Endpoints.KYC.UPLOAD_GOVERNMENT_ID */
   @Post('companion/kyc/government-id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Upload government ID — GovernmentIDUploadScreen' })
-  submitGovernmentId(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
+  submitGovernmentId(@CurrentCompanion() c: JwtPayload, @Body() dto: SubmitGovernmentIdDto) {
     return this.kycService.submitGovernmentId(c.sub, dto);
   }
 
@@ -48,23 +56,25 @@ export class KycController {
   @Post('companion/kyc/selfie')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Submit selfie/liveness video — SelfieCaptureScreen' })
-  submitSelfie(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
+  submitSelfie(@CurrentCompanion() c: JwtPayload, @Body() dto: SubmitSelfieDto) {
     return this.kycService.submitSelfie(c.sub, dto);
   }
 
-  /** POST /companion/kyc/address — Endpoints.KYC.UPLOAD_ADDRESS */
+  /** POST /companion/kyc/address — Endpoints.KYC.SAVE_ADDRESS */
   @Post('companion/kyc/address')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Submit address document — AddressVerificationScreen' })
-  submitAddress(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
-    return this.kycService.submitAddress(c.sub, dto);
+  @ApiOperation({ summary: 'Save current residential address details — AddressVerificationScreen' })
+  saveAddress(@CurrentCompanion() c: JwtPayload, @Body() dto: SaveAddressDto) {
+    return this.kycService.saveAddress(c.sub, dto);
   }
+
+
 
   /** POST /companion/kyc/pan — Endpoints.KYC.SAVE_PAN */
   @Post('companion/kyc/pan')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Save PAN details (masked) — PANTaxDetailsScreen' })
-  savePan(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
+  savePan(@CurrentCompanion() c: JwtPayload, @Body() dto: SavePanDto) {
     return this.kycService.savePan(c.sub, dto);
   }
 
@@ -72,7 +82,7 @@ export class KycController {
   @Post('companion/kyc/bank')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Save bank account (last 4 digits only) — AddBankAccountScreen' })
-  saveBank(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
+  saveBank(@CurrentCompanion() c: JwtPayload, @Body() dto: SaveBankDto) {
     return this.kycService.saveBank(c.sub, dto);
   }
 
@@ -80,7 +90,7 @@ export class KycController {
   @Post('companion/kyc/bank/verify')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify bank account via penny drop — BankAccountVerificationScreen' })
-  verifyBank(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
+  verifyBank(@CurrentCompanion() c: JwtPayload, @Body() dto: VerifyBankDto) {
     return this.kycService.verifyBank(c.sub, dto);
   }
 
@@ -88,7 +98,7 @@ export class KycController {
   @Post('companion/kyc/upi')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Save UPI ID (masked) — UPIDetailsScreen' })
-  saveUpi(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
+  saveUpi(@CurrentCompanion() c: JwtPayload, @Body() dto: SaveUpiDto) {
     return this.kycService.saveUpi(c.sub, dto);
   }
 
@@ -104,7 +114,7 @@ export class KycController {
   @Post('companion/kyc/declaration')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Confirm background declaration — BackgroundDeclarationScreen' })
-  saveDeclaration(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
+  saveDeclaration(@CurrentCompanion() c: JwtPayload, @Body() dto: SaveDeclarationDto) {
     return this.kycService.saveDeclaration(c.sub, dto);
   }
 

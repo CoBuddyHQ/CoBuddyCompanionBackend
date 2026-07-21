@@ -18,6 +18,34 @@ let ProfileService = ProfileService_1 = class ProfileService {
         this.prisma = prisma;
         this.logger = new common_1.Logger(ProfileService_1.name);
     }
+    async updateWorkPreference(companionId, dto) {
+        await this.prisma.companion.update({
+            where: { id: companionId },
+            data: { workPreferences: dto },
+        });
+        return { success: true, message: 'Work preferences updated successfully' };
+    }
+    async updateCommActivity(companionId, dto) {
+        await this.prisma.companion.update({
+            where: { id: companionId },
+            data: { commActivityPrefs: dto },
+        });
+        return { success: true, message: 'Communication & activity preferences updated successfully' };
+    }
+    async updateVenues(companionId, dto) {
+        await this.prisma.companion.update({
+            where: { id: companionId },
+            data: { venuePreferences: dto.venuePreferences ?? [] },
+        });
+        return { success: true, message: 'Venue preferences updated successfully' };
+    }
+    async updateBoundaries(companionId, dto) {
+        await this.prisma.companion.update({
+            where: { id: companionId },
+            data: { boundariesAccepted: dto.boundariesAccepted },
+        });
+        return { success: true, message: 'Boundaries acceptance updated successfully' };
+    }
     async getProfile(companionId) {
         const companion = await this.prisma.companion.findUnique({
             where: { id: companionId },
@@ -135,12 +163,33 @@ let ProfileService = ProfileService_1 = class ProfileService {
         return this.getProfile(companionId);
     }
     async updateServiceAreas(companionId, dto) {
-        await this.prisma.companionServiceArea.deleteMany({ where: { companionId } });
-        if (dto.serviceAreas?.length) {
-            await this.prisma.companionServiceArea.createMany({
-                data: dto.serviceAreas.map(a => ({ companionId, ...a })),
-            });
-        }
+        await this.prisma.$transaction(async (tx) => {
+            if (dto.city !== undefined || dto.willingToTravel !== undefined) {
+                const updateData = {};
+                if (dto.city !== undefined)
+                    updateData.city = dto.city;
+                if (dto.willingToTravel !== undefined)
+                    updateData.willingToTravel = dto.willingToTravel;
+                await tx.companion.update({
+                    where: { id: companionId },
+                    data: updateData,
+                });
+            }
+            if (dto.broadAreas !== undefined) {
+                await tx.companionServiceArea.deleteMany({ where: { companionId } });
+                if (dto.broadAreas.length > 0) {
+                    const companion = await tx.companion.findUnique({ where: { id: companionId }, select: { city: true } });
+                    const currentCity = dto.city ?? companion?.city ?? '';
+                    await tx.companionServiceArea.createMany({
+                        data: dto.broadAreas.map(area => ({
+                            companionId,
+                            area,
+                            city: currentCity,
+                        })),
+                    });
+                }
+            }
+        });
         return this.getProfile(companionId);
     }
     async updatePricing(companionId, dto) {
@@ -154,12 +203,36 @@ let ProfileService = ProfileService_1 = class ProfileService {
         });
         return this.toProfileResponse(companion);
     }
-    async updatePhotos(companionId, photoUrl) {
-        await this.prisma.companion.update({
-            where: { id: companionId },
-            data: { photoUrl },
-        });
-        return { message: 'Profile photo updated', photoUrl };
+    async updatePhotos(companionId, dto) {
+        if (dto.galleryPhotos !== undefined) {
+            await this.prisma.$transaction(async (tx) => {
+                if (dto.photoUrl !== undefined) {
+                    await tx.companion.update({
+                        where: { id: companionId },
+                        data: { photoUrl: dto.photoUrl },
+                    });
+                }
+                await tx.companionPhoto.deleteMany({
+                    where: { companionId },
+                });
+                if (dto.galleryPhotos.length > 0) {
+                    await tx.companionPhoto.createMany({
+                        data: dto.galleryPhotos.map((url, index) => ({
+                            companionId,
+                            url,
+                            sortOrder: index,
+                        })),
+                    });
+                }
+            });
+        }
+        else if (dto.photoUrl !== undefined) {
+            await this.prisma.companion.update({
+                where: { id: companionId },
+                data: { photoUrl: dto.photoUrl },
+            });
+        }
+        return this.getProfile(companionId);
     }
     async reorderPhotos(companionId, dto) {
         for (let i = 0; i < dto.photoIds.length; i++) {
@@ -208,7 +281,7 @@ let ProfileService = ProfileService_1 = class ProfileService {
             throw new common_1.BadRequestException('Hourly rate is required');
         const updated = await this.prisma.companion.update({
             where: { id: companionId },
-            data: { profileStatus: 'SUBMITTED' },
+            data: { profileStatus: 'submitted' },
         });
         await this.prisma.companionKYC.upsert({
             where: { companionId },

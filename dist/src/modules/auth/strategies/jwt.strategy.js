@@ -33,7 +33,7 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
         if (!companion || companion.deletedAt) {
             throw new common_1.UnauthorizedException('Companion not found or deleted');
         }
-        if (companion.accountStatus === 'DELETED') {
+        if (companion.accountStatus === 'deleted') {
             throw new common_1.UnauthorizedException('Account deleted');
         }
         return {

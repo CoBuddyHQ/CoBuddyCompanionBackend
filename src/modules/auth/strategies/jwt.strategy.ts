@@ -33,7 +33,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'companion-jwt') {
     if (!companion || companion.deletedAt) {
       throw new UnauthorizedException('Companion not found or deleted');
     }
-    if (companion.accountStatus === 'DELETED') {
+    if (companion.accountStatus === 'deleted') {
       throw new UnauthorizedException('Account deleted');
     }
     return {

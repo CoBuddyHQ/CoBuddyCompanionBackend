@@ -19,14 +19,14 @@ let DashboardService = class DashboardService {
     async getDashboardData(companionId) {
         const [companion, activeSessions, upcomingSessions, pendingRequests, unreadNotifs] = await Promise.all([
             this.prisma.companion.findUnique({ where: { id: companionId } }),
-            this.prisma.session.findMany({ where: { companionId, status: 'ACTIVE' }, take: 1 }),
+            this.prisma.session.findMany({ where: { companionId, status: 'active' }, take: 1 }),
             this.prisma.session.findMany({
-                where: { companionId, status: { in: ['UPCOMING', 'PRE_ARRIVAL'] } },
+                where: { companionId, status: { in: ['upcoming', 'pre_arrival'] } },
                 orderBy: { scheduledStart: 'asc' },
                 take: 3,
             }),
             this.prisma.bookingRequest.findMany({
-                where: { companionId, status: 'PENDING' },
+                where: { companionId, status: 'pending' },
                 orderBy: { receivedAt: 'desc' },
             }),
             this.prisma.notification.count({ where: { companionId, isRead: false } }),
@@ -39,8 +39,8 @@ let DashboardService = class DashboardService {
             where: {
                 companionId,
                 createdAt: { gte: monthStart },
-                type: { in: ['SESSION_EARNING', 'EXTENSION_EARNING', 'SAFETY_BONUS'] },
-                status: { not: 'ON_HOLD' },
+                type: { in: ['session_earning', 'extension_earning', 'safety_bonus'] },
+                status: { not: 'on_hold' },
             },
         });
         const totalEarnedThisMonth = monthTxs.reduce((sum, t) => sum + Math.max(0, Number(t.amount)), 0);

@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BasicDetailsDto = void 0;
+exports.SubmitSelfieDto = exports.SubmitGovernmentIdDto = exports.UpdateGovernmentIdTypeDto = exports.SaveDeclarationDto = exports.BasicDetailsDto = void 0;
 const class_validator_1 = require("class-validator");
 const swagger_1 = require("@nestjs/swagger");
 class BasicDetailsDto {
@@ -51,4 +51,84 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], BasicDetailsDto.prototype, "gender", void 0);
+class SaveDeclarationDto {
+}
+exports.SaveDeclarationDto = SaveDeclarationDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: true }),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], SaveDeclarationDto.prototype, "accurateInfo", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: true }),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], SaveDeclarationDto.prototype, "publicVenueOnly", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: true }),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], SaveDeclarationDto.prototype, "professionalConduct", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: true }),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], SaveDeclarationDto.prototype, "noPrivateContact", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: true }),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], SaveDeclarationDto.prototype, "safetyPolicy", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: true }),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], SaveDeclarationDto.prototype, "noMisrepresentation", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: '2023-01-01T00:00:00Z' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveDeclarationDto.prototype, "agreedAt", void 0);
+class UpdateGovernmentIdTypeDto {
+}
+exports.UpdateGovernmentIdTypeDto = UpdateGovernmentIdTypeDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Aadhaar Card' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateGovernmentIdTypeDto.prototype, "documentType", void 0);
+class SubmitGovernmentIdDto {
+}
+exports.SubmitGovernmentIdDto = SubmitGovernmentIdDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Aadhaar Card' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SubmitGovernmentIdDto.prototype, "documentType", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'https://bucket.s3.amazonaws.com/front.jpg' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SubmitGovernmentIdDto.prototype, "frontUrl", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'https://bucket.s3.amazonaws.com/back.jpg' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SubmitGovernmentIdDto.prototype, "backUrl", void 0);
+class SubmitSelfieDto {
+}
+exports.SubmitSelfieDto = SubmitSelfieDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'https://bucket.s3.amazonaws.com/selfie.jpg' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SubmitSelfieDto.prototype, "imageUrl", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'https://bucket.s3.amazonaws.com/liveness.mp4' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SubmitSelfieDto.prototype, "videoUrl", void 0);
 //# sourceMappingURL=kyc.dto.js.map

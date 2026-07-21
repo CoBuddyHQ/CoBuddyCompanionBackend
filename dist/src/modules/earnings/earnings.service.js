@@ -21,10 +21,10 @@ let EarningsService = EarningsService_1 = class EarningsService {
     async getSummary(companionId) {
         const [transactions, pendingTxs, companion] = await Promise.all([
             this.prisma.earningsTransaction.findMany({
-                where: { companionId, status: { in: ['PAYOUT_ELIGIBLE', 'APPROVED'] } },
+                where: { companionId, status: { in: ['payout_eligible', 'approved'] } },
             }),
             this.prisma.earningsTransaction.findMany({
-                where: { companionId, status: 'PENDING_REVIEW' },
+                where: { companionId, status: 'pending_review' },
             }),
             this.prisma.companion.findUnique({ where: { id: companionId } }),
         ]);
@@ -36,20 +36,20 @@ let EarningsService = EarningsService_1 = class EarningsService {
             where: {
                 companionId,
                 createdAt: { gte: monthStart },
-                type: { in: ['SESSION_EARNING', 'EXTENSION_EARNING', 'SAFETY_BONUS'] },
-                status: { not: 'ON_HOLD' },
+                type: { in: ['session_earning', 'extension_earning', 'safety_bonus'] },
+                status: { not: 'on_hold' },
             },
         });
         const totalEarnedThisMonth = monthTxs.reduce((sum, t) => sum + Math.max(0, Number(t.amount)), 0);
         const sessionsThisMonth = await this.prisma.session.count({
             where: {
                 companionId,
-                status: 'COMPLETED',
+                status: 'completed',
                 completedAt: { gte: monthStart },
             },
         });
         const onHold = await this.prisma.earningsTransaction.aggregate({
-            where: { companionId, status: 'ON_HOLD' },
+            where: { companionId, status: 'on_hold' },
             _sum: { amount: true },
         });
         const nextPayout = now.getDate() < 16
@@ -103,7 +103,7 @@ let EarningsService = EarningsService_1 = class EarningsService {
         const payout = await this.prisma.payoutRecord.create({
             data: {
                 companionId,
-                status: 'REQUESTED',
+                status: 'requested',
                 amount: netAmount,
                 platformFee,
                 maskedBank: bankMasked,
@@ -113,8 +113,8 @@ let EarningsService = EarningsService_1 = class EarningsService {
         await this.prisma.earningsTransaction.create({
             data: {
                 companionId,
-                type: 'PAYOUT_TRANSFER',
-                status: 'DEDUCTED',
+                type: 'payout_transfer',
+                status: 'deducted',
                 amount: -amount,
                 description: `Payout to ${bankMasked}`,
                 payoutId: payout.id,
@@ -157,7 +157,7 @@ let EarningsService = EarningsService_1 = class EarningsService {
     }
     async getInvoices(companionId, page = 1, limit = 20) {
         const sessions = await this.prisma.session.findMany({
-            where: { companionId, status: 'COMPLETED' },
+            where: { companionId, status: 'completed' },
             orderBy: { completedAt: 'desc' },
             skip: (page - 1) * limit,
             take: limit,
@@ -178,7 +178,7 @@ let EarningsService = EarningsService_1 = class EarningsService {
     async getInvoiceDetail(companionId, invoiceId) {
         const sessionIdPrefix = invoiceId.replace('INV-', '').toLowerCase();
         const session = await this.prisma.session.findFirst({
-            where: { companionId, status: 'COMPLETED', id: { startsWith: sessionIdPrefix } },
+            where: { companionId, status: 'completed', id: { startsWith: sessionIdPrefix } },
         });
         if (!session)
             throw new common_1.NotFoundException('Invoice not found');

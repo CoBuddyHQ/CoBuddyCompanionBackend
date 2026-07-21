@@ -22,7 +22,7 @@ let SessionsService = SessionsService_1 = class SessionsService {
         const sessions = await this.prisma.session.findMany({
             where: {
                 companionId,
-                status: { in: ['UPCOMING', 'PRE_ARRIVAL', 'CHECKED_IN', 'ACTIVE', 'EXTENDING'] },
+                status: { in: ['upcoming', 'pre_arrival', 'checked_in', 'active', 'extending'] },
             },
             orderBy: { scheduledStart: 'asc' },
         });
@@ -33,7 +33,7 @@ let SessionsService = SessionsService_1 = class SessionsService {
             this.prisma.session.findMany({
                 where: {
                     companionId,
-                    status: { in: ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'DISPUTED'] },
+                    status: { in: ['completed', 'cancelled', 'no_show', 'disputed'] },
                 },
                 orderBy: { scheduledStart: 'desc' },
                 skip: (page - 1) * limit,
@@ -42,7 +42,7 @@ let SessionsService = SessionsService_1 = class SessionsService {
             this.prisma.session.count({
                 where: {
                     companionId,
-                    status: { in: ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'DISPUTED'] },
+                    status: { in: ['completed', 'cancelled', 'no_show', 'disputed'] },
                 },
             }),
         ]);
@@ -82,12 +82,12 @@ let SessionsService = SessionsService_1 = class SessionsService {
     }
     async checkIn(companionId, sessionId) {
         const session = await this.findSessionOrThrow(companionId, sessionId);
-        if (!['UPCOMING', 'PRE_ARRIVAL'].includes(session.status)) {
+        if (!['upcoming', 'pre_arrival'].includes(session.status)) {
             throw new common_1.BadRequestException(`Cannot check in from status: ${session.status}`);
         }
         const updated = await this.prisma.session.update({
             where: { id: sessionId },
-            data: { status: 'CHECKED_IN', checkInTime: new Date() },
+            data: { status: 'checked_in', checkInTime: new Date() },
         });
         this.logger.log(`Companion ${companionId} checked in to session ${sessionId}`);
         return this.toSessionResponse(updated);
@@ -99,24 +99,24 @@ let SessionsService = SessionsService_1 = class SessionsService {
             throw new common_1.BadRequestException('Invalid session pass code');
         const updated = await this.prisma.session.update({
             where: { id: sessionId },
-            data: { status: 'ACTIVE', checkInTime: session.checkInTime ?? new Date() },
+            data: { status: 'active', checkInTime: session.checkInTime ?? new Date() },
         });
         return { ...this.toSessionResponse(updated), verified: true };
     }
     async requestExtension(companionId, sessionId, extraMinutes) {
         const session = await this.findSessionOrThrow(companionId, sessionId);
-        if (session.status !== 'ACTIVE')
+        if (session.status !== 'active')
             throw new common_1.BadRequestException('Can only extend active sessions');
         if (extraMinutes < 30 || extraMinutes > 180)
             throw new common_1.BadRequestException('Extension must be 30–180 minutes');
         await this.prisma.session.update({
             where: { id: sessionId },
-            data: { status: 'EXTENDING' },
+            data: { status: 'extending' },
         });
         return {
             sessionId,
             extraMinutes,
-            status: 'EXTENDING',
+            status: 'extending',
             message: 'Extension request sent to customer for approval.',
         };
     }
@@ -128,7 +128,7 @@ let SessionsService = SessionsService_1 = class SessionsService {
             data: {
                 scheduledEnd: newEnd,
                 durationMinutes: session.durationMinutes + extraMinutes,
-                status: 'ACTIVE',
+                status: 'active',
                 bonusEarning: { increment: this.calcExtensionEarning(session, extraMinutes) },
             },
         });
@@ -136,12 +136,12 @@ let SessionsService = SessionsService_1 = class SessionsService {
     }
     async endEarly(companionId, sessionId, reason) {
         const session = await this.findSessionOrThrow(companionId, sessionId);
-        if (session.status !== 'ACTIVE')
+        if (session.status !== 'active')
             throw new common_1.BadRequestException('No active session');
         const updated = await this.prisma.session.update({
             where: { id: sessionId },
             data: {
-                status: 'COMPLETED',
+                status: 'completed',
                 checkOutTime: new Date(),
                 completedAt: new Date(),
                 notes: reason ? `Early end: ${reason}` : 'Session ended early by companion',
@@ -151,13 +151,13 @@ let SessionsService = SessionsService_1 = class SessionsService {
     }
     async cancelSession(companionId, sessionId, reason) {
         const session = await this.findSessionOrThrow(companionId, sessionId);
-        if (!['UPCOMING', 'PRE_ARRIVAL'].includes(session.status)) {
+        if (!['upcoming', 'pre_arrival'].includes(session.status)) {
             throw new common_1.BadRequestException('Can only cancel upcoming sessions');
         }
         const updated = await this.prisma.session.update({
             where: { id: sessionId },
             data: {
-                status: 'CANCELLED',
+                status: 'cancelled',
                 cancelReason: reason,
                 cancelledBy: 'companion',
             },
@@ -169,19 +169,19 @@ let SessionsService = SessionsService_1 = class SessionsService {
         const session = await this.findSessionOrThrow(companionId, sessionId);
         const updated = await this.prisma.session.update({
             where: { id: sessionId },
-            data: { status: 'NO_SHOW', noShowAt: new Date() },
+            data: { status: 'no_show', noShowAt: new Date() },
         });
         return this.toSessionResponse(updated);
     }
     async completeSession(companionId, sessionId) {
         const session = await this.findSessionOrThrow(companionId, sessionId);
-        if (session.status !== 'ACTIVE')
+        if (session.status !== 'active')
             throw new common_1.BadRequestException('Session is not active');
         const confirmed = Number(session.estimatedTotal);
         const updated = await this.prisma.session.update({
             where: { id: sessionId },
             data: {
-                status: 'COMPLETED',
+                status: 'completed',
                 checkOutTime: new Date(),
                 completedAt: new Date(),
                 confirmedEarning: confirmed,
@@ -191,8 +191,8 @@ let SessionsService = SessionsService_1 = class SessionsService {
             data: {
                 companionId,
                 sessionId,
-                type: 'SESSION_EARNING',
-                status: 'PENDING_REVIEW',
+                type: 'session_earning',
+                status: 'pending_review',
                 amount: confirmed,
                 customerInitials: session.customerInitials,
                 description: `Session: ${session.category.replace('_', ' ')} — ${session.venueName}`,

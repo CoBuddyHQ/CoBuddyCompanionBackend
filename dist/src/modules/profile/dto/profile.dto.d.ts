@@ -26,17 +26,38 @@ export declare class UpdateLanguagesDto {
         proficiency?: string;
     }[];
 }
+export declare class UpdateWorkPreferenceDto {
+    durations: string[];
+    days: string[];
+    timeRanges: string[];
+    frequency: string;
+}
 export declare class UpdateServiceAreasDto {
-    serviceAreas?: {
-        area: string;
-        city: string;
-    }[];
+    city?: string;
+    broadAreas?: string[];
+    willingToTravel?: boolean;
 }
 export declare class UpdatePricingDto {
     hourlyRate?: number;
 }
+export declare class UpdateCommActivityDto {
+    commStyle?: string;
+    activityPace?: string;
+    groupPreference?: string;
+    accessibilityNote?: string;
+}
+export declare class UpdateVenuesDto {
+    venuePreferences?: string[];
+}
+export declare class UpdateBoundariesDto {
+    boundariesAccepted: boolean;
+}
 export declare class UpdatePhotoDto {
     photoUrl?: string;
+}
+export declare class UpdatePhotosDto {
+    photoUrl?: string;
+    galleryPhotos?: string[];
 }
 export declare class ReorderPhotosDto {
     photoIds: string[];
