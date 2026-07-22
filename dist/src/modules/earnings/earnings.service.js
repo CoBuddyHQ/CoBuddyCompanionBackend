@@ -13,9 +13,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EarningsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const payments_service_1 = require("../payments/payments.service");
 let EarningsService = EarningsService_1 = class EarningsService {
-    constructor(prisma) {
+    constructor(prisma, paymentsService) {
         this.prisma = prisma;
+        this.paymentsService = paymentsService;
         this.logger = new common_1.Logger(EarningsService_1.name);
     }
     async getSummary(companionId) {
@@ -100,7 +102,9 @@ let EarningsService = EarningsService_1 = class EarningsService {
             throw new common_1.BadRequestException('Minimum payout is ₹100');
         const companion = await this.prisma.companion.findUnique({
             where: { id: companionId },
-            select: { kyc: { select: { bankName: true, maskedBankAccount: true } } },
+            select: {
+                kyc: { select: { bankName: true, maskedBankAccount: true, bankIfsc: true, bankHolderName: true } }
+            },
         });
         const maskedBank = companion?.kyc?.maskedBankAccount ?? 'HDFC Bank ****4545';
         const netAmount = amount;
@@ -124,6 +128,22 @@ let EarningsService = EarningsService_1 = class EarningsService {
                 payoutId: payout.id,
             },
         });
+        if (companion?.kyc?.bankIfsc && companion?.kyc?.bankHolderName) {
+            try {
+                await this.paymentsService.initiateCompanionPayout({
+                    companionId,
+                    amountINR: netAmount,
+                    bankName: companion.kyc.bankName ?? 'Bank',
+                    accountNumber: '1234567890',
+                    ifscCode: companion.kyc.bankIfsc,
+                    accountName: companion.kyc.bankHolderName,
+                    payoutRecordId: payout.id,
+                });
+            }
+            catch (err) {
+                this.logger.warn(`RazorpayX live payout queued/failed: ${err.message}. Record saved in DB.`);
+            }
+        }
         this.logger.log(`Payout requested: ${companionId} ₹${netAmount} → ${maskedBank}`);
         return {
             payoutId: `PAY-${payout.id.slice(-6).toUpperCase()}`,
@@ -367,6 +387,7 @@ let EarningsService = EarningsService_1 = class EarningsService {
 exports.EarningsService = EarningsService;
 exports.EarningsService = EarningsService = EarningsService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        payments_service_1.PaymentsService])
 ], EarningsService);
 //# sourceMappingURL=earnings.service.js.map

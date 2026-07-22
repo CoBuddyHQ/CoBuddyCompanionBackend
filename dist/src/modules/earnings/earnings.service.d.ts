@@ -1,8 +1,10 @@
 import { PrismaService } from '../../prisma/prisma.service';
+import { PaymentsService } from '../payments/payments.service';
 export declare class EarningsService {
     private prisma;
+    private paymentsService;
     private readonly logger;
-    constructor(prisma: PrismaService);
+    constructor(prisma: PrismaService, paymentsService: PaymentsService);
     getSummary(companionId: string): Promise<{
         availableBalance: number;
         pendingBalance: number;

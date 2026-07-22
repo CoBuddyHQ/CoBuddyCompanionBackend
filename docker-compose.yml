@@ -1,8 +1,28 @@
 version: '3.8'
 
 services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cobuddy_companion_api
+    restart: always
+    ports:
+      - "4001:4001"
+    environment:
+      NODE_ENV: production
+      PORT: 4001
+      DATABASE_URL: postgresql://cobuddy:cobuddy_secret@postgres:5432/cobuddy_companion?schema=public
+      REDIS_URL: redis://redis:6379
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET}
+    depends_on:
+      - postgres
+      - redis
+
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: cobuddy_postgres
     environment:
       POSTGRES_USER: cobuddy

@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PaymentsService } from '../payments/payments.service';
 
 @Injectable()
 export class EarningsService {
   private readonly logger = new Logger(EarningsService.name);
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private paymentsService: PaymentsService,
+  ) {}
 
   // ── GET /companion/earnings/summary — returns EarningsSummary interface ────
 
