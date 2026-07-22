@@ -109,6 +109,21 @@ export class SessionsService {
     return { ...this.toSessionResponse(updated), verified: true };
   }
 
+  // ── POST /companion/sessions/:sessionId/verify-selfie ───────────────────
+
+  async verifyBySelfie(companionId: string, sessionId: string, selfieUrl?: string) {
+    const session = await this.findSessionOrThrow(companionId, sessionId);
+    const updated = await this.prisma.session.update({
+      where: { id: sessionId },
+      data: { 
+        status: 'active', 
+        checkInTime: session.checkInTime ?? new Date(),
+        notes: session.notes ? `${session.notes}\nVerified via venue selfie.` : 'Verified via venue selfie.'
+      },
+    });
+    return { ...this.toSessionResponse(updated), verified: true, method: 'selfie' };
+  }
+
   // ── POST /companion/sessions/:sessionId/extend/request ───────────────────
 
   async requestExtension(companionId: string, sessionId: string, extraMinutes: number) {
@@ -237,11 +252,19 @@ export class SessionsService {
 
   // ── POST /companion/sessions/:sessionId/notes ─────────────────────────────
 
-  async saveNotes(companionId: string, sessionId: string, notes: string) {
+  async saveNotes(companionId: string, sessionId: string, notes: string, mood?: string, tags?: string[]) {
     await this.findSessionOrThrow(companionId, sessionId);
+    
+    let finalNotes = notes;
+    if (mood || (tags && tags.length > 0)) {
+      const moodStr = mood ? `[Mood: ${mood}] ` : '';
+      const tagsStr = tags && tags.length > 0 ? `[Tags: ${tags.join(', ')}]\n` : '';
+      finalNotes = `${moodStr}${tagsStr}${notes}`;
+    }
+
     const updated = await this.prisma.session.update({
       where: { id: sessionId },
-      data: { notes },
+      data: { notes: finalNotes },
     });
     return this.toSessionResponse(updated);
   }
@@ -256,6 +279,41 @@ export class SessionsService {
       data: { customerRating: rating, customerFeedback: feedback },
     });
     return { sessionId, customerRating: rating, message: 'Customer rated successfully' };
+  }
+
+  // ── IN-SESSION COMMUNICATIONS & TRACKING ───────────────────────────────────
+
+  async getChatHistory(companionId: string, sessionId: string) {
+    await this.findSessionOrThrow(companionId, sessionId);
+    // Placeholder for actual chat retrieval from external provider/DB
+    return [];
+  }
+
+  async sendChatMessage(companionId: string, sessionId: string, text: string) {
+    const session = await this.findSessionOrThrow(companionId, sessionId);
+    if (session.status !== 'active') throw new BadRequestException('Session is not active');
+    // Placeholder for actual chat dispatch
+    return { success: true, text, sentAt: new Date().toISOString() };
+  }
+
+  async getCallToken(companionId: string, sessionId: string) {
+    const session = await this.findSessionOrThrow(companionId, sessionId);
+    if (session.status !== 'active') throw new BadRequestException('Session is not active');
+    // Placeholder for real RTC token generation (e.g., Twilio/Agora)
+    return { token: 'mock-jwt-token-for-webrtc-call', channel: `session-${sessionId}` };
+  }
+
+  async updateLocation(companionId: string, sessionId: string, lat: number, lng: number) {
+    const session = await this.findSessionOrThrow(companionId, sessionId);
+    if (session.status !== 'active') throw new BadRequestException('Location sharing requires active session');
+    // Mock save location point for Safety Team
+    return { success: true, lat, lng, timestamp: new Date().toISOString() };
+  }
+
+  async stopLocationSharing(companionId: string, sessionId: string) {
+    const session = await this.findSessionOrThrow(companionId, sessionId);
+    // Logic to notify Safety Team that sharing was explicitly stopped early
+    return { success: true, message: 'Location sharing stopped early' };
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

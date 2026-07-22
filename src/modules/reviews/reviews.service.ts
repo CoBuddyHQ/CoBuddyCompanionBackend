@@ -5,24 +5,24 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class ReviewsService {
   constructor(private prisma: PrismaService) {}
 
-  // Returns CompanionReview interface from store.types.ts
+  // Returns Review interface matching frontend
   private toReviewResponse(r: any) {
     return {
-      reviewId: r.id,
-      sessionId: r.sessionId,
-      customerInitials: r.customerInitials,
+      id: r.id,
+      customerName: r.customerInitials,
       rating: r.rating,
-      isPublic: r.isPublic,
-      highlights: r.highlights,
-      comment: r.comment ?? null,
+      date: r.sessionDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+      comment: r.comment ?? '',
+      tags: r.highlights,
       sessionCategory: r.sessionCategory.toLowerCase(),
-      sessionDate: r.sessionDate.toISOString().split('T')[0],
-      createdAt: r.createdAt.toISOString(),
+      durationMinutes: r.durationMinutes,
+      replyText: r.replyText ?? undefined,
+      isReported: r.isReported ?? false,
     };
   }
 
   async getReviews(companionId: string, page = 1, limit = 20) {
-    const [reviews, total, avgRating] = await Promise.all([
+    const [reviews, total, avgRating, breakdownRaw] = await Promise.all([
       this.prisma.companionReview.findMany({
         where: { companionId },
         orderBy: { createdAt: 'desc' },
@@ -34,12 +34,24 @@ export class ReviewsService {
         where: { companionId },
         _avg: { rating: true },
       }),
+      this.prisma.companionReview.groupBy({
+        by: ['rating'],
+        where: { companionId },
+        _count: { rating: true },
+      })
     ]);
+
+    const ratingBreakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    breakdownRaw.forEach(b => {
+      ratingBreakdown[b.rating as 1|2|3|4|5] = b._count.rating;
+    });
+
     return {
       reviews: reviews.map(r => this.toReviewResponse(r)),
       total,
       page,
       averageRating: Number((avgRating._avg.rating ?? 0).toFixed(1)),
+      ratingBreakdown,
     };
   }
 
@@ -49,6 +61,24 @@ export class ReviewsService {
     });
     if (!review) throw new NotFoundException('Review not found');
     return this.toReviewResponse(review);
+  }
+
+  async reportReview(companionId: string, reviewId: string) {
+    const result = await this.prisma.companionReview.updateMany({
+      where: { id: reviewId, companionId },
+      data: { isReported: true },
+    });
+    if (result.count === 0) throw new NotFoundException('Review not found');
+    return { success: true };
+  }
+
+  async replyToReview(companionId: string, reviewId: string, reply: string) {
+    const result = await this.prisma.companionReview.updateMany({
+      where: { id: reviewId, companionId },
+      data: { replyText: reply },
+    });
+    if (result.count === 0) throw new NotFoundException('Review not found');
+    return { success: true };
   }
 
   async getTrustScore(companionId: string) {

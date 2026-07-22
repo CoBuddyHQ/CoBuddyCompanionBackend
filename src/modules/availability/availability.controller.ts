@@ -12,56 +12,73 @@ import { JwtPayload } from '../auth/strategies/jwt.strategy';
 export class AvailabilityController {
   constructor(private readonly availabilityService: AvailabilityService) {}
 
-  /** GET /companion/availability/slots — Endpoints.AVAILABILITY.GET_SLOTS */
-  @Get('slots')
-  @ApiOperation({ summary: 'Get all slots, blocked times, vacation mode' })
-  getSlots(@CurrentCompanion() c: JwtPayload) {
-    return this.availabilityService.getSlots(c.sub);
+  /** GET /companion/availability — Endpoints.AVAILABILITY.GET */
+  @Get()
+  @ApiOperation({ summary: 'Get full availability state' })
+  getAvailability(@CurrentCompanion() c: JwtPayload) {
+    return this.availabilityService.getAvailability(c.sub);
   }
 
-  /** POST /companion/availability/slots/add — Endpoints.AVAILABILITY.ADD_SLOT */
-  @Post('slots/add')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Add a time slot' })
+  /** PUT /companion/availability/live */
+  @Put('live')
+  @ApiOperation({ summary: 'Set live availability' })
+  setLiveAvailable(@CurrentCompanion() c: JwtPayload, @Body('isAvailable') isAvailable: boolean) {
+    return this.availabilityService.setLiveAvailable(c.sub, isAvailable);
+  }
+
+  /** PUT /companion/availability/vacation */
+  @Put('vacation')
+  @ApiOperation({ summary: 'Enable or disable vacation mode' })
+  setVacationMode(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
+    return this.availabilityService.setVacationMode(c.sub, dto);
+  }
+
+  /** PUT /companion/availability/weekly/:day/toggle */
+  @Put('weekly/:day/toggle')
+  @ApiOperation({ summary: 'Toggle day active status' })
+  toggleDay(@CurrentCompanion() c: JwtPayload, @Param('day') day: string) {
+    return this.availabilityService.toggleDay(c.sub, day);
+  }
+
+  /** PUT /companion/availability/weekly/:day/times */
+  @Put('weekly/:day/times')
+  @ApiOperation({ summary: 'Set day times' })
+  setDayTimes(@CurrentCompanion() c: JwtPayload, @Param('day') day: string, @Body('times') times: string) {
+    return this.availabilityService.setDayTimes(c.sub, day, times);
+  }
+
+  /** POST /companion/availability/overrides */
+  @Post('overrides')
+  @ApiOperation({ summary: 'Add a date override' })
+  addOverride(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
+    return this.availabilityService.addOverride(c.sub, dto);
+  }
+
+  /** DELETE /companion/availability/overrides/:id */
+  @Delete('overrides/:id')
+  @ApiOperation({ summary: 'Remove a date override' })
+  removeOverride(@CurrentCompanion() c: JwtPayload, @Param('id') id: string) {
+    return this.availabilityService.removeOverride(c.sub, id);
+  }
+
+  /** POST /companion/availability/slots */
+  @Post('slots')
+  @ApiOperation({ summary: 'Add a custom slot' })
   addSlot(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
     return this.availabilityService.addSlot(c.sub, dto);
   }
 
-  /** PUT /companion/availability/slots/:slotId — Endpoints.AVAILABILITY.UPDATE_SLOT */
-  @Put('slots/:slotId')
-  @ApiOperation({ summary: 'Update a specific slot' })
-  updateSlot(@CurrentCompanion() c: JwtPayload, @Param('slotId') slotId: string, @Body() dto: any) {
-    return this.availabilityService.updateSlot(c.sub, slotId, dto);
+  /** PUT /companion/availability/slots/:id */
+  @Put('slots/:id')
+  @ApiOperation({ summary: 'Update a custom slot' })
+  updateSlot(@CurrentCompanion() c: JwtPayload, @Param('id') id: string, @Body() dto: any) {
+    return this.availabilityService.updateSlot(c.sub, id, dto);
   }
 
-  /** DELETE /companion/availability/slots/:slotId — Endpoints.AVAILABILITY.DELETE_SLOT */
-  @Delete('slots/:slotId')
-  @ApiOperation({ summary: 'Delete a specific slot' })
-  deleteSlot(@CurrentCompanion() c: JwtPayload, @Param('slotId') slotId: string) {
-    return this.availabilityService.deleteSlot(c.sub, slotId);
-  }
-
-  /** POST /companion/availability/recurring/add — Endpoints.AVAILABILITY.ADD_RECURRING */
-  @Post('recurring/add')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Add recurring weekly schedule' })
-  addRecurring(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
-    return this.availabilityService.addRecurring(c.sub, dto);
-  }
-
-  /** POST /companion/availability/block — Endpoints.AVAILABILITY.BLOCK_TIME */
-  @Post('block')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Block a specific date/time' })
-  blockTime(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
-    return this.availabilityService.blockTime(c.sub, dto);
-  }
-
-  /** POST /companion/availability/vacation — Endpoints.AVAILABILITY.VACATION_MODE */
-  @Post('vacation')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Enable or disable vacation mode' })
-  setVacationMode(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
-    return this.availabilityService.setVacationMode(c.sub, dto);
+  /** DELETE /companion/availability/slots/:id */
+  @Delete('slots/:id')
+  @ApiOperation({ summary: 'Remove a custom slot' })
+  removeSlot(@CurrentCompanion() c: JwtPayload, @Param('id') id: string) {
+    return this.availabilityService.removeSlot(c.sub, id);
   }
 }

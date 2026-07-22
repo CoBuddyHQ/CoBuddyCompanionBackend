@@ -22,14 +22,14 @@ export class SettingsService {
   }
 
   // ─── POST /companion/settings/bank ─────────────────────────────────────────
-  async updateBankDetails(companionId: string, dto: { holderName: string; accountNo: string; ifsc: string; bankName: string }) {
+  async updateBankDetails(companionId: string, dto: { holderName: string; accountNo: string; ifscCode: string; bankName: string }) {
     const masked = `•••• ${dto.accountNo.slice(-4)}`;
     await this.prisma.companionKYC.upsert({
       where: { companionId },
       update: {
         bankHolderName: dto.holderName,
         maskedBankAccount: masked,
-        bankIfsc: dto.ifsc,
+        bankIfsc: dto.ifscCode,
         bankName: dto.bankName,
         bankVerified: false,
       },
@@ -37,7 +37,7 @@ export class SettingsService {
         companionId,
         bankHolderName: dto.holderName,
         maskedBankAccount: masked,
-        bankIfsc: dto.ifsc,
+        bankIfsc: dto.ifscCode,
         bankName: dto.bankName,
         bankVerified: false,
       },
@@ -90,5 +90,68 @@ export class SettingsService {
     });
 
     return { success: true, settings };
+  }
+
+  // ─── GET & POST /companion/settings/privacy ──────────────────────────────
+  async getPrivacyControls(companionId: string) {
+    const settings = await this.prisma.companionSettings.findUnique({
+      where: { companionId },
+      select: { showAge: true, allowPromo: true, showInSearch: true },
+    });
+    return settings || { showAge: true, allowPromo: false, showInSearch: true };
+  }
+
+  async updatePrivacyControls(companionId: string, dto: any) {
+    const settings = await this.prisma.companionSettings.upsert({
+      where: { companionId },
+      update: dto,
+      create: { companionId, ...dto },
+    });
+    return { success: true, settings };
+  }
+
+  // ─── GET & POST /companion/settings/notifications ────────────────────────
+  async getNotificationPrefs(companionId: string) {
+    const settings = await this.prisma.companionSettings.findUnique({
+      where: { companionId },
+      select: { notificationPrefs: true },
+    });
+    return settings?.notificationPrefs || {};
+  }
+
+  async updateNotificationPrefs(companionId: string, dto: any) {
+    const existing = await this.getNotificationPrefs(companionId);
+    const updatedPrefs = { ...((existing as any) || {}), ...dto };
+
+    const settings = await this.prisma.companionSettings.upsert({
+      where: { companionId },
+      update: { notificationPrefs: updatedPrefs },
+      create: { companionId, notificationPrefs: updatedPrefs },
+    });
+    return { success: true, settings };
+  }
+
+  // ─── POST /companion/settings/data-export ────────────────────────────────
+  async requestDataExport(companionId: string) {
+    // In a real system, this would trigger an async job to collect data (chats, earnings, etc.)
+    // and email it to the user.
+    return { 
+      success: true, 
+      message: 'Data export requested. We will email you a secure download link shortly.' 
+    };
+  }
+
+  // ─── POST /companion/settings/account/delete ─────────────────────────────
+  async deleteAccount(companionId: string) {
+    // In a real system, we might soft-delete or anonymize data based on compliance.
+    // For this scaffold, we will actually delete the Companion record which cascades.
+    await this.prisma.companion.delete({
+      where: { id: companionId },
+    });
+
+    return { 
+      success: true, 
+      message: 'Your account has been permanently deleted.' 
+    };
   }
 }

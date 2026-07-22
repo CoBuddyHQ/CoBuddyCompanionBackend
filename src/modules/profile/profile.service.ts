@@ -150,6 +150,119 @@ export class ProfileService {
     });
   }
 
+  // ── GET /companion/profile/preview ─────────────────────────────────────────
+
+  async getPreview(companionId: string) {
+    const companion = await this.prisma.companion.findUnique({
+      where: { id: companionId },
+      include: {
+        serviceAreas: true,
+        categories: true,
+        languages: true,
+        galleryPhotos: { orderBy: { sortOrder: 'asc' } },
+      },
+    });
+
+    if (!companion) throw new NotFoundException('Companion not found');
+
+    return {
+      displayName: companion.displayName,
+      bio: companion.bio,
+      rating: companion.rating,
+      totalSessions: companion.totalSessions,
+      trustScore: companion.trustScore,
+      languages: companion.languages.map((l) => l.language),
+      categories: companion.categories.map((c) => c.category),
+      serviceAreas: companion.serviceAreas.map((sa) => sa.area),
+      photoUrl: companion.photoUrl,
+      galleryPhotos: companion.galleryPhotos.map((p) => p.url),
+    };
+  }
+
+  // ── GET /companion/profile/trust ─────────────────────────────────────────
+  async getTrustDashboard(companionId: string) {
+    const companion = await this.prisma.companion.findUnique({
+      where: { id: companionId },
+      include: {
+        badges: true,
+        trustTasks: { where: { isCompleted: true } },
+      },
+    });
+    
+    if (!companion) throw new NotFoundException('Companion not found');
+
+    return {
+      score: companion.trustScore,
+      responseRate: companion.responseRate,
+      cancellationRate: companion.cancellationRate,
+      lastUpdated: companion.updatedAt.toISOString(),
+      completedTasks: companion.trustTasks.map((t) => t.taskId),
+      unlockedBadges: companion.badges.map((b) => b.badgeKey),
+    };
+  }
+
+  // ── POST /companion/profile/trust/task ───────────────────────────────────
+  async completeTrustTask(companionId: string, dto: { taskId: string; points: number }) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Find if task is already completed
+      const existing = await tx.trustTask.findFirst({
+        where: { companionId, taskId: dto.taskId },
+      });
+
+      if (existing && existing.isCompleted) {
+        return { success: true, message: 'Task already completed' };
+      }
+
+      // 2. Upsert the task completion
+      if (existing) {
+        await tx.trustTask.update({
+          where: { id: existing.id },
+          data: { isCompleted: true, completedAt: new Date() },
+        });
+      } else {
+        await tx.trustTask.create({
+          data: {
+            companionId,
+            taskId: dto.taskId,
+            title: dto.taskId, // mock title
+            description: '',
+            category: 'general',
+            points: dto.points,
+            isCompleted: true,
+            completedAt: new Date(),
+          },
+        });
+      }
+
+      // 3. Update Companion Trust Score
+      const companion = await tx.companion.findUnique({ where: { id: companionId } });
+      let newScore = Math.min((companion?.trustScore || 0) + dto.points, 100);
+
+      await tx.companion.update({
+        where: { id: companionId },
+        data: { trustScore: newScore },
+      });
+
+      // 4. Issue a new badge if score reaches 100
+      if (newScore === 100) {
+        const badgeExists = await tx.companionBadge.findUnique({
+          where: { companionId_badgeKey: { companionId, badgeKey: 'badge_elite' } },
+        });
+        if (!badgeExists) {
+          await tx.companionBadge.create({
+            data: {
+              companionId,
+              badgeKey: 'badge_elite',
+              badgeName: 'Elite Companion',
+            },
+          });
+        }
+      }
+
+      return { success: true, newScore };
+    });
+  }
+
   // ── PUT /companion/profile/basic ──────────────────────────────────────────
 
   async updateBasic(companionId: string, dto: UpdateBasicProfileDto) {
@@ -207,8 +320,8 @@ export class ProfileService {
     await this.prisma.companionLanguage.createMany({
       data: dto.languages.map(l => ({
         companionId,
-        language: l.language,
-        proficiency: l.proficiency || 'fluent',
+        language: l,
+        proficiency: 'fluent',
       })),
     });
 

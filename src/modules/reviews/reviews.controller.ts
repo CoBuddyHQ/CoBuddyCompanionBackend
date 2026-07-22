@@ -22,6 +22,22 @@ export class ReviewsController {
     return this.reviewsService.getReview(c.sub, id);
   }
 
+  @Post('reviews/:reviewId/report')
+  @ApiOperation({ summary: 'Report a review' })
+  reportReview(@CurrentCompanion() c: JwtPayload, @Param('reviewId') id: string) {
+    return this.reviewsService.reportReview(c.sub, id);
+  }
+
+  @Post('reviews/:reviewId/reply')
+  @ApiOperation({ summary: 'Reply to a review' })
+  replyToReview(
+    @CurrentCompanion() c: JwtPayload,
+    @Param('reviewId') id: string,
+    @Body('reply') reply: string
+  ) {
+    return this.reviewsService.replyToReview(c.sub, id, reply);
+  }
+
   @Get('trust/score') @ApiOperation({ summary: 'Get trust score — Endpoints.REVIEWS.TRUST_SCORE' })
   getTrustScore(@CurrentCompanion() c: JwtPayload) {
     return this.reviewsService.getTrustScore(c.sub);

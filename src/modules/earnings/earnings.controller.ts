@@ -11,14 +11,17 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 class PayoutRequestDto {
-  @ApiProperty({ example: 2000 })
+  /**
+   * Amount to withdraw — set by companion in PayoutRequestScreen.
+   * Percentage shortcuts: 25% / 50% / 75% / MAX of availableBalance.
+   * Min: ₹100 (MIN_PAYOUT constant on frontend).
+   * Frontend sends only the amount; bankMasked is derived server-side from
+   * the companion's KYC-verified bank account in the DB.
+   */
+  @ApiProperty({ example: 3375, description: 'Amount in INR (min ₹100)' })
   @IsNumber() @Min(100)
   @Type(() => Number)
   amount: number;
-
-  @ApiProperty({ example: '•••• 4821' })
-  @IsString()
-  bankMasked: string;
 }
 
 @ApiTags('Earnings')
@@ -63,9 +66,44 @@ export class EarningsController {
   /** POST /companion/earnings/payout/request — Endpoints.EARNINGS.PAYOUT_REQUEST */
   @Post('payout/request')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Request payout to bank account' })
+  @ApiOperation({
+    summary: 'Request payout — PayoutReviewScreen (CPN-106) calls this after Confirm button',
+    description:
+      'Frontend sends only `amount`. Backend derives masked bank from companion KYC record. ' +
+      'Returns { payoutId, status, amount, platformFee, maskedBank, estimatedArrival }',
+  })
   requestPayout(@CurrentCompanion() c: JwtPayload, @Body() dto: PayoutRequestDto) {
-    return this.earningsService.requestPayout(c.sub, dto.amount, dto.bankMasked);
+    return this.earningsService.requestPayout(c.sub, dto.amount);
+  }
+
+  /** GET /companion/earnings/weekly — Endpoints.EARNINGS.WEEKLY */
+  @Get('weekly')
+  @ApiOperation({
+    summary: 'Weekly earnings breakdown — used by EarningsDashboardScreen (CPN-137) and WeeklyMonthlyEarningsScreen',
+    description: 'Returns { thisWeekEarnings, lastWeekEarnings, weeklyBreakdown[] } matching the dashboard widget',
+  })
+  getWeeklyEarnings(@CurrentCompanion() c: JwtPayload) {
+    return this.earningsService.getWeeklyEarnings(c.sub);
+  }
+
+  /** GET /companion/earnings/daily — Endpoints.EARNINGS.DAILY */
+  @Get('daily')
+  @ApiOperation({
+    summary: 'Daily earnings breakdown — used by DailyEarningsBreakdownScreen',
+    description: 'Returns todays session earnings, tips, bonus broken by hour',
+  })
+  getDailyEarnings(@CurrentCompanion() c: JwtPayload) {
+    return this.earningsService.getDailyEarnings(c.sub);
+  }
+
+  /** GET /companion/earnings/pending — Endpoints.EARNINGS.PENDING */
+  @Get('pending')
+  @ApiOperation({
+    summary: 'Pending earnings awaiting 48h clearance — used by PendingEarningsScreen',
+    description: 'Returns list of pending transactions with payoutEligibleAt timestamps',
+  })
+  getPendingEarnings(@CurrentCompanion() c: JwtPayload) {
+    return this.earningsService.getPendingEarnings(c.sub);
   }
 
   /** GET /companion/earnings/payout/:payoutId — Endpoints.EARNINGS.PAYOUT_DETAIL */

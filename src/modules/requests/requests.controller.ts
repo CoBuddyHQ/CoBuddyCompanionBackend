@@ -27,15 +27,29 @@ export class RequestsController {
   /** GET /companion/requests — Endpoints.REQUESTS.LIST */
   @Get()
   @ApiQuery({ name: 'status', required: false, enum: ['all', 'pending', 'expired', 'counter_proposed'] })
+  @ApiQuery({ name: 'categories', required: false, description: 'Comma separated string of categories' })
+  @ApiQuery({ name: 'minEarning', required: false, type: Number })
+  @ApiQuery({ name: 'sortBy', required: false, enum: ['newest', 'expiring_soon', 'highest_earning'] })
   @ApiQuery({ name: 'page', required: false })
   @ApiOperation({ summary: 'Get booking requests inbox — returns BookingRequest[]' })
   getRequests(
     @CurrentCompanion() c: JwtPayload,
     @Query('status') status?: string,
+    @Query('categories') categories?: string,
+    @Query('minEarning') minEarning?: string,
+    @Query('sortBy') sortBy?: string,
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
-    return this.requestsService.getRequests(c.sub, status, Number(page), Number(limit));
+    return this.requestsService.getRequests(
+      c.sub, 
+      status, 
+      categories, 
+      minEarning ? Number(minEarning) : undefined, 
+      sortBy, 
+      Number(page), 
+      Number(limit)
+    );
   }
 
   /** GET /companion/requests/:requestId — Endpoints.REQUESTS.DETAIL */

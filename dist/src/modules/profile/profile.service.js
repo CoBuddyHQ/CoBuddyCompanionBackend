@@ -193,9 +193,14 @@ let ProfileService = ProfileService_1 = class ProfileService {
         return this.getProfile(companionId);
     }
     async updatePricing(companionId, dto) {
+        const data = {};
+        if (dto.hourlyRate !== undefined)
+            data.hourlyRate = dto.hourlyRate;
+        if (dto.sessionDuration !== undefined)
+            data.sessionDuration = dto.sessionDuration;
         const companion = await this.prisma.companion.update({
             where: { id: companionId },
-            data: { hourlyRate: dto.hourlyRate },
+            data,
             include: {
                 serviceAreas: true, categories: true, languages: true,
                 galleryPhotos: { orderBy: { sortOrder: 'asc' } },
@@ -308,6 +313,7 @@ let ProfileService = ProfileService_1 = class ProfileService {
             languages: (companion.languages ?? []).map((l) => l.language),
             bio: companion.bio ?? '',
             hourlyRate: companion.hourlyRate ? Number(companion.hourlyRate) : 0,
+            sessionDuration: companion.sessionDuration ?? 90,
             profileStatus: companion.profileStatus.toLowerCase(),
             verificationStatus: companion.verificationStatus.toLowerCase(),
             trustScore: companion.trustScore,

@@ -27,3 +27,36 @@ export declare class SubmitSelfieDto {
     imageUrl: string;
     videoUrl?: string;
 }
+export declare class SaveAddressDto {
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    pinCode: string;
+    addressType?: string;
+    idMatch?: boolean;
+    addressDocumentType?: string;
+    addressDocumentUrl?: string;
+}
+export declare class SavePanDto {
+    panName: string;
+    maskedPan: string;
+    taxResidency?: string;
+    hasGST?: boolean;
+    gstNumber?: string;
+}
+export declare class SaveBankDto {
+    holderName: string;
+    maskedAccount: string;
+    ifsc: string;
+    accountType: string;
+    bankName: string;
+}
+export declare class VerifyBankDto {
+    bankId: string;
+}
+export declare class SaveUpiDto {
+    maskedUpi: string;
+    payoutLabel?: string;
+    isPrimary?: boolean;
+}

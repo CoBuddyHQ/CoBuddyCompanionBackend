@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SubmitSelfieDto = exports.SubmitGovernmentIdDto = exports.UpdateGovernmentIdTypeDto = exports.SaveDeclarationDto = exports.BasicDetailsDto = void 0;
+exports.SaveUpiDto = exports.VerifyBankDto = exports.SaveBankDto = exports.SavePanDto = exports.SaveAddressDto = exports.SubmitSelfieDto = exports.SubmitGovernmentIdDto = exports.UpdateGovernmentIdTypeDto = exports.SaveDeclarationDto = exports.BasicDetailsDto = void 0;
 const class_validator_1 = require("class-validator");
 const swagger_1 = require("@nestjs/swagger");
 class BasicDetailsDto {
@@ -131,4 +131,144 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], SubmitSelfieDto.prototype, "videoUrl", void 0);
+class SaveAddressDto {
+}
+exports.SaveAddressDto = SaveAddressDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'House/Flat no., Street, Area' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveAddressDto.prototype, "line1", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'Landmark, Colony' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveAddressDto.prototype, "line2", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Mumbai' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveAddressDto.prototype, "city", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Maharashtra' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveAddressDto.prototype, "state", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '400001' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveAddressDto.prototype, "pinCode", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'current_residence' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveAddressDto.prototype, "addressType", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: true }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], SaveAddressDto.prototype, "idMatch", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'Utility bill' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveAddressDto.prototype, "addressDocumentType", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'https://bucket.s3.amazonaws.com/proof.jpg' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveAddressDto.prototype, "addressDocumentUrl", void 0);
+class SavePanDto {
+}
+exports.SavePanDto = SavePanDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'JOHN DOE' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SavePanDto.prototype, "panName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'ABCXXXXX34F' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SavePanDto.prototype, "maskedPan", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'India' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SavePanDto.prototype, "taxResidency", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: false }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], SavePanDto.prototype, "hasGST", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: '22AAAAA0000A1Z5' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SavePanDto.prototype, "gstNumber", void 0);
+class SaveBankDto {
+}
+exports.SaveBankDto = SaveBankDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'JOHN DOE' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveBankDto.prototype, "holderName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '4821' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveBankDto.prototype, "maskedAccount", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'HDFC0001234' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveBankDto.prototype, "ifsc", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'savings' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveBankDto.prototype, "accountType", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'HDFC Bank' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveBankDto.prototype, "bankName", void 0);
+class VerifyBankDto {
+}
+exports.VerifyBankDto = VerifyBankDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'bank-12345678' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], VerifyBankDto.prototype, "bankId", void 0);
+class SaveUpiDto {
+}
+exports.SaveUpiDto = SaveUpiDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'ra••••@okaxis' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveUpiDto.prototype, "maskedUpi", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'My Primary UPI' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveUpiDto.prototype, "payoutLabel", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: true }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], SaveUpiDto.prototype, "isPrimary", void 0);
 //# sourceMappingURL=kyc.dto.js.map

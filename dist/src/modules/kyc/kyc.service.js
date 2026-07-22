@@ -156,22 +156,53 @@ let KycService = class KycService {
         });
         return { success: true, message: 'Selfie submitted for liveness verification.' };
     }
-    async submitAddress(companionId, dto) {
+    async saveAddress(companionId, dto) {
         await this.prisma.companionKYC.upsert({
             where: { companionId },
             update: {
-                addressDocumentType: dto.documentType,
-                addressDocumentUrl: dto.documentUrl,
+                addressLine1: dto.line1,
+                addressLine2: dto.line2,
+                addressCity: dto.city,
+                addressState: dto.state,
+                addressPinCode: dto.pinCode,
+                addressType: dto.addressType,
+                addressIdMatch: dto.idMatch,
+                addressDocumentType: dto.addressDocumentType,
+                addressDocumentUrl: dto.addressDocumentUrl,
                 addressSubmittedAt: new Date(),
             },
             create: {
                 companionId,
-                addressDocumentType: dto.documentType,
-                addressDocumentUrl: dto.documentUrl,
+                addressLine1: dto.line1,
+                addressLine2: dto.line2,
+                addressCity: dto.city,
+                addressState: dto.state,
+                addressPinCode: dto.pinCode,
+                addressType: dto.addressType,
+                addressIdMatch: dto.idMatch,
+                addressDocumentType: dto.addressDocumentType,
+                addressDocumentUrl: dto.addressDocumentUrl,
                 addressSubmittedAt: new Date(),
             },
         });
-        return { success: true, message: 'Address document submitted.' };
+        return { success: true, message: 'Address details saved successfully.' };
+    }
+    async saveUpi(companionId, dto) {
+        await this.prisma.companionKYC.upsert({
+            where: { companionId },
+            update: {
+                maskedUpi: dto.maskedUpi,
+                upiPayoutLabel: dto.payoutLabel,
+                upiIsPrimary: dto.isPrimary ?? true,
+            },
+            create: {
+                companionId,
+                maskedUpi: dto.maskedUpi,
+                upiPayoutLabel: dto.payoutLabel,
+                upiIsPrimary: dto.isPrimary ?? true,
+            },
+        });
+        return { success: true, message: 'UPI details saved.' };
     }
     async savePan(companionId, dto) {
         await this.prisma.companionKYC.upsert({
@@ -179,6 +210,7 @@ let KycService = class KycService {
             update: {
                 maskedPan: dto.maskedPan,
                 panName: dto.panName,
+                taxResidency: dto.taxResidency,
                 hasGST: dto.hasGST,
                 gstNumber: dto.hasGST ? dto.gstNumber ?? null : null,
             },
@@ -186,6 +218,7 @@ let KycService = class KycService {
                 companionId,
                 maskedPan: dto.maskedPan,
                 panName: dto.panName,
+                taxResidency: dto.taxResidency,
                 hasGST: dto.hasGST,
                 gstNumber: dto.hasGST ? dto.gstNumber ?? null : null,
             },
@@ -236,14 +269,6 @@ let KycService = class KycService {
             bankName: kyc.bankName,
             message: 'Bank account verified successfully.',
         };
-    }
-    async saveUpi(companionId, dto) {
-        await this.prisma.companionKYC.upsert({
-            where: { companionId },
-            update: { maskedUpi: dto.maskedUpi, upiPayoutLabel: dto.payoutLabel, upiIsPrimary: dto.isPrimary },
-            create: { companionId, maskedUpi: dto.maskedUpi, upiPayoutLabel: dto.payoutLabel, upiIsPrimary: dto.isPrimary },
-        });
-        return { success: true, maskedUpi: dto.maskedUpi, message: 'UPI ID saved for payouts.' };
     }
     async saveEmergencyContact(companionId, dto) {
         await this.prisma.companionKYC.upsert({

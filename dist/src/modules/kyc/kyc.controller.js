@@ -41,8 +41,8 @@ let KycController = class KycController {
     submitSelfie(c, dto) {
         return this.kycService.submitSelfie(c.sub, dto);
     }
-    submitAddress(c, dto) {
-        return this.kycService.submitAddress(c.sub, dto);
+    saveAddress(c, dto) {
+        return this.kycService.saveAddress(c.sub, dto);
     }
     savePan(c, dto) {
         return this.kycService.savePan(c.sub, dto);
@@ -131,13 +131,13 @@ __decorate([
 __decorate([
     (0, common_1.Post)('companion/kyc/address'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, swagger_1.ApiOperation)({ summary: 'Submit address document — AddressVerificationScreen' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Save current residential address details — AddressVerificationScreen' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, kyc_dto_1.SaveAddressDto]),
     __metadata("design:returntype", void 0)
-], KycController.prototype, "submitAddress", null);
+], KycController.prototype, "saveAddress", null);
 __decorate([
     (0, common_1.Post)('companion/kyc/pan'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
@@ -145,7 +145,7 @@ __decorate([
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, kyc_dto_1.SavePanDto]),
     __metadata("design:returntype", void 0)
 ], KycController.prototype, "savePan", null);
 __decorate([
@@ -155,7 +155,7 @@ __decorate([
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, kyc_dto_1.SaveBankDto]),
     __metadata("design:returntype", void 0)
 ], KycController.prototype, "saveBank", null);
 __decorate([
@@ -165,7 +165,7 @@ __decorate([
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, kyc_dto_1.VerifyBankDto]),
     __metadata("design:returntype", void 0)
 ], KycController.prototype, "verifyBank", null);
 __decorate([
@@ -175,7 +175,7 @@ __decorate([
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, kyc_dto_1.SaveUpiDto]),
     __metadata("design:returntype", void 0)
 ], KycController.prototype, "saveUpi", null);
 __decorate([

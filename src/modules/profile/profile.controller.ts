@@ -143,10 +143,24 @@ export class ProfileController {
     return this.profileService.submitForReview(c.sub);
   }
 
-  /** GET /api/v1/companion/profile/preview — Endpoints.PROFILE.PREVIEW */
   @Get('preview')
   @ApiOperation({ summary: 'Preview public profile as customers see it' })
   getPreview(@CurrentCompanion() c: JwtPayload) {
     return this.profileService.getPreview(c.sub);
+  }
+
+  /** GET /api/v1/companion/profile/trust — Trust Score Dashboard */
+  @Get('trust')
+  @ApiOperation({ summary: 'Get trust score dashboard data' })
+  getTrustDashboard(@CurrentCompanion() c: JwtPayload) {
+    return this.profileService.getTrustDashboard(c.sub);
+  }
+
+  /** POST /api/v1/companion/profile/trust/task — Complete Trust Task */
+  @Post('trust/task')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Mark a trust task as completed and update score' })
+  completeTrustTask(@CurrentCompanion() c: JwtPayload, @Body() dto: { taskId: string; points: number }) {
+    return this.profileService.completeTrustTask(c.sub, dto);
   }
 }

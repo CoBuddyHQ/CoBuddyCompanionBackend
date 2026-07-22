@@ -32,15 +32,40 @@ class EndEarlyDto {
 }
 
 class CancelSessionDto {
-  @ApiProperty()
+  /**
+   * Primary reason from CancelSessionRequestScreen REASONS array.
+   * One of: 'Personal emergency' | 'Health issue' | 'Transport problem' | 'Other'
+   * If 'Other' was selected the effective reason is the free-text entered — the screen
+   * resolves this before navigation: `effectiveReason = selected === 'Other' ? otherText : selected`
+   */
+  @ApiProperty({ example: 'Health issue' })
   @IsString()
   reason: string;
+
+  /**
+   * Optional additional details from CancellationReasonScreen `details` TextInput (max 500 chars).
+   * Maps to: useState details in CancellationReasonScreen.
+   */
+  @ApiPropertyOptional({ example: 'I had a sudden migraine and cannot travel.' })
+  @IsOptional() @IsString()
+  details?: string;
 }
 
 class SessionNotesDto {
   @ApiProperty()
   @IsString()
   notes: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  mood?: string;
+
+  @ApiPropertyOptional({ isArray: true })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
 }
 
 class RateCustomerDto {
@@ -115,6 +140,18 @@ export class SessionsController {
     return this.sessionsService.verifyCustomer(c.sub, sessionId, dto.passCode);
   }
 
+  /** POST /companion/sessions/:sessionId/verify-selfie — Endpoints.SESSIONS.VERIFY_SELFIE */
+  @Post(':sessionId/verify-selfie')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify via venue selfie (fallback) — activates session' })
+  verifyBySelfie(
+    @CurrentCompanion() c: JwtPayload,
+    @Param('sessionId') sessionId: string,
+    @Body('selfieUrl') selfieUrl: string,
+  ) {
+    return this.sessionsService.verifyBySelfie(c.sub, sessionId, selfieUrl);
+  }
+
   /** POST /companion/sessions/:sessionId/extend/request — Endpoints.SESSIONS.EXTEND_REQUEST */
   @Post(':sessionId/extend/request')
   @HttpCode(HttpStatus.OK)
@@ -154,13 +191,26 @@ export class SessionsController {
   /** POST /companion/sessions/:sessionId/cancel — Endpoints.SESSIONS.CANCEL */
   @Post(':sessionId/cancel')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Cancel upcoming session' })
+  @ApiOperation({ summary: 'Cancel upcoming session — two-step: reason + optional details' })
   cancelSession(
     @CurrentCompanion() c: JwtPayload,
     @Param('sessionId') sessionId: string,
     @Body() dto: CancelSessionDto,
   ) {
-    return this.sessionsService.cancelSession(c.sub, sessionId, dto.reason);
+    return this.sessionsService.cancelSession(c.sub, sessionId, dto.reason, dto.details);
+  }
+
+  /** GET /companion/sessions/:sessionId/cancellation-status — Endpoints.SESSIONS.CANCEL_STATUS */
+  @Get(':sessionId/cancellation-status')
+  @ApiOperation({
+    summary: 'Poll cancellation review status — used by CancellationReviewPendingScreen (CPN-116)',
+    description: 'Returns { status, reviewStatus, submittedAt, sessionId } so the screen can show Pending Review → Approved.',
+  })
+  getCancellationStatus(
+    @CurrentCompanion() c: JwtPayload,
+    @Param('sessionId') sessionId: string,
+  ) {
+    return this.sessionsService.getCancellationStatus(c.sub, sessionId);
   }
 
   /** POST /companion/sessions/:sessionId/no-show — Endpoints.SESSIONS.NO_SHOW */
@@ -188,7 +238,7 @@ export class SessionsController {
     @Param('sessionId') sessionId: string,
     @Body() dto: SessionNotesDto,
   ) {
-    return this.sessionsService.saveNotes(c.sub, sessionId, dto.notes);
+    return this.sessionsService.saveNotes(c.sub, sessionId, dto.notes, dto.mood, dto.tags);
   }
 
   /** POST /companion/sessions/:sessionId/rate-customer — Endpoints.SESSIONS.RATE_CUSTOMER */
@@ -201,5 +251,50 @@ export class SessionsController {
     @Body() dto: RateCustomerDto,
   ) {
     return this.sessionsService.rateCustomer(c.sub, sessionId, dto.rating, dto.feedback);
+  }
+
+  // ── IN-SESSION COMMUNICATIONS & TRACKING ───────────────────────────────────
+
+  @Get(':sessionId/chat')
+  @ApiOperation({ summary: 'Get in-session chat history' })
+  getChatHistory(@CurrentCompanion() c: JwtPayload, @Param('sessionId') sessionId: string) {
+    return this.sessionsService.getChatHistory(c.sub, sessionId);
+  }
+
+  @Post(':sessionId/chat')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send in-session chat message' })
+  sendChatMessage(
+    @CurrentCompanion() c: JwtPayload,
+    @Param('sessionId') sessionId: string,
+    @Body('text') text: string,
+  ) {
+    return this.sessionsService.sendChatMessage(c.sub, sessionId, text);
+  }
+
+  @Post(':sessionId/call/token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get secure call token for VoIP' })
+  getCallToken(@CurrentCompanion() c: JwtPayload, @Param('sessionId') sessionId: string) {
+    return this.sessionsService.getCallToken(c.sub, sessionId);
+  }
+
+  @Post(':sessionId/location')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update live location during active session' })
+  updateLocation(
+    @CurrentCompanion() c: JwtPayload,
+    @Param('sessionId') sessionId: string,
+    @Body('lat') lat: number,
+    @Body('lng') lng: number,
+  ) {
+    return this.sessionsService.updateLocation(c.sub, sessionId, lat, lng);
+  }
+
+  @Post(':sessionId/location/stop')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Stop live location sharing early' })
+  stopLocationSharing(@CurrentCompanion() c: JwtPayload, @Param('sessionId') sessionId: string) {
+    return this.sessionsService.stopLocationSharing(c.sub, sessionId);
   }
 }

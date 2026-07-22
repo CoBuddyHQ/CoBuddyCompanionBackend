@@ -1,6 +1,6 @@
 import { KycService } from './kyc.service';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
-import { BasicDetailsDto, SaveDeclarationDto, SubmitGovernmentIdDto, UpdateGovernmentIdTypeDto, SubmitSelfieDto } from './dto/kyc.dto';
+import { BasicDetailsDto, SaveDeclarationDto, SubmitGovernmentIdDto, UpdateGovernmentIdTypeDto, SubmitSelfieDto, SaveAddressDto, SavePanDto, SaveBankDto, VerifyBankDto, SaveUpiDto } from './dto/kyc.dto';
 export declare class KycController {
     private readonly kycService;
     constructor(kycService: KycService);
@@ -71,31 +71,30 @@ export declare class KycController {
         success: boolean;
         message: string;
     }>;
-    submitAddress(c: JwtPayload, dto: any): Promise<{
+    saveAddress(c: JwtPayload, dto: SaveAddressDto): Promise<{
         success: boolean;
         message: string;
     }>;
-    savePan(c: JwtPayload, dto: any): Promise<{
+    savePan(c: JwtPayload, dto: SavePanDto): Promise<{
         success: boolean;
         message: string;
     }>;
-    saveBank(c: JwtPayload, dto: any): Promise<{
+    saveBank(c: JwtPayload, dto: SaveBankDto): Promise<{
         success: boolean;
         bankId: string;
         maskedAccount: string;
         bankName: string;
         message: string;
     }>;
-    verifyBank(c: JwtPayload, dto: any): Promise<{
+    verifyBank(c: JwtPayload, dto: VerifyBankDto): Promise<{
         success: boolean;
         verified: boolean;
         maskedAccount: string;
         bankName: string;
         message: string;
     }>;
-    saveUpi(c: JwtPayload, dto: any): Promise<{
+    saveUpi(c: JwtPayload, dto: SaveUpiDto): Promise<{
         success: boolean;
-        maskedUpi: string;
         message: string;
     }>;
     saveEmergencyContact(c: JwtPayload, dto: any): Promise<{

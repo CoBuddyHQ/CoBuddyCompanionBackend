@@ -1,5 +1,5 @@
 import { PrismaService } from '../../prisma/prisma.service';
-import { BasicDetailsDto, SaveDeclarationDto, SubmitGovernmentIdDto, UpdateGovernmentIdTypeDto, SubmitSelfieDto } from './dto/kyc.dto';
+import { BasicDetailsDto, SaveDeclarationDto, SubmitGovernmentIdDto, UpdateGovernmentIdTypeDto, SubmitSelfieDto, SaveAddressDto, SavePanDto, SaveBankDto, VerifyBankDto, SaveUpiDto } from './dto/kyc.dto';
 export declare class KycService {
     private prisma;
     constructor(prisma: PrismaService);
@@ -73,51 +73,30 @@ export declare class KycService {
         success: boolean;
         message: string;
     }>;
-    submitAddress(companionId: string, dto: {
-        documentType: string;
-        documentUrl: string;
-    }): Promise<{
+    saveAddress(companionId: string, dto: SaveAddressDto): Promise<{
         success: boolean;
         message: string;
     }>;
-    savePan(companionId: string, dto: {
-        maskedPan: string;
-        panName: string;
-        hasGST: boolean;
-        gstNumber?: string;
-    }): Promise<{
+    saveUpi(companionId: string, dto: SaveUpiDto): Promise<{
         success: boolean;
         message: string;
     }>;
-    saveBank(companionId: string, dto: {
-        holderName: string;
-        maskedAccount: string;
-        ifsc: string;
-        accountType: string;
-        bankName: string;
-    }): Promise<{
+    savePan(companionId: string, dto: SavePanDto): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    saveBank(companionId: string, dto: SaveBankDto): Promise<{
         success: boolean;
         bankId: string;
         maskedAccount: string;
         bankName: string;
         message: string;
     }>;
-    verifyBank(companionId: string, dto: {
-        bankId: string;
-    }): Promise<{
+    verifyBank(companionId: string, dto: VerifyBankDto): Promise<{
         success: boolean;
         verified: boolean;
         maskedAccount: string;
         bankName: string;
-        message: string;
-    }>;
-    saveUpi(companionId: string, dto: {
-        maskedUpi: string;
-        payoutLabel: string;
-        isPrimary: boolean;
-    }): Promise<{
-        success: boolean;
-        maskedUpi: string;
         message: string;
     }>;
     saveEmergencyContact(companionId: string, dto: {

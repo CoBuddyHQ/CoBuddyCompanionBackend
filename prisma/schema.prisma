@@ -140,6 +140,7 @@ model Companion {
   gender             String?
   city               String?
   willingToTravel    Boolean            @default(true)
+  travelRadius       Int                @default(10)
   bio                String?            @db.Text
   interestTags       String[]           @default([])
   workPreferences    Json?
@@ -157,6 +158,8 @@ model Companion {
   rating             Decimal            @default(0.0) @db.Decimal(3, 1)
   totalReviews       Int                @default(0)
   totalSessions      Int                @default(0)
+  responseRate       Int                @default(100)
+  cancellationRate   Int                @default(0)
   isAvailable        Boolean            @default(false)
   isOnline           Boolean            @default(false)
   lastActiveAt       DateTime?
@@ -189,8 +192,9 @@ model Companion {
   trustTasks        TrustTask[]
   notifications     Notification[]
   pushTokens        PushToken[]
-  timeSlots         TimeSlot[]
-  blockedTimes      BlockedTime[]
+  weeklySchedules   WeeklySchedule[]
+  dateOverrides     DateOverride[]
+  customSlots       CustomSlot[]
   vacationMode      VacationMode?
   moduleCompletions ModuleCompletion[]
   uploadedFiles     UploadedFile[]
@@ -206,8 +210,12 @@ model CompanionSettings {
   id                 String  @id @default(cuid())
   companionId        String  @unique
   notificationPrefs  Json    @default("{}") // Store { new_booking_push: true, etc. }
-  privacyVisibility  String  @default("public")
-  privacyDataSharing Boolean @default(true)
+  
+  // Privacy Settings
+  showAge            Boolean @default(true)
+  allowPromo         Boolean @default(false)
+  showInSearch       Boolean @default(true)
+  
   language           String  @default("en")
 
   // Onboarding tracking & consents
@@ -215,6 +223,11 @@ model CompanionSettings {
   safetyRulesAccepted  Boolean @default(false)
   locationEnabled      Boolean @default(false)
   notificationsEnabled Boolean @default(false)
+
+  // Safety Toggles
+  locationTracking     Boolean @default(true)
+  autoCheckIn          Boolean @default(true)
+  disguisedCall        Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -660,6 +673,9 @@ model CompanionReview {
   comment          String?
   sessionCategory  Category
   sessionDate      DateTime
+  durationMinutes  Int      @default(60)
+  replyText        String?  @db.Text
+  isReported       Boolean  @default(false)
   createdAt        DateTime @default(now())
 
   companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
@@ -683,6 +699,7 @@ model CompanionBadge {
 model TrustTask {
   id          String    @id @default(cuid())
   companionId String
+  taskId      String
   title       String
   description String
   category    String
@@ -708,11 +725,56 @@ model SupportTicket {
   description String   @db.Text
   category    String
   priority    String   @default("NORMAL")
-  status      String   @default("OPEN")
+  status      String   @default("OPEN") // "OPEN" | "CLOSED" | "UNDER REVIEW" | "RESOLVED"
+  
+  // Dispute specific fields
+  customerName String?
+  amount       String?
+  outcome      String?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  messages    TicketMessage[]
+  timeline    DisputeTimelineEvent[]
+
   @@map("support_tickets")
+}
+
+model TicketMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  sender    String   @default("me") // "me" | "agent"
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_messages")
+}
+
+model DisputeTimelineEvent {
+  id        String   @id @default(cuid())
+  ticketId  String
+  date      String
+  desc      String
+  createdAt DateTime @default(now())
+
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("dispute_timeline_events")
+}
+
+model HelpArticle {
+  id          String   @id
+  title       String
+  category    String
+  body        String[]
+  updatedDate String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("help_articles")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -756,38 +818,57 @@ model PushToken {
 // AVAILABILITY
 // ─────────────────────────────────────────────────────────────────────────────
 
-model TimeSlot {
+model WeeklySchedule {
   id          String   @id @default(cuid())
   companionId String
-  dayOfWeek   Int // 0=Sun, 1=Mon … 6=Sat
-  startTime   String // "09:00"
-  endTime     String // "18:00"
+  day         String
+  active      Boolean  @default(true)
+  times       String
   createdAt   DateTime @default(now())
 
   companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
-  @@map("time_slots")
+  @@unique([companionId, day])
+  @@map("weekly_schedules")
 }
 
-model BlockedTime {
+model DateOverride {
   id          String   @id @default(cuid())
   companionId String
-  date        DateTime @db.Date
-  reason      String?
+  startDate   String
+  endDate     String
+  reason      String
+  note        String?
+  fullDay     Boolean  @default(true)
+  startTime   String?
+  endTime     String?
   createdAt   DateTime @default(now())
 
   companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
-  @@unique([companionId, date])
-  @@map("blocked_times")
+  @@map("date_overrides")
+}
+
+model CustomSlot {
+  id          String   @id @default(cuid())
+  companionId String
+  date        String
+  startTime   String
+  endTime     String
+  repeat      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@map("custom_slots")
 }
 
 model VacationMode {
   id          String    @id @default(cuid())
   companionId String    @unique
   enabled     Boolean   @default(false)
-  startDate   DateTime? @db.Date
-  endDate     DateTime? @db.Date
+  awayFrom    String?
+  returnOn    String?
   updatedAt   DateTime  @updatedAt
 
   companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
@@ -802,12 +883,10 @@ model VacationMode {
 model TrainingModule {
   id              String   @id @default(cuid())
   title           String
-  description     String
-  category        String
-  content         String?  @db.Text // JSON string
-  durationMinutes Int
-  isRequired      Boolean  @default(false)
-  sortOrder       Int      @default(0)
+  duration        String
+  required        Boolean  @default(false)
+  body            String[] @default([]) // Array of strings
+  takeaways       String[] @default([]) // Array of strings
   createdAt       DateTime @default(now())
 
   completions ModuleCompletion[]

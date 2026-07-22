@@ -39,6 +39,7 @@ export declare class UpdateServiceAreasDto {
 }
 export declare class UpdatePricingDto {
     hourlyRate?: number;
+    sessionDuration?: number;
 }
 export declare class UpdateCommActivityDto {
     commStyle?: string;

@@ -35,11 +35,53 @@ class UpdateContactDto {
   @ApiPropertyOptional() @IsOptional() @IsBoolean() isEmergencyContact?: boolean;
 }
 class BlockCustomerDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() reason?: string;
+  /**
+   * Selected pill reason from BlockCustomerScreen BLOCK_REASONS array.
+   * One of: 'Made me uncomfortable' | 'Inappropriate behavior' | 'Harassment' | 'Repeated cancellations' | 'Other'
+   */
+  @ApiPropertyOptional({ example: 'Made me uncomfortable' })
+  @IsOptional() @IsString()
+  reason?: string;
+
+  /**
+   * Free-text field only shown when reason === 'Other'.
+   * Maps to otherText state in BlockCustomerScreen.
+   */
+  @ApiPropertyOptional({ example: 'Describe the specific issue...' })
+  @IsOptional() @IsString()
+  otherText?: string;
 }
+
 class ReportCustomerDto {
-  @ApiProperty() @IsString() reason: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() sessionId?: string;
+  /**
+   * Selected report category from ReportCustomerScreen CATEGORIES array.
+   * One of: 'Inappropriate Requests' | 'Threatening Behavior' | 'Payment Fraud' |
+   *         'Unauthorized Recording' | 'Privacy Violation' | 'Other'
+   */
+  @ApiProperty({ example: 'Threatening Behavior' })
+  @IsString()
+  category: string;
+
+  /**
+   * Free-text description from the multiline TextInput (max 500 chars).
+   * Maps to `description` state in ReportCustomerScreen.
+   */
+  @ApiProperty({ example: 'They insisted on going to a private location...' })
+  @IsString()
+  description: string;
+
+  /**
+   * Whether the companion also wants to block this customer in the same action.
+   * Maps to `alsoBlock` checkbox state in ReportCustomerScreen.
+   */
+  @ApiPropertyOptional({ default: false })
+  @IsOptional() @IsBoolean()
+  alsoBlock?: boolean;
+
+  /** Optional — when report is filed from within an active session context. */
+  @ApiPropertyOptional()
+  @IsOptional() @IsString()
+  sessionId?: string;
 }
 class IncidentDto {
   @ApiProperty() @IsString() description: string;
@@ -86,6 +128,18 @@ export class SafetyController {
     return this.safetyService.cancelTimer(c.sub);
   }
 
+  @Get('settings')
+  @ApiOperation({ summary: 'Get safety settings (toggles) — Endpoints.SAFETY.SETTINGS' })
+  getSettings(@CurrentCompanion() c: JwtPayload) {
+    return this.safetyService.getSettings(c.sub);
+  }
+
+  @Put('settings')
+  @ApiOperation({ summary: 'Update safety settings (toggles) — Endpoints.SAFETY.SETTINGS_UPDATE' })
+  updateSettings(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
+    return this.safetyService.updateSettings(c.sub, dto);
+  }
+
   @Get('trusted-contacts')
   @ApiOperation({ summary: 'Get trusted contacts — Endpoints.SAFETY.TRUSTED_CONTACTS' })
   getTrustedContacts(@CurrentCompanion() c: JwtPayload) {
@@ -119,7 +173,7 @@ export class SafetyController {
   @Post('report/:customerId') @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Report customer — Endpoints.SAFETY.REPORT_CUSTOMER' })
   reportCustomer(@CurrentCompanion() c: JwtPayload, @Param('customerId') cid: string, @Body() dto: ReportCustomerDto) {
-    return this.safetyService.reportCustomer(c.sub, cid, dto.reason, dto.sessionId);
+    return this.safetyService.reportCustomer(c.sub, cid, dto.category, dto.description, dto.alsoBlock, dto.sessionId);
   }
 
   @Post('incident') @HttpCode(HttpStatus.OK)
@@ -132,5 +186,11 @@ export class SafetyController {
   @ApiOperation({ summary: 'Upload incident evidence — Endpoints.SAFETY.INCIDENT_EVIDENCE' })
   uploadEvidence(@CurrentCompanion() c: JwtPayload, @Param('reportId') rid: string, @Body() dto: EvidenceDto) {
     return this.safetyService.uploadEvidence(c.sub, rid, dto.evidenceUrls);
+  }
+
+  @Post('quiz/complete') @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Submit Safety Quiz — Endpoints.SAFETY.QUIZ_COMPLETE' })
+  completeSafetyQuiz(@CurrentCompanion() c: JwtPayload, @Body('score') score: number) {
+    return this.safetyService.completeSafetyQuiz(c.sub, score);
   }
 }

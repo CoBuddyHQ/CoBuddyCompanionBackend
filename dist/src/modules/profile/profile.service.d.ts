@@ -30,6 +30,7 @@ export declare class ProfileService {
         languages: any;
         bio: any;
         hourlyRate: number;
+        sessionDuration: any;
         profileStatus: any;
         verificationStatus: any;
         trustScore: any;
@@ -53,6 +54,7 @@ export declare class ProfileService {
         languages: any;
         bio: any;
         hourlyRate: number;
+        sessionDuration: any;
         profileStatus: any;
         verificationStatus: any;
         trustScore: any;
@@ -80,6 +82,7 @@ export declare class ProfileService {
         languages: any;
         bio: any;
         hourlyRate: number;
+        sessionDuration: any;
         profileStatus: any;
         verificationStatus: any;
         trustScore: any;
@@ -103,6 +106,7 @@ export declare class ProfileService {
         languages: any;
         bio: any;
         hourlyRate: number;
+        sessionDuration: any;
         profileStatus: any;
         verificationStatus: any;
         trustScore: any;
@@ -126,6 +130,7 @@ export declare class ProfileService {
         languages: any;
         bio: any;
         hourlyRate: number;
+        sessionDuration: any;
         profileStatus: any;
         verificationStatus: any;
         trustScore: any;
@@ -149,6 +154,7 @@ export declare class ProfileService {
         languages: any;
         bio: any;
         hourlyRate: number;
+        sessionDuration: any;
         profileStatus: any;
         verificationStatus: any;
         trustScore: any;
@@ -172,6 +178,7 @@ export declare class ProfileService {
         languages: any;
         bio: any;
         hourlyRate: number;
+        sessionDuration: any;
         profileStatus: any;
         verificationStatus: any;
         trustScore: any;
@@ -195,6 +202,7 @@ export declare class ProfileService {
         languages: any;
         bio: any;
         hourlyRate: number;
+        sessionDuration: any;
         profileStatus: any;
         verificationStatus: any;
         trustScore: any;
@@ -218,6 +226,7 @@ export declare class ProfileService {
         languages: any;
         bio: any;
         hourlyRate: number;
+        sessionDuration: any;
         profileStatus: any;
         verificationStatus: any;
         trustScore: any;
@@ -254,6 +263,7 @@ export declare class ProfileService {
         languages: any;
         bio: any;
         hourlyRate: number;
+        sessionDuration: any;
         profileStatus: any;
         verificationStatus: any;
         trustScore: any;

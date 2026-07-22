@@ -78,6 +78,40 @@ export class SafetyService {
     return { status: 'cancelled', message: 'Safety timer cancelled.' };
   }
 
+  // ── GET /companion/safety/settings ────────────────────────────────
+  async getSettings(companionId: string) {
+    const settings = await this.prisma.companionSettings.findUnique({ where: { companionId } });
+    return {
+      locationTracking: settings?.locationTracking ?? true,
+      autoCheckIn: settings?.autoCheckIn ?? true,
+      disguisedCall: settings?.disguisedCall ?? false,
+    };
+  }
+
+  // ── PUT /companion/safety/settings ────────────────────────────────
+  async updateSettings(companionId: string, dto: any) {
+    const settings = await this.prisma.companionSettings.upsert({
+      where: { companionId },
+      update: {
+        locationTracking: dto.locationTracking,
+        autoCheckIn: dto.autoCheckIn,
+        disguisedCall: dto.disguisedCall,
+      },
+      create: {
+        companionId,
+        locationTracking: dto.locationTracking ?? true,
+        autoCheckIn: dto.autoCheckIn ?? true,
+        disguisedCall: dto.disguisedCall ?? false,
+      },
+    });
+    return {
+      locationTracking: settings.locationTracking,
+      autoCheckIn: settings.autoCheckIn,
+      disguisedCall: settings.disguisedCall,
+      message: 'Safety settings updated',
+    };
+  }
+
   // ── GET /companion/safety/trusted-contacts ────────────────────────────────
   async getTrustedContacts(companionId: string) {
     const contacts = await this.prisma.trustedContact.findMany({
@@ -157,13 +191,30 @@ export class SafetyService {
     return { reportId: report.id, message: 'Incident report submitted.', status: 'submitted' };
   }
 
-  // ── POST /companion/safety/incident/:reportId/evidence ───────────────────
+  // ── POST /companion/safety/incident/:reportId/evidence ────────────────────
   async uploadEvidence(companionId: string, reportId: string, evidenceUrls: string[]) {
     await this.prisma.incidentReport.updateMany({
       where: { id: reportId, companionId },
       data: { evidenceUrls },
     });
-    return { message: 'Evidence uploaded successfully.' };
+    return { message: 'Evidence added to incident report.' };
+  }
+
+  // ── POST /companion/safety/quiz/complete ──────────────────────────────────
+  async completeSafetyQuiz(companionId: string, score: number) {
+    if (score >= 4) {
+      await this.prisma.companionBadge.upsert({
+        where: { companionId_badgeKey: { companionId, badgeKey: 'badge_safety' } },
+        update: {},
+        create: {
+          companionId,
+          badgeKey: 'badge_safety',
+          badgeName: 'Safety Certified',
+        }
+      });
+      return { success: true, message: 'Congratulations! You earned the Safety Certified badge.', badgeEarned: true };
+    }
+    return { success: false, message: 'You need at least 4 correct answers to earn the badge.', badgeEarned: false };
   }
 
   private toContactResponse(c: any) {

@@ -18,9 +18,9 @@ export class ProfileSetupBulkDto {
   @IsOptional() @IsArray() @IsString({ each: true })
   categories?: string[];
 
-  @ApiPropertyOptional({ isArray: true })
-  @IsOptional() @IsArray()
-  languages?: { language: string; proficiency?: string }[];
+  @ApiPropertyOptional({ isArray: true, example: ['Hindi', 'English'] })
+  @IsOptional() @IsArray() @IsString({ each: true })
+  languages?: string[];
 }
 
 export class UpdateBasicProfileDto {
@@ -58,9 +58,9 @@ export class UpdateCategoriesDto {
 }
 
 export class UpdateLanguagesDto {
-  @ApiPropertyOptional({ isArray: true })
-  @IsOptional() @IsArray()
-  languages?: { language: string; proficiency?: string }[];
+  @ApiPropertyOptional({ isArray: true, example: ['Hindi', 'English'] })
+  @IsOptional() @IsArray() @IsString({ each: true })
+  languages?: string[];
 }
 
 export class UpdateWorkPreferenceDto {
@@ -91,11 +91,15 @@ export class UpdateServiceAreasDto {
 
   @ApiPropertyOptional({ isArray: true })
   @IsOptional() @IsArray() @IsString({ each: true })
-  broadAreas?: string[];
+  serviceAreas?: string[];
 
   @ApiPropertyOptional()
   @IsOptional() @IsBoolean()
   willingToTravel?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional() @IsNumber()
+  travelRadius?: number;
 }
 
 export class UpdatePricingDto {

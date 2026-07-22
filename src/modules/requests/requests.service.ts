@@ -46,22 +46,54 @@ export class RequestsService {
   }
 
   // ── GET /companion/requests ───────────────────────────────────────────────
-  async getRequests(companionId: string, status?: string, page = 1, limit = 20) {
+  async getRequests(
+    companionId: string,
+    status?: string,
+    categories?: string,
+    minEarning?: number,
+    sortBy?: string,
+    page = 1,
+    limit = 20
+  ) {
     const where: any = { companionId };
-    if (status && status !== 'all') where.status = status.toUpperCase();
-    else where.status = { in: ['pending', 'expired', 'counter_proposed'] };
+
+    if (status && status !== 'all') {
+      where.status = status.toLowerCase() as any;
+    } else {
+      where.status = { in: ['pending', 'expired', 'counter_proposed'] };
+    }
+
+    if (categories) {
+      const catsArray = categories.split(',').map(c => c.trim().toLowerCase());
+      if (catsArray.length > 0) {
+        where.category = { in: catsArray as any[] };
+      }
+    }
+
+    if (minEarning && minEarning > 0) {
+      where.estimatedEarning = { gte: minEarning };
+    }
+
+    let orderBy: any = { receivedAt: 'desc' };
+    if (sortBy === 'newest') {
+      orderBy = { receivedAt: 'desc' };
+    } else if (sortBy === 'expiring_soon') {
+      orderBy = { expiresAt: 'asc' };
+    } else if (sortBy === 'highest_earning') {
+      orderBy = { estimatedEarning: 'desc' };
+    }
 
     const [requests, total] = await Promise.all([
       this.prisma.bookingRequest.findMany({
         where,
-        orderBy: { receivedAt: 'desc' },
+        orderBy,
         skip: (page - 1) * limit,
         take: limit,
       }),
       this.prisma.bookingRequest.count({ where }),
     ]);
 
-    // Auto-expire overdue requests
+    // Auto-expire overdue requests (only for pending)
     const now = new Date();
     await this.prisma.bookingRequest.updateMany({
       where: { companionId, status: 'pending', expiresAt: { lt: now } },

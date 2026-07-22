@@ -163,6 +163,15 @@ __decorate([
     (0, class_transformer_1.Type)(() => Number),
     __metadata("design:type", Number)
 ], UpdatePricingDto.prototype, "hourlyRate", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 90 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(30),
+    (0, class_validator_1.Max)(300),
+    (0, class_transformer_1.Type)(() => Number),
+    __metadata("design:type", Number)
+], UpdatePricingDto.prototype, "sessionDuration", void 0);
 class UpdateCommActivityDto {
 }
 exports.UpdateCommActivityDto = UpdateCommActivityDto;
