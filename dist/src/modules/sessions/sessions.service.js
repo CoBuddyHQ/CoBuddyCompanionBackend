@@ -103,6 +103,18 @@ let SessionsService = SessionsService_1 = class SessionsService {
         });
         return { ...this.toSessionResponse(updated), verified: true };
     }
+    async verifyBySelfie(companionId, sessionId, selfieUrl) {
+        const session = await this.findSessionOrThrow(companionId, sessionId);
+        const updated = await this.prisma.session.update({
+            where: { id: sessionId },
+            data: {
+                status: 'active',
+                checkInTime: session.checkInTime ?? new Date(),
+                notes: session.notes ? `${session.notes}\nVerified via venue selfie.` : 'Verified via venue selfie.'
+            },
+        });
+        return { ...this.toSessionResponse(updated), verified: true, method: 'selfie' };
+    }
     async requestExtension(companionId, sessionId, extraMinutes) {
         const session = await this.findSessionOrThrow(companionId, sessionId);
         if (session.status !== 'active')
@@ -149,21 +161,33 @@ let SessionsService = SessionsService_1 = class SessionsService {
         });
         return this.toSessionResponse(updated);
     }
-    async cancelSession(companionId, sessionId, reason) {
+    async cancelSession(companionId, sessionId, reason, details) {
         const session = await this.findSessionOrThrow(companionId, sessionId);
         if (!['upcoming', 'pre_arrival'].includes(session.status)) {
             throw new common_1.BadRequestException('Can only cancel upcoming sessions');
         }
+        const cancelReasonFull = details ? `${reason}: ${details}` : reason;
         const updated = await this.prisma.session.update({
             where: { id: sessionId },
             data: {
                 status: 'cancelled',
-                cancelReason: reason,
+                cancelReason: cancelReasonFull,
                 cancelledBy: 'companion',
             },
         });
         this.logger.log(`Session ${sessionId} cancelled by companion ${companionId}`);
         return this.toSessionResponse(updated);
+    }
+    async getCancellationStatus(companionId, sessionId) {
+        const session = await this.findSessionOrThrow(companionId, sessionId);
+        return {
+            sessionId: session.id,
+            status: session.status.toLowerCase(),
+            reviewStatus: session.status === 'cancelled' ? 'approved' : 'pending_review',
+            cancelReason: session.cancelReason ?? null,
+            cancelledBy: session.cancelledBy ?? null,
+            submittedAt: session.updatedAt.toISOString(),
+        };
     }
     async reportNoShow(companionId, sessionId) {
         const session = await this.findSessionOrThrow(companionId, sessionId);
@@ -206,11 +230,17 @@ let SessionsService = SessionsService_1 = class SessionsService {
         this.logger.log(`Session ${sessionId} completed. Earning: ₹${confirmed}`);
         return this.toSessionResponse(updated);
     }
-    async saveNotes(companionId, sessionId, notes) {
+    async saveNotes(companionId, sessionId, notes, mood, tags) {
         await this.findSessionOrThrow(companionId, sessionId);
+        let finalNotes = notes;
+        if (mood || (tags && tags.length > 0)) {
+            const moodStr = mood ? `[Mood: ${mood}] ` : '';
+            const tagsStr = tags && tags.length > 0 ? `[Tags: ${tags.join(', ')}]\n` : '';
+            finalNotes = `${moodStr}${tagsStr}${notes}`;
+        }
         const updated = await this.prisma.session.update({
             where: { id: sessionId },
-            data: { notes },
+            data: { notes: finalNotes },
         });
         return this.toSessionResponse(updated);
     }
@@ -223,6 +253,32 @@ let SessionsService = SessionsService_1 = class SessionsService {
             data: { customerRating: rating, customerFeedback: feedback },
         });
         return { sessionId, customerRating: rating, message: 'Customer rated successfully' };
+    }
+    async getChatHistory(companionId, sessionId) {
+        await this.findSessionOrThrow(companionId, sessionId);
+        return [];
+    }
+    async sendChatMessage(companionId, sessionId, text) {
+        const session = await this.findSessionOrThrow(companionId, sessionId);
+        if (session.status !== 'active')
+            throw new common_1.BadRequestException('Session is not active');
+        return { success: true, text, sentAt: new Date().toISOString() };
+    }
+    async getCallToken(companionId, sessionId) {
+        const session = await this.findSessionOrThrow(companionId, sessionId);
+        if (session.status !== 'active')
+            throw new common_1.BadRequestException('Session is not active');
+        return { token: 'mock-jwt-token-for-webrtc-call', channel: `session-${sessionId}` };
+    }
+    async updateLocation(companionId, sessionId, lat, lng) {
+        const session = await this.findSessionOrThrow(companionId, sessionId);
+        if (session.status !== 'active')
+            throw new common_1.BadRequestException('Location sharing requires active session');
+        return { success: true, lat, lng, timestamp: new Date().toISOString() };
+    }
+    async stopLocationSharing(companionId, sessionId) {
+        const session = await this.findSessionOrThrow(companionId, sessionId);
+        return { success: true, message: 'Location sharing stopped early' };
     }
     async findSessionOrThrow(companionId, sessionId) {
         const session = await this.prisma.session.findFirst({

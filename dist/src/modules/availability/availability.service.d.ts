@@ -2,73 +2,117 @@ import { PrismaService } from '../../prisma/prisma.service';
 export declare class AvailabilityService {
     private prisma;
     constructor(prisma: PrismaService);
-    getSlots(companionId: string): Promise<{
-        slots: {
-            slotId: string;
-            dayOfWeek: number;
-            startTime: string;
-            endTime: string;
-        }[];
-        blockedTimes: {
-            blockId: string;
-            date: string;
-            reason: string;
-        }[];
+    getAvailability(companionId: string): Promise<{
+        isAvailable: boolean;
         vacationMode: {
             enabled: boolean;
+            awayFrom: string;
+            returnOn: string;
+        };
+        defaultHours: {
+            day: string;
+            active: boolean;
+            times: string;
+        }[];
+        dateOverrides: {
+            id: string;
             startDate: string;
             endDate: string;
-        };
-    }>;
-    addSlot(companionId: string, dto: {
-        dayOfWeek: number;
-        startTime: string;
-        endTime: string;
-    }): Promise<{
-        slotId: string;
-        dayOfWeek: number;
-        startTime: string;
-        endTime: string;
-    }>;
-    updateSlot(companionId: string, slotId: string, dto: {
-        startTime?: string;
-        endTime?: string;
-    }): Promise<{
-        slotId: string;
-        startTime: string;
-        endTime: string;
-    }>;
-    deleteSlot(companionId: string, slotId: string): Promise<{
-        message: string;
-    }>;
-    addRecurring(companionId: string, dto: {
-        pattern: string;
-        slots: {
-            dayOfWeek: number;
+            reason: string;
+            note: string;
+            fullDay: boolean;
             startTime: string;
             endTime: string;
         }[];
-    }): Promise<{
-        created: number;
-        message: string;
+        slots: {
+            id: string;
+            date: string;
+            startTime: string;
+            endTime: string;
+            repeat: boolean;
+        }[];
     }>;
-    blockTime(companionId: string, dto: {
-        date: string;
-        reason?: string;
-    }): Promise<{
-        blockId: string;
-        date: string;
-        reason: string;
-        message: string;
+    setLiveAvailable(companionId: string, isAvailable: boolean): Promise<{
+        success: boolean;
+        isAvailable: boolean;
     }>;
     setVacationMode(companionId: string, dto: {
         enabled: boolean;
-        startDate?: string;
-        endDate?: string;
+        awayFrom?: string;
+        returnOn?: string;
     }): Promise<{
+        id: string;
+        updatedAt: Date;
+        companionId: string;
         enabled: boolean;
+        awayFrom: string | null;
+        returnOn: string | null;
+    }>;
+    toggleDay(companionId: string, day: string): Promise<{
+        id: string;
+        createdAt: Date;
+        active: boolean;
+        companionId: string;
+        day: string;
+        times: string;
+    }>;
+    setDayTimes(companionId: string, day: string, times: string): Promise<{
+        id: string;
+        createdAt: Date;
+        active: boolean;
+        companionId: string;
+        day: string;
+        times: string;
+    }>;
+    addOverride(companionId: string, dto: any): Promise<{
+        id: string;
+        createdAt: Date;
+        companionId: string;
         startDate: string;
         endDate: string;
-        message: string;
+        reason: string;
+        note: string | null;
+        fullDay: boolean;
+        startTime: string | null;
+        endTime: string | null;
+    }>;
+    removeOverride(companionId: string, id: string): Promise<{
+        id: string;
+        createdAt: Date;
+        companionId: string;
+        startDate: string;
+        endDate: string;
+        reason: string;
+        note: string | null;
+        fullDay: boolean;
+        startTime: string | null;
+        endTime: string | null;
+    }>;
+    addSlot(companionId: string, dto: any): Promise<{
+        id: string;
+        createdAt: Date;
+        repeat: boolean;
+        companionId: string;
+        date: string;
+        startTime: string;
+        endTime: string;
+    }>;
+    updateSlot(companionId: string, id: string, dto: any): Promise<{
+        id: string;
+        createdAt: Date;
+        repeat: boolean;
+        companionId: string;
+        date: string;
+        startTime: string;
+        endTime: string;
+    }>;
+    removeSlot(companionId: string, id: string): Promise<{
+        id: string;
+        createdAt: Date;
+        repeat: boolean;
+        companionId: string;
+        date: string;
+        startTime: string;
+        endTime: string;
     }>;
 }

@@ -6,28 +6,34 @@ export declare class SupportController {
     getTickets(c: JwtPayload): Promise<{
         tickets: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            companionId: string;
-            description: string;
             category: string;
-            status: string;
-            sessionId: string | null;
             subject: string;
+            description: string;
             priority: string;
+            status: string;
+            date: string;
+            messages: {
+                id: string;
+                from: string;
+                text: string;
+                time: string;
+            }[];
         }[];
     }>;
     getTicket(c: JwtPayload, id: string): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        companionId: string;
-        description: string;
         category: string;
-        status: string;
-        sessionId: string | null;
         subject: string;
+        description: string;
         priority: string;
+        status: string;
+        date: string;
+        messages: {
+            id: string;
+            from: string;
+            text: string;
+            time: string;
+        }[];
     }>;
     createTicket(c: JwtPayload, dto: any): Promise<{
         ticketId: string;
@@ -37,9 +43,9 @@ export declare class SupportController {
         ticketId: string;
         messages: {
             id: string;
-            sender: string;
-            content: string;
-            timestamp: string;
+            from: string;
+            text: string;
+            time: string;
         }[];
     }>;
     addTicketMessage(c: JwtPayload, id: string, dto: any): Promise<{
@@ -48,28 +54,34 @@ export declare class SupportController {
     getDisputes(c: JwtPayload): Promise<{
         disputes: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            companionId: string;
-            description: string;
             category: string;
+            description: string;
+            sessionId: string;
+            customerName: string;
+            amount: string;
             status: string;
-            sessionId: string | null;
-            subject: string;
-            priority: string;
+            outcome: string;
+            createdAgo: string;
+            timeline: {
+                date: string;
+                desc: string;
+            }[];
         }[];
     }>;
     getDispute(c: JwtPayload, id: string): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        companionId: string;
-        description: string;
         category: string;
+        description: string;
+        sessionId: string;
+        customerName: string;
+        amount: string;
         status: string;
-        sessionId: string | null;
-        subject: string;
-        priority: string;
+        outcome: string;
+        createdAgo: string;
+        timeline: {
+            date: string;
+            desc: string;
+        }[];
     }>;
     createDispute(c: JwtPayload, dto: any): Promise<{
         disputeId: string;
@@ -83,18 +95,23 @@ export declare class SupportController {
         message: string;
     }>;
     getHelpArticles(): Promise<{
-        categories: {
+        articles: {
             id: string;
+            createdAt: Date;
+            updatedAt: Date;
             title: string;
-            articles: {
-                id: string;
-                title: string;
-            }[];
+            body: string[];
+            category: string;
+            updatedDate: string;
         }[];
     }>;
     getHelpArticle(id: string): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         title: string;
-        content: string;
+        body: string[];
+        category: string;
+        updatedDate: string;
     }>;
 }

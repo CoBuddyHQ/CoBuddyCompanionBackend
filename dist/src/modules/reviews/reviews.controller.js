@@ -28,6 +28,12 @@ let ReviewsController = class ReviewsController {
     getReview(c, id) {
         return this.reviewsService.getReview(c.sub, id);
     }
+    reportReview(c, id) {
+        return this.reviewsService.reportReview(c.sub, id);
+    }
+    replyToReview(c, id, reply) {
+        return this.reviewsService.replyToReview(c.sub, id, reply);
+    }
     getTrustScore(c) {
         return this.reviewsService.getTrustScore(c.sub);
     }
@@ -57,6 +63,25 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], ReviewsController.prototype, "getReview", null);
+__decorate([
+    (0, common_1.Post)('reviews/:reviewId/report'),
+    (0, swagger_1.ApiOperation)({ summary: 'Report a review' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('reviewId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], ReviewsController.prototype, "reportReview", null);
+__decorate([
+    (0, common_1.Post)('reviews/:reviewId/reply'),
+    (0, swagger_1.ApiOperation)({ summary: 'Reply to a review' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('reviewId')),
+    __param(2, (0, common_1.Body)('reply')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], ReviewsController.prototype, "replyToReview", null);
 __decorate([
     (0, common_1.Get)('trust/score'),
     (0, swagger_1.ApiOperation)({ summary: 'Get trust score — Endpoints.REVIEWS.TRUST_SCORE' }),

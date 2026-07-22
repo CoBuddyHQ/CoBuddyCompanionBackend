@@ -51,10 +51,16 @@ __decorate([
 class CancelSessionDto {
 }
 __decorate([
-    (0, swagger_2.ApiProperty)(),
+    (0, swagger_2.ApiProperty)({ example: 'Health issue' }),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CancelSessionDto.prototype, "reason", void 0);
+__decorate([
+    (0, swagger_2.ApiPropertyOptional)({ example: 'I had a sudden migraine and cannot travel.' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CancelSessionDto.prototype, "details", void 0);
 class SessionNotesDto {
 }
 __decorate([
@@ -62,6 +68,19 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], SessionNotesDto.prototype, "notes", void 0);
+__decorate([
+    (0, swagger_2.ApiPropertyOptional)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SessionNotesDto.prototype, "mood", void 0);
+__decorate([
+    (0, swagger_2.ApiPropertyOptional)({ isArray: true }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], SessionNotesDto.prototype, "tags", void 0);
 class RateCustomerDto {
 }
 __decorate([
@@ -100,6 +119,9 @@ let SessionsController = class SessionsController {
     verifyCustomer(c, sessionId, dto) {
         return this.sessionsService.verifyCustomer(c.sub, sessionId, dto.passCode);
     }
+    verifyBySelfie(c, sessionId, selfieUrl) {
+        return this.sessionsService.verifyBySelfie(c.sub, sessionId, selfieUrl);
+    }
     requestExtension(c, sessionId, dto) {
         return this.sessionsService.requestExtension(c.sub, sessionId, dto.extraMinutes);
     }
@@ -110,7 +132,10 @@ let SessionsController = class SessionsController {
         return this.sessionsService.endEarly(c.sub, sessionId, dto.reason);
     }
     cancelSession(c, sessionId, dto) {
-        return this.sessionsService.cancelSession(c.sub, sessionId, dto.reason);
+        return this.sessionsService.cancelSession(c.sub, sessionId, dto.reason, dto.details);
+    }
+    getCancellationStatus(c, sessionId) {
+        return this.sessionsService.getCancellationStatus(c.sub, sessionId);
     }
     reportNoShow(c, sessionId) {
         return this.sessionsService.reportNoShow(c.sub, sessionId);
@@ -119,10 +144,25 @@ let SessionsController = class SessionsController {
         return this.sessionsService.completeSession(c.sub, sessionId);
     }
     saveNotes(c, sessionId, dto) {
-        return this.sessionsService.saveNotes(c.sub, sessionId, dto.notes);
+        return this.sessionsService.saveNotes(c.sub, sessionId, dto.notes, dto.mood, dto.tags);
     }
     rateCustomer(c, sessionId, dto) {
         return this.sessionsService.rateCustomer(c.sub, sessionId, dto.rating, dto.feedback);
+    }
+    getChatHistory(c, sessionId) {
+        return this.sessionsService.getChatHistory(c.sub, sessionId);
+    }
+    sendChatMessage(c, sessionId, text) {
+        return this.sessionsService.sendChatMessage(c.sub, sessionId, text);
+    }
+    getCallToken(c, sessionId) {
+        return this.sessionsService.getCallToken(c.sub, sessionId);
+    }
+    updateLocation(c, sessionId, lat, lng) {
+        return this.sessionsService.updateLocation(c.sub, sessionId, lat, lng);
+    }
+    stopLocationSharing(c, sessionId) {
+        return this.sessionsService.stopLocationSharing(c.sub, sessionId);
     }
 };
 exports.SessionsController = SessionsController;
@@ -186,6 +226,17 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], SessionsController.prototype, "verifyCustomer", null);
 __decorate([
+    (0, common_1.Post)(':sessionId/verify-selfie'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Verify via venue selfie (fallback) — activates session' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('sessionId')),
+    __param(2, (0, common_1.Body)('selfieUrl')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], SessionsController.prototype, "verifyBySelfie", null);
+__decorate([
     (0, common_1.Post)(':sessionId/extend/request'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiOperation)({ summary: 'Request session extension (30–180 min)' }),
@@ -221,7 +272,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)(':sessionId/cancel'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, swagger_1.ApiOperation)({ summary: 'Cancel upcoming session' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Cancel upcoming session — two-step: reason + optional details' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Param)('sessionId')),
     __param(2, (0, common_1.Body)()),
@@ -229,6 +280,18 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, CancelSessionDto]),
     __metadata("design:returntype", void 0)
 ], SessionsController.prototype, "cancelSession", null);
+__decorate([
+    (0, common_1.Get)(':sessionId/cancellation-status'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Poll cancellation review status — used by CancellationReviewPendingScreen (CPN-116)',
+        description: 'Returns { status, reviewStatus, submittedAt, sessionId } so the screen can show Pending Review → Approved.',
+    }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('sessionId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], SessionsController.prototype, "getCancellationStatus", null);
 __decorate([
     (0, common_1.Post)(':sessionId/no-show'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
@@ -271,6 +334,58 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, RateCustomerDto]),
     __metadata("design:returntype", void 0)
 ], SessionsController.prototype, "rateCustomer", null);
+__decorate([
+    (0, common_1.Get)(':sessionId/chat'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get in-session chat history' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('sessionId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], SessionsController.prototype, "getChatHistory", null);
+__decorate([
+    (0, common_1.Post)(':sessionId/chat'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Send in-session chat message' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('sessionId')),
+    __param(2, (0, common_1.Body)('text')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], SessionsController.prototype, "sendChatMessage", null);
+__decorate([
+    (0, common_1.Post)(':sessionId/call/token'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Get secure call token for VoIP' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('sessionId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], SessionsController.prototype, "getCallToken", null);
+__decorate([
+    (0, common_1.Post)(':sessionId/location'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Update live location during active session' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('sessionId')),
+    __param(2, (0, common_1.Body)('lat')),
+    __param(3, (0, common_1.Body)('lng')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Number, Number]),
+    __metadata("design:returntype", void 0)
+], SessionsController.prototype, "updateLocation", null);
+__decorate([
+    (0, common_1.Post)(':sessionId/location/stop'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Stop live location sharing early' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('sessionId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], SessionsController.prototype, "stopLocationSharing", null);
 exports.SessionsController = SessionsController = __decorate([
     (0, swagger_1.ApiTags)('Sessions'),
     (0, swagger_1.ApiBearerAuth)('companion-jwt'),

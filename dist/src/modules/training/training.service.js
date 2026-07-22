@@ -18,7 +18,7 @@ let TrainingService = class TrainingService {
     }
     async getModules(companionId) {
         const modules = await this.prisma.trainingModule.findMany({
-            orderBy: { sortOrder: 'asc' },
+            orderBy: { createdAt: 'asc' },
             include: {
                 completions: { where: { companionId } },
             },
@@ -30,13 +30,12 @@ let TrainingService = class TrainingService {
             modules: modules.map(m => ({
                 moduleId: m.id,
                 title: m.title,
-                description: m.description,
-                category: m.category,
-                durationMinutes: m.durationMinutes,
-                isRequired: m.isRequired,
+                description: m.takeaways[0] ?? m.title,
+                category: 'safety',
+                durationMinutes: parseInt(m.duration) || 20,
+                isRequired: m.required,
                 isCompleted: m.completions.length > 0,
                 completedAt: m.completions[0]?.completedAt?.toISOString() ?? null,
-                sortOrder: m.sortOrder,
             })),
         };
     }
@@ -45,24 +44,26 @@ let TrainingService = class TrainingService {
         if (!mod) {
             const defaults = this.getDefaultModules();
             const found = defaults.find(d => d.moduleId === moduleId);
-            return found ?? { moduleId, title: 'Training Module', content: [], isCompleted: false };
+            return found ?? { moduleId, title: 'Training Module', body: [], takeaways: [], isCompleted: false };
         }
         return {
             moduleId: mod.id,
             title: mod.title,
-            description: mod.description,
-            category: mod.category,
-            content: mod.content ? JSON.parse(mod.content) : [],
-            durationMinutes: mod.durationMinutes,
-            isRequired: mod.isRequired,
+            duration: mod.duration,
+            required: mod.required,
+            body: mod.body,
+            takeaways: mod.takeaways,
         };
     }
     async completeModule(companionId, moduleId, score) {
-        await this.prisma.moduleCompletion.upsert({
-            where: { companionId_moduleId: { companionId, moduleId } },
-            update: { score, completedAt: new Date() },
-            create: { companionId, moduleId, score: score ?? 0, completedAt: new Date() },
-        });
+        const existing = await this.prisma.trainingModule.findUnique({ where: { id: moduleId } });
+        if (existing) {
+            await this.prisma.moduleCompletion.upsert({
+                where: { companionId_moduleId: { companionId, moduleId } },
+                update: { score, completedAt: new Date() },
+                create: { companionId, moduleId, score: score ?? 0, completedAt: new Date() },
+            });
+        }
         return {
             moduleId,
             message: 'Training module completed! Trust score updated.',
@@ -71,11 +72,11 @@ let TrainingService = class TrainingService {
     }
     getDefaultModules() {
         return [
-            { moduleId: 'tm-001', title: 'Safety & Boundaries', description: 'Core safety protocols', category: 'safety', durationMinutes: 30, isRequired: true, isCompleted: false, completedAt: null, sortOrder: 1 },
-            { moduleId: 'tm-002', title: 'Communication Skills', description: 'How to engage with customers', category: 'communication', durationMinutes: 20, isRequired: true, isCompleted: false, completedAt: null, sortOrder: 2 },
-            { moduleId: 'tm-003', title: 'CoBuddy Community Guidelines', description: 'Platform rules and standards', category: 'guidelines', durationMinutes: 15, isRequired: true, isCompleted: false, completedAt: null, sortOrder: 3 },
-            { moduleId: 'tm-004', title: 'Venue & Activity Best Practices', description: 'How to choose safe venues', category: 'venues', durationMinutes: 25, isRequired: false, isCompleted: false, completedAt: null, sortOrder: 4 },
-            { moduleId: 'tm-005', title: 'Earnings & Payouts', description: 'Understanding how you get paid', category: 'earnings', durationMinutes: 10, isRequired: false, isCompleted: false, completedAt: null, sortOrder: 5 },
+            { moduleId: 'tm-001', title: 'Safety & Boundaries', description: 'Core safety protocols', category: 'safety', durationMinutes: 30, isRequired: true, isCompleted: false, completedAt: null },
+            { moduleId: 'tm-002', title: 'Communication Skills', description: 'How to engage with customers', category: 'communication', durationMinutes: 20, isRequired: true, isCompleted: false, completedAt: null },
+            { moduleId: 'tm-003', title: 'CoBuddy Community Guidelines', description: 'Platform rules and standards', category: 'guidelines', durationMinutes: 15, isRequired: true, isCompleted: false, completedAt: null },
+            { moduleId: 'tm-004', title: 'Venue & Activity Best Practices', description: 'How to choose safe venues', category: 'venues', durationMinutes: 25, isRequired: false, isCompleted: false, completedAt: null },
+            { moduleId: 'tm-005', title: 'Earnings & Payouts', description: 'Understanding how you get paid', category: 'earnings', durationMinutes: 10, isRequired: false, isCompleted: false, completedAt: null },
         ];
     }
 };

@@ -15,9 +15,12 @@ export declare class EarningsService {
     getTransactions(companionId: string, page?: number, limit?: number): Promise<{
         transactions: {
             transactionId: any;
-            type: any;
-            status: any;
+            id: any;
+            title: any;
+            date: any;
             amount: number;
+            type: "pending" | "credit" | "debit";
+            status: any;
             sessionId: any;
             customerInitials: any;
             description: any;
@@ -31,21 +34,25 @@ export declare class EarningsService {
     }>;
     getTransaction(companionId: string, transactionId: string): Promise<{
         transactionId: any;
-        type: any;
-        status: any;
+        id: any;
+        title: any;
+        date: any;
         amount: number;
+        type: "pending" | "credit" | "debit";
+        status: any;
         sessionId: any;
         customerInitials: any;
         description: any;
         createdAt: any;
         payoutEligibleAt: any;
     }>;
-    requestPayout(companionId: string, amount: number, bankMasked: string): Promise<{
+    requestPayout(companionId: string, amount: number): Promise<{
         payoutId: string;
         status: string;
         amount: number;
         platformFee: number;
         maskedBank: string;
+        estimatedArrival: string;
         message: string;
     }>;
     getPayoutHistory(companionId: string, page?: number, limit?: number): Promise<{
@@ -75,6 +82,55 @@ export declare class EarningsService {
         completedAt: any;
         failureReason: any;
     }>;
+    getWeeklyEarnings(companionId: string): Promise<{
+        thisWeekEarnings: number;
+        lastWeekEarnings: number;
+        weeklyGrowthPct: number;
+        weeklyBreakdown: {
+            day: string;
+            amount: number;
+            sessions: number;
+        }[];
+    }>;
+    getDailyEarnings(companionId: string, dateStr?: string): Promise<{
+        date: string;
+        netEarnings: number;
+        grossEarnings: number;
+        platformFee: number;
+        transactions: {
+            transactionId: any;
+            id: any;
+            title: any;
+            date: any;
+            amount: number;
+            type: "pending" | "credit" | "debit";
+            status: any;
+            sessionId: any;
+            customerInitials: any;
+            description: any;
+            createdAt: any;
+            payoutEligibleAt: any;
+        }[];
+    }>;
+    getPendingEarnings(companionId: string): Promise<{
+        pendingTotal: number;
+        transactions: {
+            clearanceAt: string;
+            hoursRemaining: number;
+            transactionId: any;
+            id: any;
+            title: any;
+            date: any;
+            amount: number;
+            type: "pending" | "credit" | "debit";
+            status: any;
+            sessionId: any;
+            customerInitials: any;
+            description: any;
+            createdAt: any;
+            payoutEligibleAt: any;
+        }[];
+    }>;
     getInvoices(companionId: string, page?: number, limit?: number): Promise<{
         invoices: {
             invoiceId: string;
@@ -91,17 +147,27 @@ export declare class EarningsService {
         invoiceId: string;
         sessionId: string;
         date: string;
-        amount: number;
-        breakdown: {
-            baseEarning: number;
-            bonusEarning: number;
-            platformFee: number;
-        };
+        baseAmount: number;
+        platformFee: number;
+        gst: number;
+        netPayout: number;
+        billedTo: string;
+        gstin: string;
+        companionCode: string;
+        panNumber: string;
         category: string;
         venueName: string;
         durationMinutes: number;
         language: string;
         status: string;
+    }>;
+    downloadStatement(companionId: string): Promise<{
+        companionId: string;
+        email: string;
+        transactionCount: number;
+        totalEarned: number;
+        generatedAt: string;
+        message: string;
     }>;
     private toTransactionResponse;
     private toPayoutResponse;

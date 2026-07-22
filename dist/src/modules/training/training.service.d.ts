@@ -12,7 +12,6 @@ export declare class TrainingService {
             isRequired: boolean;
             isCompleted: boolean;
             completedAt: any;
-            sortOrder: number;
         }[];
     }>;
     getModule(moduleId: string): Promise<{
@@ -24,24 +23,21 @@ export declare class TrainingService {
         isRequired: boolean;
         isCompleted: boolean;
         completedAt: any;
-        sortOrder: number;
     } | {
         moduleId: string;
         title: string;
-        content: any[];
+        body: any[];
+        takeaways: any[];
         isCompleted: false;
-        description?: undefined;
-        category?: undefined;
-        durationMinutes?: undefined;
-        isRequired?: undefined;
+        duration?: undefined;
+        required?: undefined;
     } | {
         moduleId: string;
         title: string;
-        description: string;
-        category: string;
-        content: any;
-        durationMinutes: number;
-        isRequired: boolean;
+        duration: string;
+        required: boolean;
+        body: string[];
+        takeaways: string[];
         isCompleted?: undefined;
     }>;
     completeModule(companionId: string, moduleId: string, score?: number): Promise<{

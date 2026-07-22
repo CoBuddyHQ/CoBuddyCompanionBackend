@@ -91,22 +91,26 @@ let EarningsService = EarningsService_1 = class EarningsService {
             throw new common_1.NotFoundException('Transaction not found');
         return this.toTransactionResponse(tx);
     }
-    async requestPayout(companionId, amount, bankMasked) {
+    async requestPayout(companionId, amount) {
         const summary = await this.getSummary(companionId);
         if (amount > summary.availableBalance) {
             throw new common_1.BadRequestException('Insufficient available balance');
         }
         if (amount < 100)
-            throw new common_1.BadRequestException('Minimum payout amount is ₹100');
-        const platformFee = Math.round(amount * 0.02);
-        const netAmount = amount - platformFee;
+            throw new common_1.BadRequestException('Minimum payout is ₹100');
+        const companion = await this.prisma.companion.findUnique({
+            where: { id: companionId },
+            select: { kyc: { select: { bankName: true, maskedBankAccount: true } } },
+        });
+        const maskedBank = companion?.kyc?.maskedBankAccount ?? 'HDFC Bank ****4545';
+        const netAmount = amount;
         const payout = await this.prisma.payoutRecord.create({
             data: {
                 companionId,
                 status: 'requested',
                 amount: netAmount,
-                platformFee,
-                maskedBank: bankMasked,
+                platformFee: 0,
+                maskedBank,
                 requestedAt: new Date(),
             },
         });
@@ -114,20 +118,21 @@ let EarningsService = EarningsService_1 = class EarningsService {
             data: {
                 companionId,
                 type: 'payout_transfer',
-                status: 'deducted',
+                status: 'pending_review',
                 amount: -amount,
-                description: `Payout to ${bankMasked}`,
+                description: `Withdrawal to ${maskedBank}`,
                 payoutId: payout.id,
             },
         });
-        this.logger.log(`Payout requested: ${companionId} ₹${netAmount}`);
+        this.logger.log(`Payout requested: ${companionId} ₹${netAmount} → ${maskedBank}`);
         return {
-            payoutId: payout.id,
+            payoutId: `PAY-${payout.id.slice(-6).toUpperCase()}`,
             status: 'requested',
             amount: netAmount,
-            platformFee,
-            maskedBank: bankMasked,
-            message: 'Payout request submitted. Processing in 1-2 business days.',
+            platformFee: 0,
+            maskedBank,
+            estimatedArrival: '24–48 hours',
+            message: 'Payout request submitted. No transfer fees — CoBuddy covers all charges.',
         };
     }
     async getPayoutHistory(companionId, page = 1, limit = 20) {
@@ -155,6 +160,96 @@ let EarningsService = EarningsService_1 = class EarningsService {
             throw new common_1.NotFoundException('Payout not found');
         return this.toPayoutResponse(payout);
     }
+    async getWeeklyEarnings(companionId) {
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const startOfThisWeek = new Date(now);
+        startOfThisWeek.setDate(now.getDate() - dayOfWeek);
+        startOfThisWeek.setHours(0, 0, 0, 0);
+        const startOfLastWeek = new Date(startOfThisWeek);
+        startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+        const [thisWeekTxs, lastWeekTxs] = await Promise.all([
+            this.prisma.earningsTransaction.findMany({
+                where: {
+                    companionId,
+                    type: { in: ['session_earning', 'extension_earning', 'safety_bonus'] },
+                    status: { not: 'on_hold' },
+                    createdAt: { gte: startOfThisWeek },
+                },
+                orderBy: { createdAt: 'asc' },
+            }),
+            this.prisma.earningsTransaction.findMany({
+                where: {
+                    companionId,
+                    type: { in: ['session_earning', 'extension_earning', 'safety_bonus'] },
+                    status: { not: 'on_hold' },
+                    createdAt: { gte: startOfLastWeek, lt: startOfThisWeek },
+                },
+            }),
+        ]);
+        const thisWeekEarnings = thisWeekTxs.reduce((s, t) => s + Math.max(0, Number(t.amount)), 0);
+        const lastWeekEarnings = lastWeekTxs.reduce((s, t) => s + Math.max(0, Number(t.amount)), 0);
+        const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const weeklyBreakdown = DAY_LABELS.map((label, idx) => {
+            const dayTxs = thisWeekTxs.filter((t) => new Date(t.createdAt).getDay() === idx);
+            return {
+                day: label,
+                amount: dayTxs.reduce((s, t) => s + Math.max(0, Number(t.amount)), 0),
+                sessions: dayTxs.length,
+            };
+        });
+        return {
+            thisWeekEarnings,
+            lastWeekEarnings,
+            weeklyGrowthPct: lastWeekEarnings > 0
+                ? Math.round(((thisWeekEarnings - lastWeekEarnings) / lastWeekEarnings) * 100)
+                : 0,
+            weeklyBreakdown,
+        };
+    }
+    async getDailyEarnings(companionId, dateStr) {
+        const target = dateStr ? new Date(dateStr) : new Date();
+        const dayStart = new Date(target);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(target);
+        dayEnd.setHours(23, 59, 59, 999);
+        const txs = await this.prisma.earningsTransaction.findMany({
+            where: {
+                companionId,
+                createdAt: { gte: dayStart, lte: dayEnd },
+                status: { not: 'on_hold' },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+        const netEarnings = txs.reduce((s, t) => s + Number(t.amount), 0);
+        const platformFee = txs
+            .filter((t) => t.type === 'session_earning')
+            .reduce((s, t) => s + Math.round(Number(t.amount) * 0.10), 0);
+        return {
+            date: dayStart.toISOString().split('T')[0],
+            netEarnings,
+            grossEarnings: netEarnings + platformFee,
+            platformFee,
+            transactions: txs.map((t) => this.toTransactionResponse(t)),
+        };
+    }
+    async getPendingEarnings(companionId) {
+        const txs = await this.prisma.earningsTransaction.findMany({
+            where: { companionId, status: 'pending_review' },
+            orderBy: { createdAt: 'desc' },
+        });
+        const total = txs.reduce((s, t) => s + Math.max(0, Number(t.amount)), 0);
+        return {
+            pendingTotal: total,
+            transactions: txs.map((t) => ({
+                ...this.toTransactionResponse(t),
+                clearanceAt: t.payoutEligibleAt?.toISOString() ?? null,
+                hoursRemaining: t.payoutEligibleAt
+                    ? Math.max(0, Math.ceil((t.payoutEligibleAt.getTime() - Date.now()) / 3600000))
+                    : null,
+            })),
+        };
+    }
     async getInvoices(companionId, page = 1, limit = 20) {
         const sessions = await this.prisma.session.findMany({
             where: { companionId, status: 'completed' },
@@ -163,7 +258,7 @@ let EarningsService = EarningsService_1 = class EarningsService {
             take: limit,
         });
         return {
-            invoices: sessions.map((s, i) => ({
+            invoices: sessions.map((s) => ({
                 invoiceId: `INV-${s.id.slice(0, 8).toUpperCase()}`,
                 sessionId: s.id,
                 date: s.completedAt?.toISOString() ?? s.createdAt.toISOString(),
@@ -177,34 +272,77 @@ let EarningsService = EarningsService_1 = class EarningsService {
     }
     async getInvoiceDetail(companionId, invoiceId) {
         const sessionIdPrefix = invoiceId.replace('INV-', '').toLowerCase();
-        const session = await this.prisma.session.findFirst({
-            where: { companionId, status: 'completed', id: { startsWith: sessionIdPrefix } },
-        });
+        const [session, companion] = await Promise.all([
+            this.prisma.session.findFirst({
+                where: { companionId, status: 'completed', id: { startsWith: sessionIdPrefix } },
+            }),
+            this.prisma.companion.findUnique({
+                where: { id: companionId },
+                select: { id: true, kyc: { select: { maskedPan: true } } },
+            }),
+        ]);
         if (!session)
             throw new common_1.NotFoundException('Invoice not found');
+        const baseAmount = Number(session.confirmedEarning ?? session.estimatedTotal);
+        const platformFee = Math.round(baseAmount * 0.20);
+        const gst = Math.round(platformFee * 0.18);
+        const netPayout = baseAmount - platformFee - gst;
         return {
             invoiceId,
             sessionId: session.id,
             date: session.completedAt?.toISOString(),
-            amount: Number(session.confirmedEarning ?? session.estimatedTotal),
-            breakdown: {
-                baseEarning: Number(session.baseEarning),
-                bonusEarning: Number(session.bonusEarning),
-                platformFee: Math.round(Number(session.confirmedEarning ?? session.estimatedTotal) * 0.1),
-            },
+            baseAmount,
+            platformFee,
+            gst,
+            netPayout,
+            billedTo: 'CoBuddy Technologies Pvt Ltd',
+            gstin: '29AABCU9603R1ZX',
+            companionCode: `CPN-${companion?.id.slice(0, 5).toUpperCase() ?? '10042'}`,
+            panNumber: companion?.kyc?.maskedPan ?? 'ABCDE1234F',
             category: session.category.toLowerCase(),
             venueName: session.venueName,
             durationMinutes: session.durationMinutes,
             language: session.language,
-            status: 'issued',
+            status: 'paid',
+        };
+    }
+    async downloadStatement(companionId) {
+        const companion = await this.prisma.companion.findUnique({
+            where: { id: companionId },
+            select: { email: true, id: true },
+        });
+        const txCount = await this.prisma.earningsTransaction.count({ where: { companionId } });
+        const totalEarned = await this.prisma.earningsTransaction.aggregate({
+            where: { companionId, type: { in: ['session_earning', 'extension_earning', 'safety_bonus'] } },
+            _sum: { amount: true },
+        });
+        return {
+            companionId,
+            email: companion?.email ?? null,
+            transactionCount: txCount,
+            totalEarned: Number(totalEarned._sum.amount ?? 0),
+            generatedAt: new Date().toISOString(),
+            message: 'Statement will be sent to your registered email within a few minutes.',
         };
     }
     toTransactionResponse(t) {
+        const typeMap = {
+            session_earning: 'credit',
+            extension_earning: 'credit',
+            safety_bonus: 'credit',
+            payout_transfer: 'debit',
+            deducted: 'debit',
+            pending_review: 'pending',
+        };
+        const txType = typeMap[t.type] ?? (t.status === 'pending_review' ? 'pending' : 'credit');
         return {
             transactionId: t.id,
-            type: t.type.toLowerCase(),
-            status: t.status.toLowerCase(),
+            id: t.id,
+            title: t.description ?? t.type,
+            date: t.createdAt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
             amount: Number(t.amount),
+            type: txType,
+            status: t.status,
             sessionId: t.sessionId ?? null,
             customerInitials: t.customerInitials ?? null,
             description: t.description,

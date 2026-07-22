@@ -417,6 +417,10 @@ model CompanionKYC {
   submittedAt     DateTime?
   approvedAt      DateTime?
   rejectedAt      DateTime?
+  
+  // Razorpay Payouts Integration
+  razorpayFundAccountId String?
+
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -463,6 +467,7 @@ model BookingRequest {
   matchScore               Int           @default(0)
   customerNote             String?
   declineReason            String?
+  paymentStatus            String        @default("pending") // pending | paid | failed
   expiresAt                DateTime
   receivedAt               DateTime      @default(now())
   respondedAt              DateTime?
@@ -560,22 +565,41 @@ model EarningsTransaction {
 }
 
 model PayoutRecord {
-  id            String       @id @default(cuid())
-  companionId   String
-  status        PayoutStatus @default(requested)
-  amount        Decimal      @db.Decimal(10, 2)
-  platformFee   Decimal      @default(0) @db.Decimal(10, 2)
-  maskedBank    String
-  utrNumber     String?
-  failureReason String?
-  requestedAt   DateTime     @default(now())
-  completedAt   DateTime?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id               String       @id @default(cuid())
+  companionId      String
+  status           PayoutStatus @default(requested)
+  amount           Decimal      @db.Decimal(10, 2)
+  platformFee      Decimal      @default(0) @db.Decimal(10, 2)
+  maskedBank       String
+  utrNumber        String?
+  razorpayPayoutId String?
+  failureReason    String?
+  requestedAt      DateTime     @default(now())
+  completedAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 
   @@map("payout_records")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RAZORPAY ORDERS (Customer payment tracking)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model RazorpayOrder {
+  id                String   @id @default(cuid())
+  razorpayOrderId   String   @unique
+  razorpayPaymentId String?
+  requestId         String?
+  companionId       String
+  amountPaisa       Int
+  status            String   @default("created") // created | paid | failed
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("razorpay_orders")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

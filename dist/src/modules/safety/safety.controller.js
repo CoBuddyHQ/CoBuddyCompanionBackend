@@ -118,18 +118,35 @@ __decorate([
 class BlockCustomerDto {
 }
 __decorate([
-    (0, swagger_2.ApiPropertyOptional)(),
+    (0, swagger_2.ApiPropertyOptional)({ example: 'Made me uncomfortable' }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], BlockCustomerDto.prototype, "reason", void 0);
+__decorate([
+    (0, swagger_2.ApiPropertyOptional)({ example: 'Describe the specific issue...' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], BlockCustomerDto.prototype, "otherText", void 0);
 class ReportCustomerDto {
 }
 __decorate([
-    (0, swagger_2.ApiProperty)(),
+    (0, swagger_2.ApiProperty)({ example: 'Threatening Behavior' }),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], ReportCustomerDto.prototype, "reason", void 0);
+], ReportCustomerDto.prototype, "category", void 0);
+__decorate([
+    (0, swagger_2.ApiProperty)({ example: 'They insisted on going to a private location...' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], ReportCustomerDto.prototype, "description", void 0);
+__decorate([
+    (0, swagger_2.ApiPropertyOptional)({ default: false }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], ReportCustomerDto.prototype, "alsoBlock", void 0);
 __decorate([
     (0, swagger_2.ApiPropertyOptional)(),
     (0, class_validator_1.IsOptional)(),
@@ -176,6 +193,12 @@ let SafetyController = class SafetyController {
     cancelTimer(c) {
         return this.safetyService.cancelTimer(c.sub);
     }
+    getSettings(c) {
+        return this.safetyService.getSettings(c.sub);
+    }
+    updateSettings(c, dto) {
+        return this.safetyService.updateSettings(c.sub, dto);
+    }
     getTrustedContacts(c) {
         return this.safetyService.getTrustedContacts(c.sub);
     }
@@ -192,13 +215,16 @@ let SafetyController = class SafetyController {
         return this.safetyService.blockCustomer(c.sub, cid, dto.reason);
     }
     reportCustomer(c, cid, dto) {
-        return this.safetyService.reportCustomer(c.sub, cid, dto.reason, dto.sessionId);
+        return this.safetyService.reportCustomer(c.sub, cid, dto.category, dto.description, dto.alsoBlock, dto.sessionId);
     }
     reportIncident(c, dto) {
         return this.safetyService.reportIncident(c.sub, dto.description, dto.sessionId);
     }
     uploadEvidence(c, rid, dto) {
         return this.safetyService.uploadEvidence(c.sub, rid, dto.evidenceUrls);
+    }
+    completeSafetyQuiz(c, score) {
+        return this.safetyService.completeSafetyQuiz(c.sub, score);
     }
 };
 exports.SafetyController = SafetyController;
@@ -250,6 +276,23 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], SafetyController.prototype, "cancelTimer", null);
+__decorate([
+    (0, common_1.Get)('settings'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get safety settings (toggles) — Endpoints.SAFETY.SETTINGS' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], SafetyController.prototype, "getSettings", null);
+__decorate([
+    (0, common_1.Put)('settings'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update safety settings (toggles) — Endpoints.SAFETY.SETTINGS_UPDATE' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], SafetyController.prototype, "updateSettings", null);
 __decorate([
     (0, common_1.Get)('trusted-contacts'),
     (0, swagger_1.ApiOperation)({ summary: 'Get trusted contacts — Endpoints.SAFETY.TRUSTED_CONTACTS' }),
@@ -330,6 +373,16 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, EvidenceDto]),
     __metadata("design:returntype", void 0)
 ], SafetyController.prototype, "uploadEvidence", null);
+__decorate([
+    (0, common_1.Post)('quiz/complete'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Submit Safety Quiz — Endpoints.SAFETY.QUIZ_COMPLETE' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)('score')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Number]),
+    __metadata("design:returntype", void 0)
+], SafetyController.prototype, "completeSafetyQuiz", null);
 exports.SafetyController = SafetyController = __decorate([
     (0, swagger_1.ApiTags)('Safety'),
     (0, swagger_1.ApiBearerAuth)('companion-jwt'),

@@ -22,89 +22,57 @@ let AvailabilityController = class AvailabilityController {
     constructor(availabilityService) {
         this.availabilityService = availabilityService;
     }
-    getSlots(c) {
-        return this.availabilityService.getSlots(c.sub);
+    getAvailability(c) {
+        return this.availabilityService.getAvailability(c.sub);
     }
-    addSlot(c, dto) {
-        return this.availabilityService.addSlot(c.sub, dto);
-    }
-    updateSlot(c, slotId, dto) {
-        return this.availabilityService.updateSlot(c.sub, slotId, dto);
-    }
-    deleteSlot(c, slotId) {
-        return this.availabilityService.deleteSlot(c.sub, slotId);
-    }
-    addRecurring(c, dto) {
-        return this.availabilityService.addRecurring(c.sub, dto);
-    }
-    blockTime(c, dto) {
-        return this.availabilityService.blockTime(c.sub, dto);
+    setLiveAvailable(c, isAvailable) {
+        return this.availabilityService.setLiveAvailable(c.sub, isAvailable);
     }
     setVacationMode(c, dto) {
         return this.availabilityService.setVacationMode(c.sub, dto);
     }
+    toggleDay(c, day) {
+        return this.availabilityService.toggleDay(c.sub, day);
+    }
+    setDayTimes(c, day, times) {
+        return this.availabilityService.setDayTimes(c.sub, day, times);
+    }
+    addOverride(c, dto) {
+        return this.availabilityService.addOverride(c.sub, dto);
+    }
+    removeOverride(c, id) {
+        return this.availabilityService.removeOverride(c.sub, id);
+    }
+    addSlot(c, dto) {
+        return this.availabilityService.addSlot(c.sub, dto);
+    }
+    updateSlot(c, id, dto) {
+        return this.availabilityService.updateSlot(c.sub, id, dto);
+    }
+    removeSlot(c, id) {
+        return this.availabilityService.removeSlot(c.sub, id);
+    }
 };
 exports.AvailabilityController = AvailabilityController;
 __decorate([
-    (0, common_1.Get)('slots'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get all slots, blocked times, vacation mode' }),
+    (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Get full availability state' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
-], AvailabilityController.prototype, "getSlots", null);
+], AvailabilityController.prototype, "getAvailability", null);
 __decorate([
-    (0, common_1.Post)('slots/add'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, swagger_1.ApiOperation)({ summary: 'Add a time slot' }),
+    (0, common_1.Put)('live'),
+    (0, swagger_1.ApiOperation)({ summary: 'Set live availability' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
-    __param(1, (0, common_1.Body)()),
+    __param(1, (0, common_1.Body)('isAvailable')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, Boolean]),
     __metadata("design:returntype", void 0)
-], AvailabilityController.prototype, "addSlot", null);
+], AvailabilityController.prototype, "setLiveAvailable", null);
 __decorate([
-    (0, common_1.Put)('slots/:slotId'),
-    (0, swagger_1.ApiOperation)({ summary: 'Update a specific slot' }),
-    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
-    __param(1, (0, common_1.Param)('slotId')),
-    __param(2, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, Object]),
-    __metadata("design:returntype", void 0)
-], AvailabilityController.prototype, "updateSlot", null);
-__decorate([
-    (0, common_1.Delete)('slots/:slotId'),
-    (0, swagger_1.ApiOperation)({ summary: 'Delete a specific slot' }),
-    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
-    __param(1, (0, common_1.Param)('slotId')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
-    __metadata("design:returntype", void 0)
-], AvailabilityController.prototype, "deleteSlot", null);
-__decorate([
-    (0, common_1.Post)('recurring/add'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, swagger_1.ApiOperation)({ summary: 'Add recurring weekly schedule' }),
-    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
-    __param(1, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", void 0)
-], AvailabilityController.prototype, "addRecurring", null);
-__decorate([
-    (0, common_1.Post)('block'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, swagger_1.ApiOperation)({ summary: 'Block a specific date/time' }),
-    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
-    __param(1, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", void 0)
-], AvailabilityController.prototype, "blockTime", null);
-__decorate([
-    (0, common_1.Post)('vacation'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.Put)('vacation'),
     (0, swagger_1.ApiOperation)({ summary: 'Enable or disable vacation mode' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Body)()),
@@ -112,6 +80,71 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], AvailabilityController.prototype, "setVacationMode", null);
+__decorate([
+    (0, common_1.Put)('weekly/:day/toggle'),
+    (0, swagger_1.ApiOperation)({ summary: 'Toggle day active status' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('day')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], AvailabilityController.prototype, "toggleDay", null);
+__decorate([
+    (0, common_1.Put)('weekly/:day/times'),
+    (0, swagger_1.ApiOperation)({ summary: 'Set day times' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('day')),
+    __param(2, (0, common_1.Body)('times')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], AvailabilityController.prototype, "setDayTimes", null);
+__decorate([
+    (0, common_1.Post)('overrides'),
+    (0, swagger_1.ApiOperation)({ summary: 'Add a date override' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], AvailabilityController.prototype, "addOverride", null);
+__decorate([
+    (0, common_1.Delete)('overrides/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Remove a date override' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], AvailabilityController.prototype, "removeOverride", null);
+__decorate([
+    (0, common_1.Post)('slots'),
+    (0, swagger_1.ApiOperation)({ summary: 'Add a custom slot' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], AvailabilityController.prototype, "addSlot", null);
+__decorate([
+    (0, common_1.Put)('slots/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update a custom slot' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", void 0)
+], AvailabilityController.prototype, "updateSlot", null);
+__decorate([
+    (0, common_1.Delete)('slots/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Remove a custom slot' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], AvailabilityController.prototype, "removeSlot", null);
 exports.AvailabilityController = AvailabilityController = __decorate([
     (0, swagger_1.ApiTags)('Availability'),
     (0, swagger_1.ApiBearerAuth)('companion-jwt'),

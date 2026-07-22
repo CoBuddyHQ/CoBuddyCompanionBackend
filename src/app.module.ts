@@ -20,6 +20,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { TrainingModule } from './modules/training/training.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { SettingsModule } from './modules/settings/settings.module';
     TrainingModule,
     UploadsModule,
     SettingsModule,
+    PaymentsModule,
   ],
   providers: [
     {

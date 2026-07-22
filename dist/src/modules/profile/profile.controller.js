@@ -77,6 +77,12 @@ let ProfileController = class ProfileController {
     getPreview(c) {
         return this.profileService.getPreview(c.sub);
     }
+    getTrustDashboard(c) {
+        return this.profileService.getTrustDashboard(c.sub);
+    }
+    completeTrustTask(c, dto) {
+        return this.profileService.completeTrustTask(c.sub, dto);
+    }
 };
 exports.ProfileController = ProfileController;
 __decorate([
@@ -241,6 +247,24 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], ProfileController.prototype, "getPreview", null);
+__decorate([
+    (0, common_1.Get)('trust'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get trust score dashboard data' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], ProfileController.prototype, "getTrustDashboard", null);
+__decorate([
+    (0, common_1.Post)('trust/task'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Mark a trust task as completed and update score' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], ProfileController.prototype, "completeTrustTask", null);
 exports.ProfileController = ProfileController = __decorate([
     (0, swagger_1.ApiTags)('Profile'),
     (0, swagger_1.ApiBearerAuth)('companion-jwt'),

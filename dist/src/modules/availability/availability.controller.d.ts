@@ -3,52 +3,113 @@ import { JwtPayload } from '../auth/strategies/jwt.strategy';
 export declare class AvailabilityController {
     private readonly availabilityService;
     constructor(availabilityService: AvailabilityService);
-    getSlots(c: JwtPayload): Promise<{
-        slots: {
-            slotId: string;
-            dayOfWeek: number;
+    getAvailability(c: JwtPayload): Promise<{
+        isAvailable: boolean;
+        vacationMode: {
+            enabled: boolean;
+            awayFrom: string;
+            returnOn: string;
+        };
+        defaultHours: {
+            day: string;
+            active: boolean;
+            times: string;
+        }[];
+        dateOverrides: {
+            id: string;
+            startDate: string;
+            endDate: string;
+            reason: string;
+            note: string;
+            fullDay: boolean;
             startTime: string;
             endTime: string;
         }[];
-        blockedTimes: {
-            blockId: string;
+        slots: {
+            id: string;
             date: string;
-            reason: string;
+            startTime: string;
+            endTime: string;
+            repeat: boolean;
         }[];
-        vacationMode: {
-            enabled: boolean;
-            startDate: string;
-            endDate: string;
-        };
     }>;
-    addSlot(c: JwtPayload, dto: any): Promise<{
-        slotId: string;
-        dayOfWeek: number;
-        startTime: string;
-        endTime: string;
-    }>;
-    updateSlot(c: JwtPayload, slotId: string, dto: any): Promise<{
-        slotId: string;
-        startTime: string;
-        endTime: string;
-    }>;
-    deleteSlot(c: JwtPayload, slotId: string): Promise<{
-        message: string;
-    }>;
-    addRecurring(c: JwtPayload, dto: any): Promise<{
-        created: number;
-        message: string;
-    }>;
-    blockTime(c: JwtPayload, dto: any): Promise<{
-        blockId: string;
-        date: string;
-        reason: string;
-        message: string;
+    setLiveAvailable(c: JwtPayload, isAvailable: boolean): Promise<{
+        success: boolean;
+        isAvailable: boolean;
     }>;
     setVacationMode(c: JwtPayload, dto: any): Promise<{
+        id: string;
+        updatedAt: Date;
+        companionId: string;
         enabled: boolean;
+        awayFrom: string | null;
+        returnOn: string | null;
+    }>;
+    toggleDay(c: JwtPayload, day: string): Promise<{
+        id: string;
+        createdAt: Date;
+        active: boolean;
+        companionId: string;
+        day: string;
+        times: string;
+    }>;
+    setDayTimes(c: JwtPayload, day: string, times: string): Promise<{
+        id: string;
+        createdAt: Date;
+        active: boolean;
+        companionId: string;
+        day: string;
+        times: string;
+    }>;
+    addOverride(c: JwtPayload, dto: any): Promise<{
+        id: string;
+        createdAt: Date;
+        companionId: string;
         startDate: string;
         endDate: string;
-        message: string;
+        reason: string;
+        note: string | null;
+        fullDay: boolean;
+        startTime: string | null;
+        endTime: string | null;
+    }>;
+    removeOverride(c: JwtPayload, id: string): Promise<{
+        id: string;
+        createdAt: Date;
+        companionId: string;
+        startDate: string;
+        endDate: string;
+        reason: string;
+        note: string | null;
+        fullDay: boolean;
+        startTime: string | null;
+        endTime: string | null;
+    }>;
+    addSlot(c: JwtPayload, dto: any): Promise<{
+        id: string;
+        createdAt: Date;
+        repeat: boolean;
+        companionId: string;
+        date: string;
+        startTime: string;
+        endTime: string;
+    }>;
+    updateSlot(c: JwtPayload, id: string, dto: any): Promise<{
+        id: string;
+        createdAt: Date;
+        repeat: boolean;
+        companionId: string;
+        date: string;
+        startTime: string;
+        endTime: string;
+    }>;
+    removeSlot(c: JwtPayload, id: string): Promise<{
+        id: string;
+        createdAt: Date;
+        repeat: boolean;
+        companionId: string;
+        date: string;
+        startTime: string;
+        endTime: string;
     }>;
 }

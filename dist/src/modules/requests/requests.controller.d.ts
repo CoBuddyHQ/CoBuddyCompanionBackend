@@ -10,7 +10,7 @@ declare class CounterProposeDto {
 export declare class RequestsController {
     private readonly requestsService;
     constructor(requestsService: RequestsService);
-    getRequests(c: JwtPayload, status?: string, page?: number, limit?: number): Promise<{
+    getRequests(c: JwtPayload, status?: string, categories?: string, minEarning?: string, sortBy?: string, page?: number, limit?: number): Promise<{
         requests: {
             requestId: any;
             status: any;

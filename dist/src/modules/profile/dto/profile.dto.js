@@ -37,9 +37,10 @@ __decorate([
     __metadata("design:type", Array)
 ], ProfileSetupBulkDto.prototype, "categories", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ isArray: true }),
+    (0, swagger_1.ApiPropertyOptional)({ isArray: true, example: ['Hindi', 'English'] }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
     __metadata("design:type", Array)
 ], ProfileSetupBulkDto.prototype, "languages", void 0);
 class UpdateBasicProfileDto {
@@ -98,9 +99,10 @@ class UpdateLanguagesDto {
 }
 exports.UpdateLanguagesDto = UpdateLanguagesDto;
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ isArray: true }),
+    (0, swagger_1.ApiPropertyOptional)({ isArray: true, example: ['Hindi', 'English'] }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
     __metadata("design:type", Array)
 ], UpdateLanguagesDto.prototype, "languages", void 0);
 class UpdateWorkPreferenceDto {
@@ -144,13 +146,19 @@ __decorate([
     (0, class_validator_1.IsArray)(),
     (0, class_validator_1.IsString)({ each: true }),
     __metadata("design:type", Array)
-], UpdateServiceAreasDto.prototype, "broadAreas", void 0);
+], UpdateServiceAreasDto.prototype, "serviceAreas", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], UpdateServiceAreasDto.prototype, "willingToTravel", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateServiceAreasDto.prototype, "travelRadius", void 0);
 class UpdatePricingDto {
 }
 exports.UpdatePricingDto = UpdatePricingDto;

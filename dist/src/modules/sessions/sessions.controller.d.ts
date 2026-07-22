@@ -11,9 +11,12 @@ declare class EndEarlyDto {
 }
 declare class CancelSessionDto {
     reason: string;
+    details?: string;
 }
 declare class SessionNotesDto {
     notes: string;
+    mood?: string;
+    tags?: string[];
 }
 declare class RateCustomerDto {
     rating: number;
@@ -235,6 +238,47 @@ export declare class SessionsController {
         notes: any;
         createdAt: any;
     }>;
+    verifyBySelfie(c: JwtPayload, sessionId: string, selfieUrl: string): Promise<{
+        verified: boolean;
+        method: string;
+        sessionId: any;
+        status: any;
+        category: any;
+        customer: {
+            customerId: any;
+            displayInitials: any;
+            trustScore: any;
+            isVerified: any;
+            totalSessionsWithCompanion: any;
+            sessionCountOverall: any;
+            safetyConsent: any;
+            identityVerified: any;
+        };
+        venue: {
+            venueId: any;
+            name: any;
+            area: any;
+            city: any;
+            isApproved: any;
+            venueType: any;
+            meetingPoint: any;
+            landmark: any;
+        };
+        scheduledStart: any;
+        scheduledEnd: any;
+        durationMinutes: any;
+        language: any;
+        baseEarning: number;
+        bonusEarning: number;
+        estimatedTotal: number;
+        confirmedEarning: number;
+        checkInTime: any;
+        checkOutTime: any;
+        sessionPassCode: any;
+        safetyTimerActive: any;
+        notes: any;
+        createdAt: any;
+    }>;
     requestExtension(c: JwtPayload, sessionId: string, dto: ExtendSessionDto): Promise<{
         sessionId: string;
         extraMinutes: number;
@@ -358,6 +402,14 @@ export declare class SessionsController {
         notes: any;
         createdAt: any;
     }>;
+    getCancellationStatus(c: JwtPayload, sessionId: string): Promise<{
+        sessionId: string;
+        status: string;
+        reviewStatus: string;
+        cancelReason: string;
+        cancelledBy: string;
+        submittedAt: string;
+    }>;
     reportNoShow(c: JwtPayload, sessionId: string): Promise<{
         sessionId: any;
         status: any;
@@ -478,6 +530,26 @@ export declare class SessionsController {
     rateCustomer(c: JwtPayload, sessionId: string, dto: RateCustomerDto): Promise<{
         sessionId: string;
         customerRating: number;
+        message: string;
+    }>;
+    getChatHistory(c: JwtPayload, sessionId: string): Promise<any[]>;
+    sendChatMessage(c: JwtPayload, sessionId: string, text: string): Promise<{
+        success: boolean;
+        text: string;
+        sentAt: string;
+    }>;
+    getCallToken(c: JwtPayload, sessionId: string): Promise<{
+        token: string;
+        channel: string;
+    }>;
+    updateLocation(c: JwtPayload, sessionId: string, lat: number, lng: number): Promise<{
+        success: boolean;
+        lat: number;
+        lng: number;
+        timestamp: string;
+    }>;
+    stopLocationSharing(c: JwtPayload, sessionId: string): Promise<{
+        success: boolean;
         message: string;
     }>;
 }

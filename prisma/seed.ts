@@ -102,11 +102,10 @@ async function main() {
     create: {
       id: 'mod_1_intro',
       title: 'Introduction to CoBuddy',
-      description: 'Learn the basics of being a great Companion.',
-      category: 'Onboarding',
-      content: 'https://example.com/training/intro',
-      durationMinutes: 15,
-      isRequired: true,
+      duration: '15 mins',
+      required: true,
+      body: ['Learn the basics of being a great Companion.'],
+      takeaways: ['Understand companion role and platform rules.'],
     },
   });
 
@@ -116,11 +115,10 @@ async function main() {
     create: {
       id: 'mod_2_safety',
       title: 'Safety Guidelines',
-      description: 'Crucial safety rules and emergency protocols.',
-      category: 'Safety',
-      content: 'https://example.com/training/safety',
-      durationMinutes: 20,
-      isRequired: true,
+      duration: '20 mins',
+      required: true,
+      body: ['Crucial safety rules and emergency protocols.'],
+      takeaways: ['Know how to use SOS and safety tools.'],
     },
   });
 

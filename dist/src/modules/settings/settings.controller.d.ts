@@ -1,6 +1,6 @@
 import { SettingsService } from './settings.service';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
-import { OnboardingSyncDto } from './dto/settings.dto';
+import { OnboardingSyncDto, UpdatePrivacyDto, UpdateNotificationPrefsDto } from './dto/settings.dto';
 export declare class SettingsController {
     private readonly settingsService;
     constructor(settingsService: SettingsService);
@@ -22,15 +22,75 @@ export declare class SettingsController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            companionId: string;
             notificationPrefs: import("@prisma/client/runtime/client").JsonValue;
-            privacyVisibility: string;
-            privacyDataSharing: boolean;
+            showAge: boolean;
+            allowPromo: boolean;
+            showInSearch: boolean;
             language: string;
             termsAccepted: boolean;
             safetyRulesAccepted: boolean;
             locationEnabled: boolean;
             notificationsEnabled: boolean;
+            locationTracking: boolean;
+            autoCheckIn: boolean;
+            disguisedCall: boolean;
+            companionId: string;
         };
+    }>;
+    getPrivacyControls(c: JwtPayload): Promise<{
+        showAge: boolean;
+        allowPromo: boolean;
+        showInSearch: boolean;
+    }>;
+    updatePrivacyControls(c: JwtPayload, dto: UpdatePrivacyDto): Promise<{
+        success: boolean;
+        settings: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            notificationPrefs: import("@prisma/client/runtime/client").JsonValue;
+            showAge: boolean;
+            allowPromo: boolean;
+            showInSearch: boolean;
+            language: string;
+            termsAccepted: boolean;
+            safetyRulesAccepted: boolean;
+            locationEnabled: boolean;
+            notificationsEnabled: boolean;
+            locationTracking: boolean;
+            autoCheckIn: boolean;
+            disguisedCall: boolean;
+            companionId: string;
+        };
+    }>;
+    getNotificationPrefs(c: JwtPayload): Promise<string | number | true | import("@prisma/client/runtime/client").JsonObject | import("@prisma/client/runtime/client").JsonArray>;
+    updateNotificationPrefs(c: JwtPayload, dto: UpdateNotificationPrefsDto): Promise<{
+        success: boolean;
+        settings: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            notificationPrefs: import("@prisma/client/runtime/client").JsonValue;
+            showAge: boolean;
+            allowPromo: boolean;
+            showInSearch: boolean;
+            language: string;
+            termsAccepted: boolean;
+            safetyRulesAccepted: boolean;
+            locationEnabled: boolean;
+            notificationsEnabled: boolean;
+            locationTracking: boolean;
+            autoCheckIn: boolean;
+            disguisedCall: boolean;
+            companionId: string;
+        };
+    }>;
+    requestDataExport(c: JwtPayload): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    deleteAccount(c: JwtPayload): Promise<{
+        success: boolean;
+        message: string;
     }>;
 }

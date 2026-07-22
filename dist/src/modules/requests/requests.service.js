@@ -54,16 +54,37 @@ let RequestsService = RequestsService_1 = class RequestsService {
             receivedAt: r.receivedAt.toISOString(),
         };
     }
-    async getRequests(companionId, status, page = 1, limit = 20) {
+    async getRequests(companionId, status, categories, minEarning, sortBy, page = 1, limit = 20) {
         const where = { companionId };
-        if (status && status !== 'all')
-            where.status = status.toUpperCase();
-        else
+        if (status && status !== 'all') {
+            where.status = status.toLowerCase();
+        }
+        else {
             where.status = { in: ['pending', 'expired', 'counter_proposed'] };
+        }
+        if (categories) {
+            const catsArray = categories.split(',').map(c => c.trim().toLowerCase());
+            if (catsArray.length > 0) {
+                where.category = { in: catsArray };
+            }
+        }
+        if (minEarning && minEarning > 0) {
+            where.estimatedEarning = { gte: minEarning };
+        }
+        let orderBy = { receivedAt: 'desc' };
+        if (sortBy === 'newest') {
+            orderBy = { receivedAt: 'desc' };
+        }
+        else if (sortBy === 'expiring_soon') {
+            orderBy = { expiresAt: 'asc' };
+        }
+        else if (sortBy === 'highest_earning') {
+            orderBy = { estimatedEarning: 'desc' };
+        }
         const [requests, total] = await Promise.all([
             this.prisma.bookingRequest.findMany({
                 where,
-                orderBy: { receivedAt: 'desc' },
+                orderBy,
                 skip: (page - 1) * limit,
                 take: limit,
             }),

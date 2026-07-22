@@ -43,8 +43,8 @@ let RequestsController = class RequestsController {
     constructor(requestsService) {
         this.requestsService = requestsService;
     }
-    getRequests(c, status, page = 1, limit = 20) {
-        return this.requestsService.getRequests(c.sub, status, Number(page), Number(limit));
+    getRequests(c, status, categories, minEarning, sortBy, page = 1, limit = 20) {
+        return this.requestsService.getRequests(c.sub, status, categories, minEarning ? Number(minEarning) : undefined, sortBy, Number(page), Number(limit));
     }
     getRequest(c, requestId) {
         return this.requestsService.getRequest(c.sub, requestId);
@@ -66,14 +66,20 @@ exports.RequestsController = RequestsController;
 __decorate([
     (0, common_1.Get)(),
     (0, swagger_1.ApiQuery)({ name: 'status', required: false, enum: ['all', 'pending', 'expired', 'counter_proposed'] }),
+    (0, swagger_1.ApiQuery)({ name: 'categories', required: false, description: 'Comma separated string of categories' }),
+    (0, swagger_1.ApiQuery)({ name: 'minEarning', required: false, type: Number }),
+    (0, swagger_1.ApiQuery)({ name: 'sortBy', required: false, enum: ['newest', 'expiring_soon', 'highest_earning'] }),
     (0, swagger_1.ApiQuery)({ name: 'page', required: false }),
     (0, swagger_1.ApiOperation)({ summary: 'Get booking requests inbox — returns BookingRequest[]' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Query)('status')),
-    __param(2, (0, common_1.Query)('page')),
-    __param(3, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('categories')),
+    __param(3, (0, common_1.Query)('minEarning')),
+    __param(4, (0, common_1.Query)('sortBy')),
+    __param(5, (0, common_1.Query)('page')),
+    __param(6, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, Object, Object]),
+    __metadata("design:paramtypes", [Object, String, String, String, String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], RequestsController.prototype, "getRequests", null);
 __decorate([

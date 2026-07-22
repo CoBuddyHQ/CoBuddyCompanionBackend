@@ -5,32 +5,45 @@ export declare class ReviewsController {
     constructor(reviewsService: ReviewsService);
     getReviews(c: JwtPayload, page?: number): Promise<{
         reviews: {
-            reviewId: any;
-            sessionId: any;
-            customerInitials: any;
+            id: any;
+            customerName: any;
             rating: any;
-            isPublic: any;
-            highlights: any;
+            date: any;
             comment: any;
+            tags: any;
             sessionCategory: any;
-            sessionDate: any;
-            createdAt: any;
+            durationMinutes: any;
+            replyText: any;
+            isReported: any;
         }[];
         total: number;
         page: number;
         averageRating: number;
+        ratingBreakdown: {
+            5: number;
+            4: number;
+            3: number;
+            2: number;
+            1: number;
+        };
     }>;
     getReview(c: JwtPayload, id: string): Promise<{
-        reviewId: any;
-        sessionId: any;
-        customerInitials: any;
+        id: any;
+        customerName: any;
         rating: any;
-        isPublic: any;
-        highlights: any;
+        date: any;
         comment: any;
+        tags: any;
         sessionCategory: any;
-        sessionDate: any;
-        createdAt: any;
+        durationMinutes: any;
+        replyText: any;
+        isReported: any;
+    }>;
+    reportReview(c: JwtPayload, id: string): Promise<{
+        success: boolean;
+    }>;
+    replyToReview(c: JwtPayload, id: string, reply: string): Promise<{
+        success: boolean;
     }>;
     getTrustScore(c: JwtPayload): Promise<{
         trustScore: number;

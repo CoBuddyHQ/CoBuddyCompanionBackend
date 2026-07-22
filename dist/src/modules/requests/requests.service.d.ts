@@ -4,7 +4,7 @@ export declare class RequestsService {
     private readonly logger;
     constructor(prisma: PrismaService);
     private toRequestResponse;
-    getRequests(companionId: string, status?: string, page?: number, limit?: number): Promise<{
+    getRequests(companionId: string, status?: string, categories?: string, minEarning?: number, sortBy?: string, page?: number, limit?: number): Promise<{
         requests: {
             requestId: any;
             status: any;

@@ -254,27 +254,35 @@ export declare class ProfileController {
         message: string;
     }>;
     getPreview(c: JwtPayload): Promise<{
-        companionId: any;
-        displayName: any;
-        maskedPhone: string;
-        city: any;
-        serviceAreas: any;
-        categories: any;
-        languages: any;
-        bio: any;
-        hourlyRate: number;
-        sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
-        trustScore: any;
-        trustLevel: any;
-        rating: number;
-        totalReviews: any;
-        totalSessions: any;
-        isAvailable: any;
-        isOnline: any;
-        photoUrl: any;
-        galleryPhotos: any;
-        joinedAt: any;
+        displayName: string;
+        bio: string;
+        rating: import("@prisma/client-runtime-utils").Decimal;
+        totalSessions: number;
+        trustScore: number;
+        languages: string[];
+        categories: import(".prisma/client").$Enums.Category[];
+        serviceAreas: string[];
+        photoUrl: string;
+        galleryPhotos: string[];
+    }>;
+    getTrustDashboard(c: JwtPayload): Promise<{
+        score: number;
+        responseRate: number;
+        cancellationRate: number;
+        lastUpdated: string;
+        completedTasks: string[];
+        unlockedBadges: string[];
+    }>;
+    completeTrustTask(c: JwtPayload, dto: {
+        taskId: string;
+        points: number;
+    }): Promise<{
+        success: boolean;
+        message: string;
+        newScore?: undefined;
+    } | {
+        success: boolean;
+        newScore: number;
+        message?: undefined;
     }>;
 }

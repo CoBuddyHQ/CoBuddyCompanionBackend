@@ -26,9 +26,12 @@ declare class UpdateContactDto {
 }
 declare class BlockCustomerDto {
     reason?: string;
+    otherText?: string;
 }
 declare class ReportCustomerDto {
-    reason: string;
+    category: string;
+    description: string;
+    alsoBlock?: boolean;
     sessionId?: string;
 }
 declare class IncidentDto {
@@ -65,6 +68,17 @@ export declare class SafetyController {
         status: string;
         message: string;
     }>;
+    getSettings(c: JwtPayload): Promise<{
+        locationTracking: boolean;
+        autoCheckIn: boolean;
+        disguisedCall: boolean;
+    }>;
+    updateSettings(c: JwtPayload, dto: any): Promise<{
+        locationTracking: boolean;
+        autoCheckIn: boolean;
+        disguisedCall: boolean;
+        message: string;
+    }>;
     getTrustedContacts(c: JwtPayload): Promise<{
         contactId: any;
         name: any;
@@ -90,6 +104,7 @@ export declare class SafetyController {
         message: string;
     }>;
     reportCustomer(c: JwtPayload, cid: string, dto: ReportCustomerDto): Promise<{
+        reportId: string;
         message: string;
     }>;
     reportIncident(c: JwtPayload, dto: IncidentDto): Promise<{
@@ -99,6 +114,11 @@ export declare class SafetyController {
     }>;
     uploadEvidence(c: JwtPayload, rid: string, dto: EvidenceDto): Promise<{
         message: string;
+    }>;
+    completeSafetyQuiz(c: JwtPayload, score: number): Promise<{
+        success: boolean;
+        message: string;
+        badgeEarned: boolean;
     }>;
 }
 export {};

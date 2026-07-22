@@ -2,10 +2,7 @@ export declare class ProfileSetupBulkDto {
     bio?: string;
     interestTags?: string[];
     categories?: string[];
-    languages?: {
-        language: string;
-        proficiency?: string;
-    }[];
+    languages?: string[];
 }
 export declare class UpdateBasicProfileDto {
     displayName?: string;
@@ -21,10 +18,7 @@ export declare class UpdateCategoriesDto {
     categories?: string[];
 }
 export declare class UpdateLanguagesDto {
-    languages?: {
-        language: string;
-        proficiency?: string;
-    }[];
+    languages?: string[];
 }
 export declare class UpdateWorkPreferenceDto {
     durations: string[];
@@ -34,8 +28,9 @@ export declare class UpdateWorkPreferenceDto {
 }
 export declare class UpdateServiceAreasDto {
     city?: string;
-    broadAreas?: string[];
+    serviceAreas?: string[];
     willingToTravel?: boolean;
+    travelRadius?: number;
 }
 export declare class UpdatePricingDto {
     hourlyRate?: number;

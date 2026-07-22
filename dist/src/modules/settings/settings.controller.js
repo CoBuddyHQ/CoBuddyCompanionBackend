@@ -35,6 +35,24 @@ let SettingsController = class SettingsController {
     onboardingSync(c, dto) {
         return this.settingsService.onboardingSync(c.sub, dto);
     }
+    getPrivacyControls(c) {
+        return this.settingsService.getPrivacyControls(c.sub);
+    }
+    updatePrivacyControls(c, dto) {
+        return this.settingsService.updatePrivacyControls(c.sub, dto);
+    }
+    getNotificationPrefs(c) {
+        return this.settingsService.getNotificationPrefs(c.sub);
+    }
+    updateNotificationPrefs(c, dto) {
+        return this.settingsService.updateNotificationPrefs(c.sub, dto);
+    }
+    requestDataExport(c) {
+        return this.settingsService.requestDataExport(c.sub);
+    }
+    deleteAccount(c) {
+        return this.settingsService.deleteAccount(c.sub);
+    }
 };
 exports.SettingsController = SettingsController;
 __decorate([
@@ -75,6 +93,60 @@ __decorate([
     __metadata("design:paramtypes", [Object, settings_dto_1.OnboardingSyncDto]),
     __metadata("design:returntype", void 0)
 ], SettingsController.prototype, "onboardingSync", null);
+__decorate([
+    (0, common_1.Get)('privacy'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get privacy controls' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], SettingsController.prototype, "getPrivacyControls", null);
+__decorate([
+    (0, common_1.Post)('privacy'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Update privacy controls' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, settings_dto_1.UpdatePrivacyDto]),
+    __metadata("design:returntype", void 0)
+], SettingsController.prototype, "updatePrivacyControls", null);
+__decorate([
+    (0, common_1.Get)('notifications'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get notification preferences' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], SettingsController.prototype, "getNotificationPrefs", null);
+__decorate([
+    (0, common_1.Post)('notifications'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Update notification preferences' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, settings_dto_1.UpdateNotificationPrefsDto]),
+    __metadata("design:returntype", void 0)
+], SettingsController.prototype, "updateNotificationPrefs", null);
+__decorate([
+    (0, common_1.Post)('data-export'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Request a copy of all companion data' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], SettingsController.prototype, "requestDataExport", null);
+__decorate([
+    (0, common_1.Post)('account/delete'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Permanently delete companion account' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], SettingsController.prototype, "deleteAccount", null);
 exports.SettingsController = SettingsController = __decorate([
     (0, swagger_1.ApiTags)('Settings'),
     (0, swagger_1.ApiBearerAuth)('companion-jwt'),

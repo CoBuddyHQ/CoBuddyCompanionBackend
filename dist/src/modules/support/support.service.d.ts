@@ -5,28 +5,34 @@ export declare class SupportService {
     getTickets(companionId: string): Promise<{
         tickets: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            companionId: string;
-            description: string;
             category: string;
-            status: string;
-            sessionId: string | null;
             subject: string;
+            description: string;
             priority: string;
+            status: string;
+            date: string;
+            messages: {
+                id: string;
+                from: string;
+                text: string;
+                time: string;
+            }[];
         }[];
     }>;
     getTicket(companionId: string, ticketId: string): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        companionId: string;
-        description: string;
         category: string;
-        status: string;
-        sessionId: string | null;
         subject: string;
+        description: string;
         priority: string;
+        status: string;
+        date: string;
+        messages: {
+            id: string;
+            from: string;
+            text: string;
+            time: string;
+        }[];
     }>;
     createTicket(companionId: string, dto: any): Promise<{
         ticketId: string;
@@ -38,28 +44,34 @@ export declare class SupportService {
     getDisputes(companionId: string): Promise<{
         disputes: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            companionId: string;
-            description: string;
             category: string;
+            description: string;
+            sessionId: string;
+            customerName: string;
+            amount: string;
             status: string;
-            sessionId: string | null;
-            subject: string;
-            priority: string;
+            outcome: string;
+            createdAgo: string;
+            timeline: {
+                date: string;
+                desc: string;
+            }[];
         }[];
     }>;
     getDispute(companionId: string, disputeId: string): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        companionId: string;
-        description: string;
         category: string;
+        description: string;
+        sessionId: string;
+        customerName: string;
+        amount: string;
         status: string;
-        sessionId: string | null;
-        subject: string;
-        priority: string;
+        outcome: string;
+        createdAgo: string;
+        timeline: {
+            date: string;
+            desc: string;
+        }[];
     }>;
     createDispute(companionId: string, dto: any): Promise<{
         disputeId: string;
@@ -69,27 +81,32 @@ export declare class SupportService {
         message: string;
     }>;
     getHelpArticles(): Promise<{
-        categories: {
+        articles: {
             id: string;
+            createdAt: Date;
+            updatedAt: Date;
             title: string;
-            articles: {
-                id: string;
-                title: string;
-            }[];
+            body: string[];
+            category: string;
+            updatedDate: string;
         }[];
     }>;
     getHelpArticle(articleId: string): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         title: string;
-        content: string;
+        body: string[];
+        category: string;
+        updatedDate: string;
     }>;
     getChatHistory(companionId: string, ticketId: string): Promise<{
         ticketId: string;
         messages: {
             id: string;
-            sender: string;
-            content: string;
-            timestamp: string;
+            from: string;
+            text: string;
+            time: string;
         }[];
     }>;
     appealDispute(companionId: string, disputeId: string, dto: {

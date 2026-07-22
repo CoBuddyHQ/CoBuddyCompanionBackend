@@ -2,7 +2,6 @@ import { EarningsService } from './earnings.service';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
 declare class PayoutRequestDto {
     amount: number;
-    bankMasked: string;
 }
 export declare class EarningsController {
     private readonly earningsService;
@@ -19,9 +18,12 @@ export declare class EarningsController {
     getTransactions(c: JwtPayload, page?: number, limit?: number): Promise<{
         transactions: {
             transactionId: any;
-            type: any;
-            status: any;
+            id: any;
+            title: any;
+            date: any;
             amount: number;
+            type: "pending" | "credit" | "debit";
+            status: any;
             sessionId: any;
             customerInitials: any;
             description: any;
@@ -35,9 +37,12 @@ export declare class EarningsController {
     }>;
     getTransaction(c: JwtPayload, id: string): Promise<{
         transactionId: any;
-        type: any;
-        status: any;
+        id: any;
+        title: any;
+        date: any;
         amount: number;
+        type: "pending" | "credit" | "debit";
+        status: any;
         sessionId: any;
         customerInitials: any;
         description: any;
@@ -66,7 +71,57 @@ export declare class EarningsController {
         amount: number;
         platformFee: number;
         maskedBank: string;
+        estimatedArrival: string;
         message: string;
+    }>;
+    getWeeklyEarnings(c: JwtPayload): Promise<{
+        thisWeekEarnings: number;
+        lastWeekEarnings: number;
+        weeklyGrowthPct: number;
+        weeklyBreakdown: {
+            day: string;
+            amount: number;
+            sessions: number;
+        }[];
+    }>;
+    getDailyEarnings(c: JwtPayload): Promise<{
+        date: string;
+        netEarnings: number;
+        grossEarnings: number;
+        platformFee: number;
+        transactions: {
+            transactionId: any;
+            id: any;
+            title: any;
+            date: any;
+            amount: number;
+            type: "pending" | "credit" | "debit";
+            status: any;
+            sessionId: any;
+            customerInitials: any;
+            description: any;
+            createdAt: any;
+            payoutEligibleAt: any;
+        }[];
+    }>;
+    getPendingEarnings(c: JwtPayload): Promise<{
+        pendingTotal: number;
+        transactions: {
+            clearanceAt: string;
+            hoursRemaining: number;
+            transactionId: any;
+            id: any;
+            title: any;
+            date: any;
+            amount: number;
+            type: "pending" | "credit" | "debit";
+            status: any;
+            sessionId: any;
+            customerInitials: any;
+            description: any;
+            createdAt: any;
+            payoutEligibleAt: any;
+        }[];
     }>;
     getPayoutDetail(c: JwtPayload, payoutId: string): Promise<{
         payoutId: any;
@@ -95,12 +150,14 @@ export declare class EarningsController {
         invoiceId: string;
         sessionId: string;
         date: string;
-        amount: number;
-        breakdown: {
-            baseEarning: number;
-            bonusEarning: number;
-            platformFee: number;
-        };
+        baseAmount: number;
+        platformFee: number;
+        gst: number;
+        netPayout: number;
+        billedTo: string;
+        gstin: string;
+        companionCode: string;
+        panNumber: string;
         category: string;
         venueName: string;
         durationMinutes: number;

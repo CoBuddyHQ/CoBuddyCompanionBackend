@@ -34,8 +34,8 @@ export class AccountService {
       phone: companion.phone,
       settings: {
         notificationPrefs: settings.notificationPrefs,
-        privacyVisibility: settings.privacyVisibility,
-        privacyDataSharing: settings.privacyDataSharing,
+        privacyVisibility: settings.showInSearch ? 'public' : 'private',
+        privacyDataSharing: settings.allowPromo,
         language: settings.language,
       },
       payoutDetails: {
@@ -58,12 +58,13 @@ export class AccountService {
 
   // ─── PUT /companion/account/privacy ────────────────────────────────────────
   async updatePrivacy(companionId: string, dto: { visibility: string; dataSharing: boolean }) {
+    const showInSearch = dto.visibility !== 'private';
     const updated = await this.prisma.companionSettings.upsert({
       where: { companionId },
-      update: { privacyVisibility: dto.visibility, privacyDataSharing: dto.dataSharing },
-      create: { companionId, privacyVisibility: dto.visibility, privacyDataSharing: dto.dataSharing },
+      update: { showInSearch, allowPromo: dto.dataSharing },
+      create: { companionId, showInSearch, allowPromo: dto.dataSharing },
     });
-    return { success: true, visibility: updated.privacyVisibility, dataSharing: updated.privacyDataSharing };
+    return { success: true, visibility: updated.showInSearch ? 'public' : 'private', dataSharing: updated.allowPromo };
   }
 
   // ─── PUT /companion/account/language ───────────────────────────────────────

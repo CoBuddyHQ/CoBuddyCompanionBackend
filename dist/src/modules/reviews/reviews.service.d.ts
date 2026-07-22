@@ -5,32 +5,45 @@ export declare class ReviewsService {
     private toReviewResponse;
     getReviews(companionId: string, page?: number, limit?: number): Promise<{
         reviews: {
-            reviewId: any;
-            sessionId: any;
-            customerInitials: any;
+            id: any;
+            customerName: any;
             rating: any;
-            isPublic: any;
-            highlights: any;
+            date: any;
             comment: any;
+            tags: any;
             sessionCategory: any;
-            sessionDate: any;
-            createdAt: any;
+            durationMinutes: any;
+            replyText: any;
+            isReported: any;
         }[];
         total: number;
         page: number;
         averageRating: number;
+        ratingBreakdown: {
+            5: number;
+            4: number;
+            3: number;
+            2: number;
+            1: number;
+        };
     }>;
     getReview(companionId: string, reviewId: string): Promise<{
-        reviewId: any;
-        sessionId: any;
-        customerInitials: any;
+        id: any;
+        customerName: any;
         rating: any;
-        isPublic: any;
-        highlights: any;
+        date: any;
         comment: any;
+        tags: any;
         sessionCategory: any;
-        sessionDate: any;
-        createdAt: any;
+        durationMinutes: any;
+        replyText: any;
+        isReported: any;
+    }>;
+    reportReview(companionId: string, reviewId: string): Promise<{
+        success: boolean;
+    }>;
+    replyToReview(companionId: string, reviewId: string, reply: string): Promise<{
+        success: boolean;
     }>;
     getTrustScore(companionId: string): Promise<{
         trustScore: number;

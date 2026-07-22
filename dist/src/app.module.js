@@ -29,6 +29,7 @@ const dashboard_module_1 = require("./modules/dashboard/dashboard.module");
 const training_module_1 = require("./modules/training/training.module");
 const uploads_module_1 = require("./modules/uploads/uploads.module");
 const settings_module_1 = require("./modules/settings/settings.module");
+const payments_module_1 = require("./modules/payments/payments.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -55,6 +56,7 @@ exports.AppModule = AppModule = __decorate([
             training_module_1.TrainingModule,
             uploads_module_1.UploadsModule,
             settings_module_1.SettingsModule,
+            payments_module_1.PaymentsModule,
         ],
         providers: [
             {

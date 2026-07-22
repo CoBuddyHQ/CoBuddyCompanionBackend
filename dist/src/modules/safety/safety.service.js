@@ -77,6 +77,36 @@ let SafetyService = SafetyService_1 = class SafetyService {
         });
         return { status: 'cancelled', message: 'Safety timer cancelled.' };
     }
+    async getSettings(companionId) {
+        const settings = await this.prisma.companionSettings.findUnique({ where: { companionId } });
+        return {
+            locationTracking: settings?.locationTracking ?? true,
+            autoCheckIn: settings?.autoCheckIn ?? true,
+            disguisedCall: settings?.disguisedCall ?? false,
+        };
+    }
+    async updateSettings(companionId, dto) {
+        const settings = await this.prisma.companionSettings.upsert({
+            where: { companionId },
+            update: {
+                locationTracking: dto.locationTracking,
+                autoCheckIn: dto.autoCheckIn,
+                disguisedCall: dto.disguisedCall,
+            },
+            create: {
+                companionId,
+                locationTracking: dto.locationTracking ?? true,
+                autoCheckIn: dto.autoCheckIn ?? true,
+                disguisedCall: dto.disguisedCall ?? false,
+            },
+        });
+        return {
+            locationTracking: settings.locationTracking,
+            autoCheckIn: settings.autoCheckIn,
+            disguisedCall: settings.disguisedCall,
+            message: 'Safety settings updated',
+        };
+    }
     async getTrustedContacts(companionId) {
         const contacts = await this.prisma.trustedContact.findMany({
             where: { companionId, deletedAt: null },
@@ -126,15 +156,18 @@ let SafetyService = SafetyService_1 = class SafetyService {
         });
         return { message: 'Customer blocked. They will not appear in your requests.' };
     }
-    async reportCustomer(companionId, customerId, reason, sessionId) {
-        await this.prisma.incidentReport.create({
+    async reportCustomer(companionId, customerId, category, description, alsoBlock, sessionId) {
+        if (alsoBlock) {
+            await this.blockCustomer(companionId, customerId, `Reported (${category}): ${description}`);
+        }
+        const report = await this.prisma.incidentReport.create({
             data: {
                 companionId,
                 sessionId: sessionId ?? null,
-                description: reason,
+                description: `[Category: ${category}] ${description}`,
             },
         });
-        return { message: 'Customer reported to CoBuddy Safety Team. We will review within 24 hours.' };
+        return { reportId: report.id, message: 'Report submitted. Our safety team will review it within 1 hour.' };
     }
     async reportIncident(companionId, description, sessionId) {
         const report = await this.prisma.incidentReport.create({
@@ -147,7 +180,22 @@ let SafetyService = SafetyService_1 = class SafetyService {
             where: { id: reportId, companionId },
             data: { evidenceUrls },
         });
-        return { message: 'Evidence uploaded successfully.' };
+        return { message: 'Evidence added to incident report.' };
+    }
+    async completeSafetyQuiz(companionId, score) {
+        if (score >= 4) {
+            await this.prisma.companionBadge.upsert({
+                where: { companionId_badgeKey: { companionId, badgeKey: 'badge_safety' } },
+                update: {},
+                create: {
+                    companionId,
+                    badgeKey: 'badge_safety',
+                    badgeName: 'Safety Certified',
+                }
+            });
+            return { success: true, message: 'Congratulations! You earned the Safety Certified badge.', badgeEarned: true };
+        }
+        return { success: false, message: 'You need at least 4 correct answers to earn the badge.', badgeEarned: false };
     }
     toContactResponse(c) {
         return {

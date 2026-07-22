@@ -181,22 +181,37 @@ export class SessionsService {
 
   // ── POST /companion/sessions/:sessionId/cancel ────────────────────────────
 
-  async cancelSession(companionId: string, sessionId: string, reason: string) {
+  async cancelSession(companionId: string, sessionId: string, reason: string, details?: string) {
     const session = await this.findSessionOrThrow(companionId, sessionId);
     if (!['upcoming', 'pre_arrival'].includes(session.status)) {
       throw new BadRequestException('Can only cancel upcoming sessions');
     }
 
+    const cancelReasonFull = details ? `${reason}: ${details}` : reason;
     const updated = await this.prisma.session.update({
       where: { id: sessionId },
       data: {
         status: 'cancelled',
-        cancelReason: reason,
+        cancelReason: cancelReasonFull,
         cancelledBy: 'companion',
       },
     });
     this.logger.log(`Session ${sessionId} cancelled by companion ${companionId}`);
     return this.toSessionResponse(updated);
+  }
+
+  // ── GET /companion/sessions/:sessionId/cancellation-status ────────────────
+
+  async getCancellationStatus(companionId: string, sessionId: string) {
+    const session = await this.findSessionOrThrow(companionId, sessionId);
+    return {
+      sessionId: session.id,
+      status: session.status.toLowerCase(),
+      reviewStatus: session.status === 'cancelled' ? 'approved' : 'pending_review',
+      cancelReason: session.cancelReason ?? null,
+      cancelledBy: session.cancelledBy ?? null,
+      submittedAt: session.updatedAt.toISOString(),
+    };
   }
 
   // ── POST /companion/sessions/:sessionId/no-show ───────────────────────────

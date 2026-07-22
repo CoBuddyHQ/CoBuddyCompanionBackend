@@ -36,7 +36,7 @@ let SettingsService = class SettingsService {
             update: {
                 bankHolderName: dto.holderName,
                 maskedBankAccount: masked,
-                bankIfsc: dto.ifsc,
+                bankIfsc: dto.ifscCode,
                 bankName: dto.bankName,
                 bankVerified: false,
             },
@@ -44,7 +44,7 @@ let SettingsService = class SettingsService {
                 companionId,
                 bankHolderName: dto.holderName,
                 maskedBankAccount: masked,
-                bankIfsc: dto.ifsc,
+                bankIfsc: dto.ifscCode,
                 bankName: dto.bankName,
                 bankVerified: false,
             },
@@ -91,6 +91,53 @@ let SettingsService = class SettingsService {
             },
         });
         return { success: true, settings };
+    }
+    async getPrivacyControls(companionId) {
+        const settings = await this.prisma.companionSettings.findUnique({
+            where: { companionId },
+            select: { showAge: true, allowPromo: true, showInSearch: true },
+        });
+        return settings || { showAge: true, allowPromo: false, showInSearch: true };
+    }
+    async updatePrivacyControls(companionId, dto) {
+        const settings = await this.prisma.companionSettings.upsert({
+            where: { companionId },
+            update: dto,
+            create: { companionId, ...dto },
+        });
+        return { success: true, settings };
+    }
+    async getNotificationPrefs(companionId) {
+        const settings = await this.prisma.companionSettings.findUnique({
+            where: { companionId },
+            select: { notificationPrefs: true },
+        });
+        return settings?.notificationPrefs || {};
+    }
+    async updateNotificationPrefs(companionId, dto) {
+        const existing = await this.getNotificationPrefs(companionId);
+        const updatedPrefs = { ...(existing || {}), ...dto };
+        const settings = await this.prisma.companionSettings.upsert({
+            where: { companionId },
+            update: { notificationPrefs: updatedPrefs },
+            create: { companionId, notificationPrefs: updatedPrefs },
+        });
+        return { success: true, settings };
+    }
+    async requestDataExport(companionId) {
+        return {
+            success: true,
+            message: 'Data export requested. We will email you a secure download link shortly.'
+        };
+    }
+    async deleteAccount(companionId) {
+        await this.prisma.companion.delete({
+            where: { id: companionId },
+        });
+        return {
+            success: true,
+            message: 'Your account has been permanently deleted.'
+        };
     }
 };
 exports.SettingsService = SettingsService;

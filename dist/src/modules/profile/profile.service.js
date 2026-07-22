@@ -100,15 +100,110 @@ let ProfileService = ProfileService_1 = class ProfileService {
                 });
                 if (dto.languages.length > 0) {
                     await tx.companionLanguage.createMany({
-                        data: dto.languages.map(l => ({
+                        data: dto.languages.map((l) => ({
                             companionId,
-                            language: l.language,
-                            proficiency: l.proficiency || 'conversational',
+                            language: typeof l === 'string' ? l : l.language,
+                            proficiency: typeof l === 'string' ? 'conversational' : (l.proficiency || 'conversational'),
                         })),
                     });
                 }
             }
             return { success: true, message: 'Profile setup data saved successfully in bulk.' };
+        });
+    }
+    async getPreview(companionId) {
+        const companion = await this.prisma.companion.findUnique({
+            where: { id: companionId },
+            include: {
+                serviceAreas: true,
+                categories: true,
+                languages: true,
+                galleryPhotos: { orderBy: { sortOrder: 'asc' } },
+            },
+        });
+        if (!companion)
+            throw new common_1.NotFoundException('Companion not found');
+        return {
+            displayName: companion.displayName,
+            bio: companion.bio,
+            rating: companion.rating,
+            totalSessions: companion.totalSessions,
+            trustScore: companion.trustScore,
+            languages: companion.languages.map((l) => l.language),
+            categories: companion.categories.map((c) => c.category),
+            serviceAreas: companion.serviceAreas.map((sa) => sa.area),
+            photoUrl: companion.photoUrl,
+            galleryPhotos: companion.galleryPhotos.map((p) => p.url),
+        };
+    }
+    async getTrustDashboard(companionId) {
+        const companion = await this.prisma.companion.findUnique({
+            where: { id: companionId },
+            include: {
+                badges: true,
+                trustTasks: { where: { isCompleted: true } },
+            },
+        });
+        if (!companion)
+            throw new common_1.NotFoundException('Companion not found');
+        return {
+            score: companion.trustScore,
+            responseRate: companion.responseRate,
+            cancellationRate: companion.cancellationRate,
+            lastUpdated: companion.updatedAt.toISOString(),
+            completedTasks: companion.trustTasks.map((t) => t.taskId),
+            unlockedBadges: companion.badges.map((b) => b.badgeKey),
+        };
+    }
+    async completeTrustTask(companionId, dto) {
+        return this.prisma.$transaction(async (tx) => {
+            const existing = await tx.trustTask.findFirst({
+                where: { companionId, taskId: dto.taskId },
+            });
+            if (existing && existing.isCompleted) {
+                return { success: true, message: 'Task already completed' };
+            }
+            if (existing) {
+                await tx.trustTask.update({
+                    where: { id: existing.id },
+                    data: { isCompleted: true, completedAt: new Date() },
+                });
+            }
+            else {
+                await tx.trustTask.create({
+                    data: {
+                        companionId,
+                        taskId: dto.taskId,
+                        title: dto.taskId,
+                        description: '',
+                        category: 'general',
+                        points: dto.points,
+                        isCompleted: true,
+                        completedAt: new Date(),
+                    },
+                });
+            }
+            const companion = await tx.companion.findUnique({ where: { id: companionId } });
+            let newScore = Math.min((companion?.trustScore || 0) + dto.points, 100);
+            await tx.companion.update({
+                where: { id: companionId },
+                data: { trustScore: newScore },
+            });
+            if (newScore === 100) {
+                const badgeExists = await tx.companionBadge.findUnique({
+                    where: { companionId_badgeKey: { companionId, badgeKey: 'badge_elite' } },
+                });
+                if (!badgeExists) {
+                    await tx.companionBadge.create({
+                        data: {
+                            companionId,
+                            badgeKey: 'badge_elite',
+                            badgeName: 'Elite Companion',
+                        },
+                    });
+                }
+            }
+            return { success: true, newScore };
         });
     }
     async updateBasic(companionId, dto) {
@@ -156,8 +251,8 @@ let ProfileService = ProfileService_1 = class ProfileService {
         await this.prisma.companionLanguage.createMany({
             data: dto.languages.map(l => ({
                 companionId,
-                language: l.language,
-                proficiency: l.proficiency || 'fluent',
+                language: l,
+                proficiency: 'fluent',
             })),
         });
         return this.getProfile(companionId);
@@ -175,13 +270,14 @@ let ProfileService = ProfileService_1 = class ProfileService {
                     data: updateData,
                 });
             }
-            if (dto.broadAreas !== undefined) {
+            const areasToUpdate = dto.broadAreas ?? dto.serviceAreas;
+            if (areasToUpdate !== undefined) {
                 await tx.companionServiceArea.deleteMany({ where: { companionId } });
-                if (dto.broadAreas.length > 0) {
+                if (areasToUpdate.length > 0) {
                     const companion = await tx.companion.findUnique({ where: { id: companionId }, select: { city: true } });
                     const currentCity = dto.city ?? companion?.city ?? '';
                     await tx.companionServiceArea.createMany({
-                        data: dto.broadAreas.map(area => ({
+                        data: areasToUpdate.map((area) => ({
                             companionId,
                             area,
                             city: currentCity,
@@ -298,9 +394,6 @@ let ProfileService = ProfileService_1 = class ProfileService {
             verificationStatus: updated.verificationStatus,
             message: 'Profile submitted for review. Our team will review within 2-3 business days.',
         };
-    }
-    async getPreview(companionId) {
-        return this.getProfile(companionId);
     }
     toProfileResponse(companion) {
         return {

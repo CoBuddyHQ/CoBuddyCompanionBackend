@@ -72,6 +72,38 @@ export declare class ProfileService {
         success: boolean;
         message: string;
     }>;
+    getPreview(companionId: string): Promise<{
+        displayName: string;
+        bio: string;
+        rating: import("@prisma/client-runtime-utils").Decimal;
+        totalSessions: number;
+        trustScore: number;
+        languages: string[];
+        categories: import(".prisma/client").$Enums.Category[];
+        serviceAreas: string[];
+        photoUrl: string;
+        galleryPhotos: string[];
+    }>;
+    getTrustDashboard(companionId: string): Promise<{
+        score: number;
+        responseRate: number;
+        cancellationRate: number;
+        lastUpdated: string;
+        completedTasks: string[];
+        unlockedBadges: string[];
+    }>;
+    completeTrustTask(companionId: string, dto: {
+        taskId: string;
+        points: number;
+    }): Promise<{
+        success: boolean;
+        message: string;
+        newScore?: undefined;
+    } | {
+        success: boolean;
+        newScore: number;
+        message?: undefined;
+    }>;
     updateBasic(companionId: string, dto: UpdateBasicProfileDto): Promise<{
         companionId: any;
         displayName: any;
@@ -252,30 +284,6 @@ export declare class ProfileService {
         profileStatus: import(".prisma/client").$Enums.ProfileStatus;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         message: string;
-    }>;
-    getPreview(companionId: string): Promise<{
-        companionId: any;
-        displayName: any;
-        maskedPhone: string;
-        city: any;
-        serviceAreas: any;
-        categories: any;
-        languages: any;
-        bio: any;
-        hourlyRate: number;
-        sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
-        trustScore: any;
-        trustLevel: any;
-        rating: number;
-        totalReviews: any;
-        totalSessions: any;
-        isAvailable: any;
-        isOnline: any;
-        photoUrl: any;
-        galleryPhotos: any;
-        joinedAt: any;
     }>;
     private toProfileResponse;
     private maskPhone;

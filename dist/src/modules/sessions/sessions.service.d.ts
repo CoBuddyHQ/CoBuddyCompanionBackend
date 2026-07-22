@@ -216,6 +216,47 @@ export declare class SessionsService {
         notes: any;
         createdAt: any;
     }>;
+    verifyBySelfie(companionId: string, sessionId: string, selfieUrl?: string): Promise<{
+        verified: boolean;
+        method: string;
+        sessionId: any;
+        status: any;
+        category: any;
+        customer: {
+            customerId: any;
+            displayInitials: any;
+            trustScore: any;
+            isVerified: any;
+            totalSessionsWithCompanion: any;
+            sessionCountOverall: any;
+            safetyConsent: any;
+            identityVerified: any;
+        };
+        venue: {
+            venueId: any;
+            name: any;
+            area: any;
+            city: any;
+            isApproved: any;
+            venueType: any;
+            meetingPoint: any;
+            landmark: any;
+        };
+        scheduledStart: any;
+        scheduledEnd: any;
+        durationMinutes: any;
+        language: any;
+        baseEarning: number;
+        bonusEarning: number;
+        estimatedTotal: number;
+        confirmedEarning: number;
+        checkInTime: any;
+        checkOutTime: any;
+        sessionPassCode: any;
+        safetyTimerActive: any;
+        notes: any;
+        createdAt: any;
+    }>;
     requestExtension(companionId: string, sessionId: string, extraMinutes: number): Promise<{
         sessionId: string;
         extraMinutes: number;
@@ -300,7 +341,7 @@ export declare class SessionsService {
         notes: any;
         createdAt: any;
     }>;
-    cancelSession(companionId: string, sessionId: string, reason: string): Promise<{
+    cancelSession(companionId: string, sessionId: string, reason: string, details?: string): Promise<{
         sessionId: any;
         status: any;
         category: any;
@@ -338,6 +379,14 @@ export declare class SessionsService {
         safetyTimerActive: any;
         notes: any;
         createdAt: any;
+    }>;
+    getCancellationStatus(companionId: string, sessionId: string): Promise<{
+        sessionId: string;
+        status: string;
+        reviewStatus: string;
+        cancelReason: string;
+        cancelledBy: string;
+        submittedAt: string;
     }>;
     reportNoShow(companionId: string, sessionId: string): Promise<{
         sessionId: any;
@@ -417,7 +466,7 @@ export declare class SessionsService {
         notes: any;
         createdAt: any;
     }>;
-    saveNotes(companionId: string, sessionId: string, notes: string): Promise<{
+    saveNotes(companionId: string, sessionId: string, notes: string, mood?: string, tags?: string[]): Promise<{
         sessionId: any;
         status: any;
         category: any;
@@ -459,6 +508,26 @@ export declare class SessionsService {
     rateCustomer(companionId: string, sessionId: string, rating: number, feedback?: string): Promise<{
         sessionId: string;
         customerRating: number;
+        message: string;
+    }>;
+    getChatHistory(companionId: string, sessionId: string): Promise<any[]>;
+    sendChatMessage(companionId: string, sessionId: string, text: string): Promise<{
+        success: boolean;
+        text: string;
+        sentAt: string;
+    }>;
+    getCallToken(companionId: string, sessionId: string): Promise<{
+        token: string;
+        channel: string;
+    }>;
+    updateLocation(companionId: string, sessionId: string, lat: number, lng: number): Promise<{
+        success: boolean;
+        lat: number;
+        lng: number;
+        timestamp: string;
+    }>;
+    stopLocationSharing(companionId: string, sessionId: string): Promise<{
+        success: boolean;
         message: string;
     }>;
     private findSessionOrThrow;

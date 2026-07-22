@@ -43,8 +43,8 @@ let AccountService = class AccountService {
             phone: companion.phone,
             settings: {
                 notificationPrefs: settings.notificationPrefs,
-                privacyVisibility: settings.privacyVisibility,
-                privacyDataSharing: settings.privacyDataSharing,
+                privacyVisibility: settings.showInSearch ? 'public' : 'private',
+                privacyDataSharing: settings.allowPromo,
                 language: settings.language,
             },
             payoutDetails: {
@@ -63,12 +63,13 @@ let AccountService = class AccountService {
         return { success: true, prefs: updated.notificationPrefs, message: 'Notification preferences updated.' };
     }
     async updatePrivacy(companionId, dto) {
+        const showInSearch = dto.visibility !== 'private';
         const updated = await this.prisma.companionSettings.upsert({
             where: { companionId },
-            update: { privacyVisibility: dto.visibility, privacyDataSharing: dto.dataSharing },
-            create: { companionId, privacyVisibility: dto.visibility, privacyDataSharing: dto.dataSharing },
+            update: { showInSearch, allowPromo: dto.dataSharing },
+            create: { companionId, showInSearch, allowPromo: dto.dataSharing },
         });
-        return { success: true, visibility: updated.privacyVisibility, dataSharing: updated.privacyDataSharing };
+        return { success: true, visibility: updated.showInSearch ? 'public' : 'private', dataSharing: updated.allowPromo };
     }
     async updateLanguage(companionId, dto) {
         const updated = await this.prisma.companionSettings.upsert({

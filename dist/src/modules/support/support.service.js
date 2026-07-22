@@ -18,18 +18,49 @@ let SupportService = class SupportService {
     }
     async getTickets(companionId) {
         const tickets = await this.prisma.supportTicket.findMany({
-            where: { companionId },
+            where: { companionId, category: { not: 'DISPUTE' } },
             orderBy: { createdAt: 'desc' },
+            include: { messages: true },
         });
-        return { tickets };
+        const formattedTickets = tickets.map((t) => ({
+            id: t.id,
+            category: t.category,
+            subject: t.subject,
+            description: t.description,
+            priority: t.priority,
+            status: t.status === 'OPEN' ? 'Open' : 'Closed',
+            date: t.createdAt.toLocaleDateString(),
+            messages: t.messages.map((m) => ({
+                id: m.id,
+                from: m.sender === 'agent' ? 'agent' : 'me',
+                text: m.text,
+                time: m.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            })),
+        }));
+        return { tickets: formattedTickets };
     }
     async getTicket(companionId, ticketId) {
-        const ticket = await this.prisma.supportTicket.findFirst({
+        const t = await this.prisma.supportTicket.findFirst({
             where: { id: ticketId, companionId },
+            include: { messages: true },
         });
-        if (!ticket)
+        if (!t)
             throw new common_1.NotFoundException('Ticket not found');
-        return ticket;
+        return {
+            id: t.id,
+            category: t.category,
+            subject: t.subject,
+            description: t.description,
+            priority: t.priority,
+            status: t.status === 'OPEN' ? 'Open' : 'Closed',
+            date: t.createdAt.toLocaleDateString(),
+            messages: t.messages.map((m) => ({
+                id: m.id,
+                from: m.sender === 'agent' ? 'agent' : 'me',
+                text: m.text,
+                time: m.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            })),
+        };
     }
     async createTicket(companionId, dto) {
         const ticket = await this.prisma.supportTicket.create({
@@ -48,9 +79,12 @@ let SupportService = class SupportService {
         const ticket = await this.prisma.supportTicket.findFirst({ where: { id: ticketId, companionId } });
         if (!ticket)
             throw new common_1.NotFoundException('Ticket not found');
-        await this.prisma.supportTicket.update({
-            where: { id: ticketId },
-            data: { description: ticket.description + '\n\n[Companion]: ' + message },
+        await this.prisma.ticketMessage.create({
+            data: {
+                ticketId: ticket.id,
+                sender: 'me',
+                text: message,
+            },
         });
         return { message: 'Reply sent' };
     }
@@ -58,27 +92,64 @@ let SupportService = class SupportService {
         const disputes = await this.prisma.supportTicket.findMany({
             where: { companionId, category: 'DISPUTE' },
             orderBy: { createdAt: 'desc' },
+            include: { timeline: true },
         });
-        return { disputes };
+        const formattedDisputes = disputes.map((d) => ({
+            id: d.id,
+            category: d.subject,
+            description: d.description,
+            sessionId: d.sessionId || '',
+            customerName: d.customerName || 'Unknown',
+            amount: d.amount || '0',
+            status: d.status === 'RESOLVED' ? 'Resolved' : 'Under Review',
+            outcome: d.outcome,
+            createdAgo: d.createdAt.toLocaleDateString(),
+            timeline: d.timeline.map((t) => ({
+                date: t.date,
+                desc: t.desc,
+            })),
+        }));
+        return { disputes: formattedDisputes };
     }
     async getDispute(companionId, disputeId) {
-        const dispute = await this.prisma.supportTicket.findFirst({
+        const d = await this.prisma.supportTicket.findFirst({
             where: { id: disputeId, companionId, category: 'DISPUTE' },
+            include: { timeline: true },
         });
-        if (!dispute)
+        if (!d)
             throw new common_1.NotFoundException('Dispute not found');
-        return dispute;
+        return {
+            id: d.id,
+            category: d.subject,
+            description: d.description,
+            sessionId: d.sessionId || '',
+            customerName: d.customerName || 'Unknown',
+            amount: d.amount || '0',
+            status: d.status === 'RESOLVED' ? 'Resolved' : 'Under Review',
+            outcome: d.outcome,
+            createdAgo: d.createdAt.toLocaleDateString(),
+            timeline: d.timeline.map((t) => ({
+                date: t.date,
+                desc: t.desc,
+            })),
+        };
     }
     async createDispute(companionId, dto) {
         const dispute = await this.prisma.supportTicket.create({
             data: {
                 companionId,
                 sessionId: dto.sessionId,
-                subject: `Dispute for Session ${dto.sessionId}`,
-                description: dto.reason,
+                subject: dto.category || `Dispute for Session ${dto.sessionId}`,
+                description: dto.description,
                 category: 'DISPUTE',
                 priority: 'HIGH',
-                status: 'OPEN',
+                status: 'UNDER REVIEW',
+                timeline: {
+                    create: {
+                        date: new Date().toLocaleDateString(),
+                        desc: 'Dispute filed by companion',
+                    }
+                }
             },
         });
         return { disputeId: dispute.id, message: 'Dispute submitted and under review.' };
@@ -87,31 +158,32 @@ let SupportService = class SupportService {
         return { message: 'Evidence uploaded successfully' };
     }
     async getHelpArticles() {
-        return {
-            categories: [
-                { id: '1', title: 'Getting Started', articles: [{ id: 'a1', title: 'How to use CoBuddy' }] },
-            ],
-        };
+        const articles = await this.prisma.helpArticle.findMany();
+        return { articles };
     }
     async getHelpArticle(articleId) {
-        return { id: articleId, title: 'Help Article', content: 'Details here...' };
+        const article = await this.prisma.helpArticle.findUnique({
+            where: { id: articleId },
+        });
+        if (!article)
+            throw new common_1.NotFoundException('Help Article not found');
+        return article;
     }
     async getChatHistory(companionId, ticketId) {
         const ticket = await this.prisma.supportTicket.findFirst({
             where: { id: ticketId, companionId },
+            include: { messages: { orderBy: { createdAt: 'asc' } } },
         });
         if (!ticket)
             throw new common_1.NotFoundException('Ticket not found');
         return {
             ticketId,
-            messages: [
-                {
-                    id: 'msg-1',
-                    sender: 'system',
-                    content: 'Ticket opened. We will connect you to an agent shortly.',
-                    timestamp: ticket.createdAt.toISOString(),
-                },
-            ],
+            messages: ticket.messages.map((m) => ({
+                id: m.id,
+                from: m.sender === 'agent' ? 'agent' : 'me',
+                text: m.text,
+                time: m.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            })),
         };
     }
     async appealDispute(companionId, disputeId, dto) {
@@ -124,7 +196,13 @@ let SupportService = class SupportService {
             where: { id: disputeId },
             data: {
                 description: dispute.description + '\n\n[APPEAL]: ' + dto.reason,
-                status: 'OPEN',
+                status: 'UNDER REVIEW',
+                timeline: {
+                    create: {
+                        date: new Date().toLocaleDateString(),
+                        desc: 'Appeal submitted by companion',
+                    }
+                }
             },
         });
         return { success: true, message: 'Dispute appeal submitted successfully.' };

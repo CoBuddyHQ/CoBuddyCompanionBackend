@@ -27,6 +27,17 @@ export declare class SafetyService {
         status: string;
         message: string;
     }>;
+    getSettings(companionId: string): Promise<{
+        locationTracking: boolean;
+        autoCheckIn: boolean;
+        disguisedCall: boolean;
+    }>;
+    updateSettings(companionId: string, dto: any): Promise<{
+        locationTracking: boolean;
+        autoCheckIn: boolean;
+        disguisedCall: boolean;
+        message: string;
+    }>;
     getTrustedContacts(companionId: string): Promise<{
         contactId: any;
         name: any;
@@ -51,7 +62,8 @@ export declare class SafetyService {
     blockCustomer(companionId: string, customerId: string, reason?: string): Promise<{
         message: string;
     }>;
-    reportCustomer(companionId: string, customerId: string, reason: string, sessionId?: string): Promise<{
+    reportCustomer(companionId: string, customerId: string, category: string, description: string, alsoBlock?: boolean, sessionId?: string): Promise<{
+        reportId: string;
         message: string;
     }>;
     reportIncident(companionId: string, description: string, sessionId?: string): Promise<{
@@ -61,6 +73,11 @@ export declare class SafetyService {
     }>;
     uploadEvidence(companionId: string, reportId: string, evidenceUrls: string[]): Promise<{
         message: string;
+    }>;
+    completeSafetyQuiz(companionId: string, score: number): Promise<{
+        success: boolean;
+        message: string;
+        badgeEarned: boolean;
     }>;
     private toContactResponse;
     private maskPhone;

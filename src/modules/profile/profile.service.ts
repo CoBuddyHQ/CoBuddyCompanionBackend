@@ -134,12 +134,11 @@ export class ProfileService {
         });
 
         if (dto.languages.length > 0) {
-          // Insert new languages
           await tx.companionLanguage.createMany({
-            data: dto.languages.map(l => ({
+            data: dto.languages.map((l: any) => ({
               companionId,
-              language: l.language,
-              proficiency: l.proficiency || 'conversational',
+              language: typeof l === 'string' ? l : l.language,
+              proficiency: typeof l === 'string' ? 'conversational' : (l.proficiency || 'conversational'),
             })),
           });
         }
@@ -343,14 +342,15 @@ export class ProfileService {
         });
       }
 
-      if (dto.broadAreas !== undefined) {
+      const areasToUpdate = (dto as any).broadAreas ?? dto.serviceAreas;
+      if (areasToUpdate !== undefined) {
         await tx.companionServiceArea.deleteMany({ where: { companionId } });
-        if (dto.broadAreas.length > 0) {
+        if (areasToUpdate.length > 0) {
           const companion = await tx.companion.findUnique({ where: { id: companionId }, select: { city: true } });
           const currentCity = dto.city ?? companion?.city ?? '';
           
           await tx.companionServiceArea.createMany({
-            data: dto.broadAreas.map(area => ({
+            data: areasToUpdate.map((area: string) => ({
               companionId,
               area,
               city: currentCity,
@@ -483,12 +483,6 @@ export class ProfileService {
       verificationStatus: updated.verificationStatus,
       message: 'Profile submitted for review. Our team will review within 2-3 business days.',
     };
-  }
-
-  // ── GET /companion/profile/preview ────────────────────────────────────────
-
-  async getPreview(companionId: string) {
-    return this.getProfile(companionId);
   }
 
   // ── Private: map to CompanionProfile interface (store.types.ts) ──────────

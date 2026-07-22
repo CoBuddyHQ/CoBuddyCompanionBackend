@@ -172,15 +172,18 @@ export class SafetyService {
   }
 
   // ── POST /companion/safety/report/:customerId ─────────────────────────────
-  async reportCustomer(companionId: string, customerId: string, reason: string, sessionId?: string) {
-    await this.prisma.incidentReport.create({
+  async reportCustomer(companionId: string, customerId: string, category: string, description: string, alsoBlock?: boolean, sessionId?: string) {
+    if (alsoBlock) {
+      await this.blockCustomer(companionId, customerId, `Reported (${category}): ${description}`);
+    }
+    const report = await this.prisma.incidentReport.create({
       data: {
         companionId,
         sessionId: sessionId ?? null,
-        description: reason,
+        description: `[Category: ${category}] ${description}`,
       },
     });
-    return { message: 'Customer reported to CoBuddy Safety Team. We will review within 24 hours.' };
+    return { reportId: report.id, message: 'Report submitted. Our safety team will review it within 1 hour.' };
   }
 
   // ── POST /companion/safety/incident ──────────────────────────────────────

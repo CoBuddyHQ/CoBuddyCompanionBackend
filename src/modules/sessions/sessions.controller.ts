@@ -6,7 +6,7 @@ import { SessionsService } from './sessions.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentCompanion } from '../../common/decorators/current-companion.decorator';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
-import { IsString, IsOptional, IsNumber, Min, Max, IsInt } from 'class-validator';
+import { IsString, IsOptional, IsNumber, Min, Max, IsInt, IsArray } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 

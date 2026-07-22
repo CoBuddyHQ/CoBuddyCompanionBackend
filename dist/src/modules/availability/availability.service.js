@@ -16,95 +16,117 @@ let AvailabilityService = class AvailabilityService {
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async getSlots(companionId) {
-        const slots = await this.prisma.timeSlot.findMany({
+    async getAvailability(companionId) {
+        const companion = await this.prisma.companion.findUnique({
+            where: { id: companionId },
+            select: { isAvailable: true }
+        });
+        const defaultHours = await this.prisma.weeklySchedule.findMany({
             where: { companionId },
-            orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+            orderBy: { createdAt: 'asc' }
         });
-        const blockedTimes = await this.prisma.blockedTime.findMany({
-            where: { companionId, date: { gte: new Date() } },
-            orderBy: { date: 'asc' },
+        const dateOverrides = await this.prisma.dateOverride.findMany({
+            where: { companionId },
+            orderBy: { createdAt: 'desc' }
         });
-        const vacationMode = await this.prisma.vacationMode.findUnique({ where: { companionId } });
+        const slots = await this.prisma.customSlot.findMany({
+            where: { companionId },
+            orderBy: { createdAt: 'desc' }
+        });
+        const vacationMode = await this.prisma.vacationMode.findUnique({
+            where: { companionId }
+        });
         return {
-            slots: slots.map(s => ({
-                slotId: s.id,
-                dayOfWeek: s.dayOfWeek,
-                startTime: s.startTime,
-                endTime: s.endTime,
-            })),
-            blockedTimes: blockedTimes.map(b => ({
-                blockId: b.id,
-                date: b.date.toISOString().split('T')[0],
-                reason: b.reason,
-            })),
+            isAvailable: companion?.isAvailable ?? false,
             vacationMode: vacationMode ? {
                 enabled: vacationMode.enabled,
-                startDate: vacationMode.startDate?.toISOString().split('T')[0] ?? null,
-                endDate: vacationMode.endDate?.toISOString().split('T')[0] ?? null,
-            } : { enabled: false, startDate: null, endDate: null },
+                awayFrom: vacationMode.awayFrom ?? '',
+                returnOn: vacationMode.returnOn ?? ''
+            } : { enabled: false, awayFrom: '', returnOn: '' },
+            defaultHours: defaultHours.map(d => ({
+                day: d.day,
+                active: d.active,
+                times: d.times
+            })),
+            dateOverrides: dateOverrides.map(o => ({
+                id: o.id,
+                startDate: o.startDate,
+                endDate: o.endDate,
+                reason: o.reason,
+                note: o.note ?? undefined,
+                fullDay: o.fullDay,
+                startTime: o.startTime ?? undefined,
+                endTime: o.endTime ?? undefined
+            })),
+            slots: slots.map(s => ({
+                id: s.id,
+                date: s.date,
+                startTime: s.startTime,
+                endTime: s.endTime,
+                repeat: s.repeat
+            }))
         };
     }
-    async addSlot(companionId, dto) {
-        const slot = await this.prisma.timeSlot.create({
-            data: { companionId, dayOfWeek: dto.dayOfWeek, startTime: dto.startTime, endTime: dto.endTime },
+    async setLiveAvailable(companionId, isAvailable) {
+        await this.prisma.companion.update({
+            where: { id: companionId },
+            data: { isAvailable }
         });
-        return { slotId: slot.id, dayOfWeek: slot.dayOfWeek, startTime: slot.startTime, endTime: slot.endTime };
-    }
-    async updateSlot(companionId, slotId, dto) {
-        const slot = await this.prisma.timeSlot.findFirst({ where: { id: slotId, companionId } });
-        if (!slot)
-            throw new common_1.NotFoundException('Slot not found');
-        const updated = await this.prisma.timeSlot.update({
-            where: { id: slotId },
-            data: { startTime: dto.startTime ?? slot.startTime, endTime: dto.endTime ?? slot.endTime },
-        });
-        return { slotId: updated.id, startTime: updated.startTime, endTime: updated.endTime };
-    }
-    async deleteSlot(companionId, slotId) {
-        const slot = await this.prisma.timeSlot.findFirst({ where: { id: slotId, companionId } });
-        if (!slot)
-            throw new common_1.NotFoundException('Slot not found');
-        await this.prisma.timeSlot.delete({ where: { id: slotId } });
-        return { message: 'Slot deleted successfully' };
-    }
-    async addRecurring(companionId, dto) {
-        const created = await this.prisma.timeSlot.createMany({
-            data: dto.slots.map(s => ({ companionId, dayOfWeek: s.dayOfWeek, startTime: s.startTime, endTime: s.endTime })),
-            skipDuplicates: true,
-        });
-        return { created: created.count, message: `${created.count} recurring slots added` };
-    }
-    async blockTime(companionId, dto) {
-        const blocked = await this.prisma.blockedTime.create({
-            data: { companionId, date: new Date(dto.date), reason: dto.reason ?? null },
-        });
-        return { blockId: blocked.id, date: dto.date, reason: blocked.reason, message: 'Time blocked' };
+        return { success: true, isAvailable };
     }
     async setVacationMode(companionId, dto) {
         const mode = await this.prisma.vacationMode.upsert({
             where: { companionId },
-            update: {
-                enabled: dto.enabled,
-                startDate: dto.startDate ? new Date(dto.startDate) : null,
-                endDate: dto.endDate ? new Date(dto.endDate) : null,
-            },
-            create: {
-                companionId,
-                enabled: dto.enabled,
-                startDate: dto.startDate ? new Date(dto.startDate) : null,
-                endDate: dto.endDate ? new Date(dto.endDate) : null,
-            },
+            update: { enabled: dto.enabled, awayFrom: dto.awayFrom, returnOn: dto.returnOn },
+            create: { companionId, enabled: dto.enabled, awayFrom: dto.awayFrom, returnOn: dto.returnOn }
         });
         if (dto.enabled) {
             await this.prisma.companion.update({ where: { id: companionId }, data: { isAvailable: false, isOnline: false } });
         }
-        return {
-            enabled: mode.enabled,
-            startDate: mode.startDate?.toISOString().split('T')[0] ?? null,
-            endDate: mode.endDate?.toISOString().split('T')[0] ?? null,
-            message: dto.enabled ? 'Vacation mode enabled. You will not receive new requests.' : 'Vacation mode disabled.',
-        };
+        return mode;
+    }
+    async toggleDay(companionId, day) {
+        const schedule = await this.prisma.weeklySchedule.findUnique({ where: { companionId_day: { companionId, day } } });
+        if (!schedule)
+            throw new common_1.NotFoundException('Day not found');
+        return this.prisma.weeklySchedule.update({
+            where: { id: schedule.id },
+            data: { active: !schedule.active }
+        });
+    }
+    async setDayTimes(companionId, day, times) {
+        const schedule = await this.prisma.weeklySchedule.findUnique({ where: { companionId_day: { companionId, day } } });
+        if (!schedule) {
+            return this.prisma.weeklySchedule.create({
+                data: { companionId, day, times, active: true }
+            });
+        }
+        return this.prisma.weeklySchedule.update({
+            where: { id: schedule.id },
+            data: { times }
+        });
+    }
+    async addOverride(companionId, dto) {
+        return this.prisma.dateOverride.create({
+            data: { companionId, ...dto }
+        });
+    }
+    async removeOverride(companionId, id) {
+        return this.prisma.dateOverride.delete({ where: { id } });
+    }
+    async addSlot(companionId, dto) {
+        return this.prisma.customSlot.create({
+            data: { companionId, ...dto }
+        });
+    }
+    async updateSlot(companionId, id, dto) {
+        return this.prisma.customSlot.update({
+            where: { id },
+            data: dto
+        });
+    }
+    async removeSlot(companionId, id) {
+        return this.prisma.customSlot.delete({ where: { id } });
     }
 };
 exports.AvailabilityService = AvailabilityService;
