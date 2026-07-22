@@ -49,16 +49,16 @@ export declare class AvailabilityController {
         id: string;
         createdAt: Date;
         active: boolean;
-        companionId: string;
         day: string;
+        companionId: string;
         times: string;
     }>;
     setDayTimes(c: JwtPayload, day: string, times: string): Promise<{
         id: string;
         createdAt: Date;
         active: boolean;
-        companionId: string;
         day: string;
+        companionId: string;
         times: string;
     }>;
     addOverride(c: JwtPayload, dto: any): Promise<{
@@ -90,26 +90,26 @@ export declare class AvailabilityController {
         createdAt: Date;
         repeat: boolean;
         companionId: string;
-        date: string;
         startTime: string;
         endTime: string;
+        date: string;
     }>;
     updateSlot(c: JwtPayload, id: string, dto: any): Promise<{
         id: string;
         createdAt: Date;
         repeat: boolean;
         companionId: string;
-        date: string;
         startTime: string;
         endTime: string;
+        date: string;
     }>;
     removeSlot(c: JwtPayload, id: string): Promise<{
         id: string;
         createdAt: Date;
         repeat: boolean;
         companionId: string;
-        date: string;
         startTime: string;
         endTime: string;
+        date: string;
     }>;
 }

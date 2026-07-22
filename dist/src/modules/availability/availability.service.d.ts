@@ -52,16 +52,16 @@ export declare class AvailabilityService {
         id: string;
         createdAt: Date;
         active: boolean;
-        companionId: string;
         day: string;
+        companionId: string;
         times: string;
     }>;
     setDayTimes(companionId: string, day: string, times: string): Promise<{
         id: string;
         createdAt: Date;
         active: boolean;
-        companionId: string;
         day: string;
+        companionId: string;
         times: string;
     }>;
     addOverride(companionId: string, dto: any): Promise<{
@@ -93,26 +93,26 @@ export declare class AvailabilityService {
         createdAt: Date;
         repeat: boolean;
         companionId: string;
-        date: string;
         startTime: string;
         endTime: string;
+        date: string;
     }>;
     updateSlot(companionId: string, id: string, dto: any): Promise<{
         id: string;
         createdAt: Date;
         repeat: boolean;
         companionId: string;
-        date: string;
         startTime: string;
         endTime: string;
+        date: string;
     }>;
     removeSlot(companionId: string, id: string): Promise<{
         id: string;
         createdAt: Date;
         repeat: boolean;
         companionId: string;
-        date: string;
         startTime: string;
         endTime: string;
+        date: string;
     }>;
 }

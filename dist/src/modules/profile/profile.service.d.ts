@@ -79,7 +79,7 @@ export declare class ProfileService {
         totalSessions: number;
         trustScore: number;
         languages: string[];
-        categories: import(".prisma/client").$Enums.Category[];
+        categories: import("@prisma/client").$Enums.Category[];
         serviceAreas: string[];
         photoUrl: string;
         galleryPhotos: string[];
@@ -281,8 +281,8 @@ export declare class ProfileService {
         message: string;
     }>;
     submitForReview(companionId: string): Promise<{
-        profileStatus: import(".prisma/client").$Enums.ProfileStatus;
-        verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+        profileStatus: import("@prisma/client").$Enums.ProfileStatus;
+        verificationStatus: import("@prisma/client").$Enums.VerificationStatus;
         message: string;
     }>;
     private toProfileResponse;

@@ -5,9 +5,9 @@ export declare class AccountService {
     private getOrCreateSettings;
     getAccountSettings(companionId: string): Promise<{
         companionId: string;
-        accountStatus: import(".prisma/client").$Enums.AccountStatus;
-        profileStatus: import(".prisma/client").$Enums.ProfileStatus;
-        verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+        accountStatus: import("@prisma/client").$Enums.AccountStatus;
+        profileStatus: import("@prisma/client").$Enums.ProfileStatus;
+        verificationStatus: import("@prisma/client").$Enums.VerificationStatus;
         phone: string;
         settings: {
             notificationPrefs: import("@prisma/client/runtime/client").JsonValue;

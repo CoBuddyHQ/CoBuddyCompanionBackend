@@ -249,8 +249,8 @@ export declare class ProfileController {
         message: string;
     }>;
     submitForReview(c: JwtPayload): Promise<{
-        profileStatus: import(".prisma/client").$Enums.ProfileStatus;
-        verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+        profileStatus: import("@prisma/client").$Enums.ProfileStatus;
+        verificationStatus: import("@prisma/client").$Enums.VerificationStatus;
         message: string;
     }>;
     getPreview(c: JwtPayload): Promise<{
@@ -260,7 +260,7 @@ export declare class ProfileController {
         totalSessions: number;
         trustScore: number;
         languages: string[];
-        categories: import(".prisma/client").$Enums.Category[];
+        categories: import("@prisma/client").$Enums.Category[];
         serviceAreas: string[];
         photoUrl: string;
         galleryPhotos: string[];

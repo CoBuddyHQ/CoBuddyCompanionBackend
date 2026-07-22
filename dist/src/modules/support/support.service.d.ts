@@ -82,22 +82,22 @@ export declare class SupportService {
     }>;
     getHelpArticles(): Promise<{
         articles: {
+            title: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            title: string;
-            body: string[];
             category: string;
+            body: string[];
             updatedDate: string;
         }[];
     }>;
     getHelpArticle(articleId: string): Promise<{
+        title: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        title: string;
-        body: string[];
         category: string;
+        body: string[];
         updatedDate: string;
     }>;
     getChatHistory(companionId: string, ticketId: string): Promise<{

@@ -96,22 +96,22 @@ export declare class SupportController {
     }>;
     getHelpArticles(): Promise<{
         articles: {
+            title: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            title: string;
-            body: string[];
             category: string;
+            body: string[];
             updatedDate: string;
         }[];
     }>;
     getHelpArticle(id: string): Promise<{
+        title: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        title: string;
-        body: string[];
         category: string;
+        body: string[];
         updatedDate: string;
     }>;
 }

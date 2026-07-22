@@ -26,11 +26,12 @@ export declare class SettingsService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            companionId: string;
+            language: string;
             notificationPrefs: import("@prisma/client/runtime/client").JsonValue;
             showAge: boolean;
             allowPromo: boolean;
             showInSearch: boolean;
-            language: string;
             termsAccepted: boolean;
             safetyRulesAccepted: boolean;
             locationEnabled: boolean;
@@ -38,7 +39,6 @@ export declare class SettingsService {
             locationTracking: boolean;
             autoCheckIn: boolean;
             disguisedCall: boolean;
-            companionId: string;
         };
     }>;
     getPrivacyControls(companionId: string): Promise<{
@@ -52,11 +52,12 @@ export declare class SettingsService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            companionId: string;
+            language: string;
             notificationPrefs: import("@prisma/client/runtime/client").JsonValue;
             showAge: boolean;
             allowPromo: boolean;
             showInSearch: boolean;
-            language: string;
             termsAccepted: boolean;
             safetyRulesAccepted: boolean;
             locationEnabled: boolean;
@@ -64,7 +65,6 @@ export declare class SettingsService {
             locationTracking: boolean;
             autoCheckIn: boolean;
             disguisedCall: boolean;
-            companionId: string;
         };
     }>;
     getNotificationPrefs(companionId: string): Promise<string | number | true | import("@prisma/client/runtime/client").JsonObject | import("@prisma/client/runtime/client").JsonArray>;
@@ -74,11 +74,12 @@ export declare class SettingsService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            companionId: string;
+            language: string;
             notificationPrefs: import("@prisma/client/runtime/client").JsonValue;
             showAge: boolean;
             allowPromo: boolean;
             showInSearch: boolean;
-            language: string;
             termsAccepted: boolean;
             safetyRulesAccepted: boolean;
             locationEnabled: boolean;
@@ -86,7 +87,6 @@ export declare class SettingsService {
             locationTracking: boolean;
             autoCheckIn: boolean;
             disguisedCall: boolean;
-            companionId: string;
         };
     }>;
     requestDataExport(companionId: string): Promise<{

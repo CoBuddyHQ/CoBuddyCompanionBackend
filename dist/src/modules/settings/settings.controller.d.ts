@@ -22,11 +22,12 @@ export declare class SettingsController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            companionId: string;
+            language: string;
             notificationPrefs: import("@prisma/client/runtime/client").JsonValue;
             showAge: boolean;
             allowPromo: boolean;
             showInSearch: boolean;
-            language: string;
             termsAccepted: boolean;
             safetyRulesAccepted: boolean;
             locationEnabled: boolean;
@@ -34,7 +35,6 @@ export declare class SettingsController {
             locationTracking: boolean;
             autoCheckIn: boolean;
             disguisedCall: boolean;
-            companionId: string;
         };
     }>;
     getPrivacyControls(c: JwtPayload): Promise<{
@@ -48,11 +48,12 @@ export declare class SettingsController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            companionId: string;
+            language: string;
             notificationPrefs: import("@prisma/client/runtime/client").JsonValue;
             showAge: boolean;
             allowPromo: boolean;
             showInSearch: boolean;
-            language: string;
             termsAccepted: boolean;
             safetyRulesAccepted: boolean;
             locationEnabled: boolean;
@@ -60,7 +61,6 @@ export declare class SettingsController {
             locationTracking: boolean;
             autoCheckIn: boolean;
             disguisedCall: boolean;
-            companionId: string;
         };
     }>;
     getNotificationPrefs(c: JwtPayload): Promise<string | number | true | import("@prisma/client/runtime/client").JsonObject | import("@prisma/client/runtime/client").JsonArray>;
@@ -70,11 +70,12 @@ export declare class SettingsController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            companionId: string;
+            language: string;
             notificationPrefs: import("@prisma/client/runtime/client").JsonValue;
             showAge: boolean;
             allowPromo: boolean;
             showInSearch: boolean;
-            language: string;
             termsAccepted: boolean;
             safetyRulesAccepted: boolean;
             locationEnabled: boolean;
@@ -82,7 +83,6 @@ export declare class SettingsController {
             locationTracking: boolean;
             autoCheckIn: boolean;
             disguisedCall: boolean;
-            companionId: string;
         };
     }>;
     requestDataExport(c: JwtPayload): Promise<{
