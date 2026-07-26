@@ -19,6 +19,7 @@ export declare class SessionGateway implements OnGatewayConnection, OnGatewayDis
     }): Promise<{
         success: boolean;
         message: {
+            id: string;
             senderId: any;
             senderType: string;
             text: string;
@@ -31,6 +32,12 @@ export declare class SessionGateway implements OnGatewayConnection, OnGatewayDis
         lat: number;
         lng: number;
         heading?: number;
+    }): Promise<{
+        success: boolean;
+    }>;
+    handleTyping(client: Socket, payload: {
+        sessionId: string;
+        isTyping: boolean;
     }): Promise<{
         success: boolean;
     }>;

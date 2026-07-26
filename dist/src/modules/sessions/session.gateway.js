@@ -45,6 +45,7 @@ let SessionGateway = SessionGateway_1 = class SessionGateway {
         const companion = client.data.companion;
         const room = `session_${payload.sessionId}`;
         const message = {
+            id: `msg-${Date.now()}`,
             senderId: companion.sub,
             senderType: 'companion',
             text: payload.text,
@@ -65,6 +66,15 @@ let SessionGateway = SessionGateway_1 = class SessionGateway {
             timestamp: new Date().toISOString(),
         };
         client.to(room).emit('companion_location_updated', locationUpdate);
+        return { success: true };
+    }
+    async handleTyping(client, payload) {
+        const companion = client.data.companion;
+        const room = `session_${payload.sessionId}`;
+        client.to(room).emit('typing', {
+            isTyping: payload.isTyping,
+            userId: companion.sub,
+        });
         return { success: true };
     }
 };
@@ -97,6 +107,14 @@ __decorate([
     __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
     __metadata("design:returntype", Promise)
 ], SessionGateway.prototype, "handleLocationUpdate", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('typing'),
+    __param(0, (0, websockets_1.ConnectedSocket)()),
+    __param(1, (0, websockets_1.MessageBody)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
+    __metadata("design:returntype", Promise)
+], SessionGateway.prototype, "handleTyping", null);
 exports.SessionGateway = SessionGateway = SessionGateway_1 = __decorate([
     (0, websockets_1.WebSocketGateway)({
         namespace: '/sessions',

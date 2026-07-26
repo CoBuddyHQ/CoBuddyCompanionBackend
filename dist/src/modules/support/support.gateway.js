@@ -38,6 +38,13 @@ let SupportGateway = SupportGateway_1 = class SupportGateway {
         client.join(room);
         this.connectedClients.set(client.id, client);
         this.logger.log(`Companion ${companion.sub} joined ticket room: ${room}`);
+        client.emit('receive_support_message', {
+            id: `sys-${Date.now()}`,
+            senderId: 'system',
+            senderType: 'support',
+            text: 'Support chat connected. An agent will assist you shortly.',
+            timestamp: new Date().toISOString(),
+        });
         return { event: 'joined', room };
     }
     async handleMessage(client, payload) {

@@ -34,7 +34,8 @@ let AvailabilityController = class AvailabilityController {
     toggleDay(c, day) {
         return this.availabilityService.toggleDay(c.sub, day);
     }
-    setDayTimes(c, day, times) {
+    setDayTimes(c, day, dto) {
+        const times = dto.times ?? (dto.startTime && dto.endTime ? `${dto.startTime} - ${dto.endTime}` : '09:00 AM - 06:00 PM');
         return this.availabilityService.setDayTimes(c.sub, day, times);
     }
     addOverride(c, dto) {
@@ -94,9 +95,9 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Set day times' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
     __param(1, (0, common_1.Param)('day')),
-    __param(2, (0, common_1.Body)('times')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:paramtypes", [Object, String, Object]),
     __metadata("design:returntype", void 0)
 ], AvailabilityController.prototype, "setDayTimes", null);
 __decorate([

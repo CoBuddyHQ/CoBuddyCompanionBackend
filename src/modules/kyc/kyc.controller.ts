@@ -9,7 +9,7 @@ import { BasicDetailsDto, SaveDeclarationDto, SubmitGovernmentIdDto, UpdateGover
 @ApiTags('KYC')
 @ApiBearerAuth('companion-jwt')
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1')
+@Controller()
 export class KycController {
   constructor(private readonly kycService: KycService) {}
 

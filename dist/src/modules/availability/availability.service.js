@@ -36,6 +36,10 @@ let AvailabilityService = class AvailabilityService {
         const vacationMode = await this.prisma.vacationMode.findUnique({
             where: { companionId }
         });
+        const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const formattedDefaultHours = defaultHours.length > 0
+            ? defaultHours.map(d => ({ day: d.day, active: d.active, times: d.times }))
+            : daysOfWeek.map(day => ({ day, active: day !== 'Sun', times: '09:00 AM - 06:00 PM' }));
         return {
             isAvailable: companion?.isAvailable ?? false,
             vacationMode: vacationMode ? {
@@ -43,11 +47,7 @@ let AvailabilityService = class AvailabilityService {
                 awayFrom: vacationMode.awayFrom ?? '',
                 returnOn: vacationMode.returnOn ?? ''
             } : { enabled: false, awayFrom: '', returnOn: '' },
-            defaultHours: defaultHours.map(d => ({
-                day: d.day,
-                active: d.active,
-                times: d.times
-            })),
+            defaultHours: formattedDefaultHours,
             dateOverrides: dateOverrides.map(o => ({
                 id: o.id,
                 startDate: o.startDate,
@@ -87,8 +87,11 @@ let AvailabilityService = class AvailabilityService {
     }
     async toggleDay(companionId, day) {
         const schedule = await this.prisma.weeklySchedule.findUnique({ where: { companionId_day: { companionId, day } } });
-        if (!schedule)
-            throw new common_1.NotFoundException('Day not found');
+        if (!schedule) {
+            return this.prisma.weeklySchedule.create({
+                data: { companionId, day, times: '09:00 AM - 06:00 PM', active: true }
+            });
+        }
         return this.prisma.weeklySchedule.update({
             where: { id: schedule.id },
             data: { active: !schedule.active }

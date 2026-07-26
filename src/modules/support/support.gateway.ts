@@ -47,8 +47,18 @@ export class SupportGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
     this.logger.log(`Companion ${companion.sub} joined ticket room: ${room}`);
 
+    // Send welcome message to joining companion
+    client.emit('receive_support_message', {
+      id: `sys-${Date.now()}`,
+      senderId: 'system',
+      senderType: 'support',
+      text: 'Support chat connected. An agent will assist you shortly.',
+      timestamp: new Date().toISOString(),
+    });
+
     return { event: 'joined', room };
   }
+
 
   @SubscribeMessage('send_support_message')
   async handleMessage(

@@ -43,7 +43,12 @@ export class AvailabilityController {
   /** PUT /companion/availability/weekly/:day/times */
   @Put('weekly/:day/times')
   @ApiOperation({ summary: 'Set day times' })
-  setDayTimes(@CurrentCompanion() c: JwtPayload, @Param('day') day: string, @Body('times') times: string) {
+  setDayTimes(
+    @CurrentCompanion() c: JwtPayload,
+    @Param('day') day: string,
+    @Body() dto: { times?: string; startTime?: string; endTime?: string },
+  ) {
+    const times = dto.times ?? (dto.startTime && dto.endTime ? `${dto.startTime} - ${dto.endTime}` : '09:00 AM - 06:00 PM');
     return this.availabilityService.setDayTimes(c.sub, day, times);
   }
 

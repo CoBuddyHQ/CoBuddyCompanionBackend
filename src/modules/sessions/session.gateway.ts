@@ -14,7 +14,7 @@ import { WsJwtGuard } from '../../common/guards/ws-jwt.guard';
 
 @WebSocketGateway({
   namespace: '/sessions',
-  cors: { origin: '*' }, // Inherits global CORS ideally, but explicitly defined here for safety
+  cors: { origin: '*' },
 })
 @UseGuards(WsJwtGuard)
 export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -22,9 +22,6 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
   server: Server;
 
   private readonly logger = new Logger(SessionGateway.name);
-
-  // We could store socket-to-session mappings in Redis for a scalable production setup.
-  // Using memory Map for the MVP scope.
   private readonly connectedClients = new Map<string, Socket>();
 
   handleConnection(client: Socket) {
@@ -49,10 +46,8 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
     this.connectedClients.set(client.id, client);
 
     this.logger.log(`Companion ${companion.sub} joined room: ${room}`);
-
-    // Notify others in the room
     this.server.to(room).emit('companion_joined', { companionId: companion.sub });
-    
+
     return { event: 'joined', room };
   }
 
@@ -65,6 +60,7 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
     const room = `session_${payload.sessionId}`;
 
     const message = {
+      id: `msg-${Date.now()}`,
       senderId: companion.sub,
       senderType: 'companion',
       text: payload.text,
@@ -72,10 +68,7 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
       timestamp: new Date().toISOString(),
     };
 
-    // Broadcast to room
     this.server.to(room).emit('receive_message', message);
-    
-    // E.g. Also save to database here via SessionService
     return { success: true, message };
   }
 
@@ -95,9 +88,23 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
       timestamp: new Date().toISOString(),
     };
 
-    // Broadcast location to the customer in the room
     client.to(room).emit('companion_location_updated', locationUpdate);
-    
+    return { success: true };
+  }
+
+  @SubscribeMessage('typing')
+  async handleTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { sessionId: string; isTyping: boolean },
+  ) {
+    const companion = client.data.companion;
+    const room = `session_${payload.sessionId}`;
+
+    client.to(room).emit('typing', {
+      isTyping: payload.isTyping,
+      userId: companion.sub,
+    });
+
     return { success: true };
   }
 }

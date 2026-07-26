@@ -53,7 +53,11 @@ export declare class AvailabilityController {
         companionId: string;
         times: string;
     }>;
-    setDayTimes(c: JwtPayload, day: string, times: string): Promise<{
+    setDayTimes(c: JwtPayload, day: string, dto: {
+        times?: string;
+        startTime?: string;
+        endTime?: string;
+    }): Promise<{
         id: string;
         createdAt: Date;
         active: boolean;
