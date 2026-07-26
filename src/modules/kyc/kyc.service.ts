@@ -69,10 +69,15 @@ export class KycService {
   async saveBasicDetails(companionId: string, dto: BasicDetailsDto) {
     // 1. Update core Companion record (email, dob, gender, display name)
     const companionData: any = {};
-    if (dto.email !== undefined) companionData.email = dto.email;
-    if (dto.dateOfBirth !== undefined) companionData.dateOfBirth = new Date(dto.dateOfBirth);
-    if (dto.gender !== undefined) companionData.gender = dto.gender;
-    if (dto.displayName !== undefined) companionData.displayName = dto.displayName;
+    if (dto.email && dto.email.trim().length > 0) companionData.email = dto.email.trim();
+    if (dto.dateOfBirth) {
+      const parsedDate = new Date(dto.dateOfBirth);
+      if (!isNaN(parsedDate.getTime())) {
+        companionData.dateOfBirth = parsedDate;
+      }
+    }
+    if (dto.gender) companionData.gender = dto.gender;
+    if (dto.displayName) companionData.displayName = dto.displayName;
 
     if (Object.keys(companionData).length > 0) {
       await this.prisma.companion.update({

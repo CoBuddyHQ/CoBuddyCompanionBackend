@@ -28,7 +28,12 @@ let HttpExceptionFilter = HttpExceptionFilter_1 = class HttpExceptionFilter {
             }
             else if (typeof exRes === 'object' && exRes !== null) {
                 const r = exRes;
-                message = r.message ?? message;
+                if (Array.isArray(r.message)) {
+                    message = r.message.join('; ');
+                }
+                else {
+                    message = r.message ?? message;
+                }
                 error = r.error ?? error;
             }
             error = this.statusToError(status);
