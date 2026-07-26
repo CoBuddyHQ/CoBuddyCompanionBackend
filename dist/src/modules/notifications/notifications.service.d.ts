@@ -11,7 +11,7 @@ export declare class NotificationsService {
             body: any;
             isRead: any;
             data: any;
-            createdAt: any;
+            createdAt: string;
         }[];
         total: number;
         unreadCount: number;
@@ -44,7 +44,7 @@ export declare class NotificationsService {
             body: any;
             isRead: any;
             data: any;
-            createdAt: any;
+            createdAt: string;
         }[];
     }>;
 }

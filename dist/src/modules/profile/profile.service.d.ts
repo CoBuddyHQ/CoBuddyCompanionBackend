@@ -31,10 +31,10 @@ export declare class ProfileService {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -42,7 +42,7 @@ export declare class ProfileService {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     updatePhoto(companionId: string, dto: UpdatePhotoDto): Promise<{
         companionId: any;
@@ -55,10 +55,10 @@ export declare class ProfileService {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -66,7 +66,7 @@ export declare class ProfileService {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     setupBulk(companionId: string, dto: ProfileSetupBulkDto): Promise<{
         success: boolean;
@@ -115,10 +115,10 @@ export declare class ProfileService {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -126,7 +126,7 @@ export declare class ProfileService {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     updateBio(companionId: string, dto: UpdateBioDto): Promise<{
         companionId: any;
@@ -139,10 +139,10 @@ export declare class ProfileService {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -150,7 +150,7 @@ export declare class ProfileService {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     updateCategories(companionId: string, dto: UpdateCategoriesDto): Promise<{
         companionId: any;
@@ -163,10 +163,10 @@ export declare class ProfileService {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -174,7 +174,7 @@ export declare class ProfileService {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     updateLanguages(companionId: string, dto: UpdateLanguagesDto): Promise<{
         companionId: any;
@@ -187,10 +187,10 @@ export declare class ProfileService {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -198,7 +198,7 @@ export declare class ProfileService {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     updateServiceAreas(companionId: string, dto: UpdateServiceAreasDto): Promise<{
         companionId: any;
@@ -211,10 +211,10 @@ export declare class ProfileService {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -222,7 +222,7 @@ export declare class ProfileService {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     updatePricing(companionId: string, dto: UpdatePricingDto): Promise<{
         companionId: any;
@@ -235,10 +235,10 @@ export declare class ProfileService {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -246,7 +246,7 @@ export declare class ProfileService {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     updatePhotos(companionId: string, dto: UpdatePhotosDto): Promise<{
         companionId: any;
@@ -259,10 +259,10 @@ export declare class ProfileService {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -270,7 +270,7 @@ export declare class ProfileService {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     reorderPhotos(companionId: string, dto: ReorderPhotosDto): Promise<{
         galleryPhotos: string[];

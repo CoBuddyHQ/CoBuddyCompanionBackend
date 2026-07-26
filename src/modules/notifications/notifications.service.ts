@@ -5,16 +5,28 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class NotificationsService {
   constructor(private prisma: PrismaService) {}
 
-  // Returns Notification[] matching store.types.ts Notification interface
   private toNotificationResponse(n: any) {
+    let parsedData = null;
+    if (n.data) {
+      if (typeof n.data === 'string') {
+        try {
+          parsedData = JSON.parse(n.data);
+        } catch {
+          parsedData = { raw: n.data };
+        }
+      } else {
+        parsedData = n.data;
+      }
+    }
+
     return {
       notificationId: n.id,
-      type: n.type.toLowerCase(),
+      type: (n.type || 'system').toLowerCase(),
       title: n.title,
       body: n.body,
       isRead: n.isRead,
-      data: n.data ? JSON.parse(n.data) : null,
-      createdAt: n.createdAt.toISOString(),
+      data: parsedData,
+      createdAt: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString(),
     };
   }
 

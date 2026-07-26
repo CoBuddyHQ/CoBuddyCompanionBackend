@@ -11,7 +11,7 @@ export declare class NotificationsController {
             body: any;
             isRead: any;
             data: any;
-            createdAt: any;
+            createdAt: string;
         }[];
         total: number;
         unreadCount: number;
@@ -33,7 +33,7 @@ export declare class NotificationsController {
             body: any;
             isRead: any;
             data: any;
-            createdAt: any;
+            createdAt: string;
         }[];
     }>;
     markRead(c: JwtPayload, id: string): Promise<{

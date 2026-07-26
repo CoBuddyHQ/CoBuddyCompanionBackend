@@ -15,10 +15,10 @@ export declare class ProfileController {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -26,7 +26,7 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     updatePhotos(c: JwtPayload, dto: UpdatePhotosDto): Promise<{
         companionId: any;
@@ -39,10 +39,10 @@ export declare class ProfileController {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -50,7 +50,7 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     updateWorkPreference(c: JwtPayload, dto: UpdateWorkPreferenceDto): Promise<{
         success: boolean;
@@ -83,10 +83,10 @@ export declare class ProfileController {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -94,7 +94,7 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     updateBasic(c: JwtPayload, dto: UpdateBasicProfileDto): Promise<{
         companionId: any;
@@ -107,10 +107,10 @@ export declare class ProfileController {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -118,7 +118,7 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     updateBio(c: JwtPayload, dto: UpdateBioDto): Promise<{
         companionId: any;
@@ -131,10 +131,10 @@ export declare class ProfileController {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -142,7 +142,7 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     updateCategories(c: JwtPayload, dto: UpdateCategoriesDto): Promise<{
         companionId: any;
@@ -155,10 +155,10 @@ export declare class ProfileController {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -166,7 +166,7 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     updateLanguages(c: JwtPayload, dto: UpdateLanguagesDto): Promise<{
         companionId: any;
@@ -179,10 +179,10 @@ export declare class ProfileController {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -190,7 +190,7 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     updateServiceAreas(c: JwtPayload, dto: UpdateServiceAreasDto): Promise<{
         companionId: any;
@@ -203,10 +203,10 @@ export declare class ProfileController {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -214,7 +214,7 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     updatePricing(c: JwtPayload, dto: UpdatePricingDto): Promise<{
         companionId: any;
@@ -227,10 +227,10 @@ export declare class ProfileController {
         bio: any;
         hourlyRate: number;
         sessionDuration: any;
-        profileStatus: any;
-        verificationStatus: any;
+        profileStatus: string;
+        verificationStatus: string;
         trustScore: any;
-        trustLevel: any;
+        trustLevel: string;
         rating: number;
         totalReviews: any;
         totalSessions: any;
@@ -238,7 +238,7 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         galleryPhotos: any;
-        joinedAt: any;
+        joinedAt: string;
     }>;
     reorderPhotos(c: JwtPayload, dto: ReorderPhotosDto): Promise<{
         galleryPhotos: string[];

@@ -47,13 +47,13 @@ let DashboardService = class DashboardService {
         return {
             companion: {
                 companionId: companion.id,
-                displayName: companion.displayName,
-                profileStatus: companion.profileStatus.toLowerCase(),
-                verificationStatus: companion.verificationStatus.toLowerCase(),
-                isAvailable: companion.isAvailable,
-                trustScore: companion.trustScore,
-                trustLevel: companion.trustLevel.toLowerCase(),
-                photoUrl: companion.photoUrl,
+                displayName: companion.displayName ?? '',
+                profileStatus: companion.profileStatus ? String(companion.profileStatus).toLowerCase() : 'draft',
+                verificationStatus: companion.verificationStatus ? String(companion.verificationStatus).toLowerCase() : 'not_started',
+                isAvailable: companion.isAvailable ?? false,
+                trustScore: companion.trustScore ?? 0,
+                trustLevel: companion.trustLevel ? String(companion.trustLevel).toLowerCase() : 'new',
+                photoUrl: companion.photoUrl ?? null,
             },
             stats: {
                 totalEarnedThisMonth,

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Category } from '@prisma/client';
 import {
   UpdateBasicProfileDto,
   UpdateBioDto,
@@ -17,6 +18,25 @@ import {
   UpdateVenuesDto,
   UpdateBoundariesDto,
 } from './dto/profile.dto';
+
+function mapToCategoryEnum(catStr: string): Category {
+  if (!catStr || typeof catStr !== 'string') return Category.cafe_conversation;
+  const s = catStr.toLowerCase();
+  if (s.includes('cafe') || s.includes('conversation')) return Category.cafe_conversation;
+  if (s.includes('walk') && !s.includes('wellness')) return Category.city_walk;
+  if (s.includes('art') || s.includes('culture')) return Category.art_culture;
+  if (s.includes('food') || s.includes('dining')) return Category.food_experience;
+  if (s.includes('shop')) return Category.shopping_assistance;
+  if (s.includes('event') || s.includes('concert')) return Category.events;
+  if (s.includes('business') || s.includes('network')) return Category.business_networking;
+  if (s.includes('book')) return Category.bookstore;
+  if (s.includes('wellness')) return Category.wellness_walk;
+  if (s.includes('movie') || s.includes('cinema')) return Category.movies;
+
+  const validEnums = Object.values(Category) as string[];
+  if (validEnums.includes(catStr)) return catStr as Category;
+  return Category.cafe_conversation;
+}
 
 @Injectable()
 export class ProfileService {
@@ -294,28 +314,7 @@ export class ProfileService {
     return this.toProfileResponse(companion);
   }
 
-  import { Category } from '@prisma/client';
-
-function mapToCategoryEnum(catStr: string): Category {
-  if (!catStr || typeof catStr !== 'string') return Category.cafe_conversation;
-  const s = catStr.toLowerCase();
-  if (s.includes('cafe') || s.includes('conversation')) return Category.cafe_conversation;
-  if (s.includes('walk') && !s.includes('wellness')) return Category.city_walk;
-  if (s.includes('art') || s.includes('culture')) return Category.art_culture;
-  if (s.includes('food') || s.includes('dining')) return Category.food_experience;
-  if (s.includes('shop')) return Category.shopping_assistance;
-  if (s.includes('event') || s.includes('concert')) return Category.events;
-  if (s.includes('business') || s.includes('network')) return Category.business_networking;
-  if (s.includes('book')) return Category.bookstore;
-  if (s.includes('wellness')) return Category.wellness_walk;
-  if (s.includes('movie') || s.includes('cinema')) return Category.movies;
-
-  const validEnums = Object.values(Category) as string[];
-  if (validEnums.includes(catStr)) return catStr as Category;
-  return Category.cafe_conversation;
-}
-
-// ── PUT /companion/profile/categories ─────────────────────────────────────
+  // ── PUT /companion/profile/categories ─────────────────────────────────────
 
   async updateCategories(companionId: string, dto: UpdateCategoriesDto) {
     if (!dto.categories?.length) throw new BadRequestException('At least one category required');
@@ -515,23 +514,23 @@ function mapToCategoryEnum(catStr: string): Category {
       maskedPhone: this.maskPhone(companion.phone),
       city: companion.city ?? '',
       serviceAreas: (companion.serviceAreas ?? []).map((a: any) => a.area),
-      categories: (companion.categories ?? []).map((c: any) => c.category.toLowerCase()),
-      languages: (companion.languages ?? []).map((l: any) => l.language),
+      categories: (companion.categories ?? []).map((c: any) => c?.category ? String(c.category).toLowerCase() : ''),
+      languages: (companion.languages ?? []).map((l: any) => l?.language ?? ''),
       bio: companion.bio ?? '',
       hourlyRate: companion.hourlyRate ? Number(companion.hourlyRate) : 0,
       sessionDuration: companion.sessionDuration ?? 90,
-      profileStatus: companion.profileStatus.toLowerCase(),
-      verificationStatus: companion.verificationStatus.toLowerCase(),
-      trustScore: companion.trustScore,
-      trustLevel: companion.trustLevel.toLowerCase(),
-      rating: Number(companion.rating),
-      totalReviews: companion.totalReviews,
-      totalSessions: companion.totalSessions,
-      isAvailable: companion.isAvailable,
-      isOnline: companion.isOnline,
+      profileStatus: companion.profileStatus ? String(companion.profileStatus).toLowerCase() : 'draft',
+      verificationStatus: companion.verificationStatus ? String(companion.verificationStatus).toLowerCase() : 'not_started',
+      trustScore: companion.trustScore ?? 0,
+      trustLevel: companion.trustLevel ? String(companion.trustLevel).toLowerCase() : 'new',
+      rating: companion.rating ? Number(companion.rating) : 0.0,
+      totalReviews: companion.totalReviews ?? 0,
+      totalSessions: companion.totalSessions ?? 0,
+      isAvailable: companion.isAvailable ?? false,
+      isOnline: companion.isOnline ?? false,
       photoUrl: companion.photoUrl ?? null,
-      galleryPhotos: (companion.galleryPhotos ?? []).map((p: any) => p.url),
-      joinedAt: companion.createdAt.toISOString(),
+      galleryPhotos: (companion.galleryPhotos ?? []).map((p: any) => p?.url).filter(Boolean),
+      joinedAt: companion.createdAt ? new Date(companion.createdAt).toISOString() : new Date().toISOString(),
     };
   }
 

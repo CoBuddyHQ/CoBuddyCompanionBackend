@@ -13,6 +13,36 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProfileService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const client_1 = require("@prisma/client");
+function mapToCategoryEnum(catStr) {
+    if (!catStr || typeof catStr !== 'string')
+        return client_1.Category.cafe_conversation;
+    const s = catStr.toLowerCase();
+    if (s.includes('cafe') || s.includes('conversation'))
+        return client_1.Category.cafe_conversation;
+    if (s.includes('walk') && !s.includes('wellness'))
+        return client_1.Category.city_walk;
+    if (s.includes('art') || s.includes('culture'))
+        return client_1.Category.art_culture;
+    if (s.includes('food') || s.includes('dining'))
+        return client_1.Category.food_experience;
+    if (s.includes('shop'))
+        return client_1.Category.shopping_assistance;
+    if (s.includes('event') || s.includes('concert'))
+        return client_1.Category.events;
+    if (s.includes('business') || s.includes('network'))
+        return client_1.Category.business_networking;
+    if (s.includes('book'))
+        return client_1.Category.bookstore;
+    if (s.includes('wellness'))
+        return client_1.Category.wellness_walk;
+    if (s.includes('movie') || s.includes('cinema'))
+        return client_1.Category.movies;
+    const validEnums = Object.values(client_1.Category);
+    if (validEnums.includes(catStr))
+        return catStr;
+    return client_1.Category.cafe_conversation;
+}
 let ProfileService = ProfileService_1 = class ProfileService {
     constructor(prisma) {
         this.prisma = prisma;
@@ -239,7 +269,7 @@ let ProfileService = ProfileService_1 = class ProfileService {
         await this.prisma.companionCategory.createMany({
             data: dto.categories.map(cat => ({
                 companionId,
-                category: cat,
+                category: mapToCategoryEnum(cat),
             })),
         });
         return this.getProfile(companionId);
@@ -402,23 +432,23 @@ let ProfileService = ProfileService_1 = class ProfileService {
             maskedPhone: this.maskPhone(companion.phone),
             city: companion.city ?? '',
             serviceAreas: (companion.serviceAreas ?? []).map((a) => a.area),
-            categories: (companion.categories ?? []).map((c) => c.category.toLowerCase()),
-            languages: (companion.languages ?? []).map((l) => l.language),
+            categories: (companion.categories ?? []).map((c) => c?.category ? String(c.category).toLowerCase() : ''),
+            languages: (companion.languages ?? []).map((l) => l?.language ?? ''),
             bio: companion.bio ?? '',
             hourlyRate: companion.hourlyRate ? Number(companion.hourlyRate) : 0,
             sessionDuration: companion.sessionDuration ?? 90,
-            profileStatus: companion.profileStatus.toLowerCase(),
-            verificationStatus: companion.verificationStatus.toLowerCase(),
-            trustScore: companion.trustScore,
-            trustLevel: companion.trustLevel.toLowerCase(),
-            rating: Number(companion.rating),
-            totalReviews: companion.totalReviews,
-            totalSessions: companion.totalSessions,
-            isAvailable: companion.isAvailable,
-            isOnline: companion.isOnline,
+            profileStatus: companion.profileStatus ? String(companion.profileStatus).toLowerCase() : 'draft',
+            verificationStatus: companion.verificationStatus ? String(companion.verificationStatus).toLowerCase() : 'not_started',
+            trustScore: companion.trustScore ?? 0,
+            trustLevel: companion.trustLevel ? String(companion.trustLevel).toLowerCase() : 'new',
+            rating: companion.rating ? Number(companion.rating) : 0.0,
+            totalReviews: companion.totalReviews ?? 0,
+            totalSessions: companion.totalSessions ?? 0,
+            isAvailable: companion.isAvailable ?? false,
+            isOnline: companion.isOnline ?? false,
             photoUrl: companion.photoUrl ?? null,
-            galleryPhotos: (companion.galleryPhotos ?? []).map((p) => p.url),
-            joinedAt: companion.createdAt.toISOString(),
+            galleryPhotos: (companion.galleryPhotos ?? []).map((p) => p?.url).filter(Boolean),
+            joinedAt: companion.createdAt ? new Date(companion.createdAt).toISOString() : new Date().toISOString(),
         };
     }
     maskPhone(phone) {
