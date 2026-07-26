@@ -294,7 +294,28 @@ export class ProfileService {
     return this.toProfileResponse(companion);
   }
 
-  // ── PUT /companion/profile/categories ─────────────────────────────────────
+  import { Category } from '@prisma/client';
+
+function mapToCategoryEnum(catStr: string): Category {
+  if (!catStr || typeof catStr !== 'string') return Category.cafe_conversation;
+  const s = catStr.toLowerCase();
+  if (s.includes('cafe') || s.includes('conversation')) return Category.cafe_conversation;
+  if (s.includes('walk') && !s.includes('wellness')) return Category.city_walk;
+  if (s.includes('art') || s.includes('culture')) return Category.art_culture;
+  if (s.includes('food') || s.includes('dining')) return Category.food_experience;
+  if (s.includes('shop')) return Category.shopping_assistance;
+  if (s.includes('event') || s.includes('concert')) return Category.events;
+  if (s.includes('business') || s.includes('network')) return Category.business_networking;
+  if (s.includes('book')) return Category.bookstore;
+  if (s.includes('wellness')) return Category.wellness_walk;
+  if (s.includes('movie') || s.includes('cinema')) return Category.movies;
+
+  const validEnums = Object.values(Category) as string[];
+  if (validEnums.includes(catStr)) return catStr as Category;
+  return Category.cafe_conversation;
+}
+
+// ── PUT /companion/profile/categories ─────────────────────────────────────
 
   async updateCategories(companionId: string, dto: UpdateCategoriesDto) {
     if (!dto.categories?.length) throw new BadRequestException('At least one category required');
@@ -303,7 +324,7 @@ export class ProfileService {
     await this.prisma.companionCategory.createMany({
       data: dto.categories.map(cat => ({
         companionId,
-        category: cat as any,
+        category: mapToCategoryEnum(cat),
       })),
     });
 
