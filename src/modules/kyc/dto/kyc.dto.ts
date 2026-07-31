@@ -130,9 +130,13 @@ export class SavePanDto {
   @IsString()
   panName: string;
 
-  @ApiProperty({ example: 'ABCXXXXX34F' })
-  @IsString()
-  maskedPan: string;
+  @ApiPropertyOptional({ example: 'SEQPS5533K' })
+  @IsOptional() @IsString()
+  panNumber?: string;
+
+  @ApiPropertyOptional({ example: 'ABCXXXXX34F' })
+  @IsOptional() @IsString()
+  maskedPan?: string;
 
   @ApiPropertyOptional({ example: 'India' })
   @IsOptional() @IsString()
@@ -152,21 +156,25 @@ export class SaveBankDto {
   @IsString()
   holderName: string;
 
-  @ApiProperty({ example: '4821' })
-  @IsString()
-  maskedAccount: string;
+  @ApiPropertyOptional({ example: '1234567890' })
+  @IsOptional() @IsString()
+  accountNumber?: string;
+
+  @ApiPropertyOptional({ example: '4821' })
+  @IsOptional() @IsString()
+  maskedAccount?: string;
 
   @ApiProperty({ example: 'HDFC0001234' })
   @IsString()
   ifsc: string;
 
-  @ApiProperty({ example: 'savings' })
-  @IsString()
-  accountType: string;
+  @ApiPropertyOptional({ example: 'savings' })
+  @IsOptional() @IsString()
+  accountType?: string;
 
-  @ApiProperty({ example: 'HDFC Bank' })
-  @IsString()
-  bankName: string;
+  @ApiPropertyOptional({ example: 'HDFC Bank' })
+  @IsOptional() @IsString()
+  bankName?: string;
 }
 
 export class VerifyBankDto {
@@ -176,9 +184,13 @@ export class VerifyBankDto {
 }
 
 export class SaveUpiDto {
-  @ApiProperty({ example: 'ra••••@okaxis' })
-  @IsString()
-  maskedUpi: string;
+  @ApiPropertyOptional({ example: 'rahul@okaxis' })
+  @IsOptional() @IsString()
+  upiId?: string;
+
+  @ApiPropertyOptional({ example: 'ra••••@okaxis' })
+  @IsOptional() @IsString()
+  maskedUpi?: string;
 
   @ApiPropertyOptional({ example: 'My Primary UPI' })
   @IsOptional() @IsString()

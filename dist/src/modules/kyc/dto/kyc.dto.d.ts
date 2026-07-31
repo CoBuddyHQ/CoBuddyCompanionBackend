@@ -40,23 +40,26 @@ export declare class SaveAddressDto {
 }
 export declare class SavePanDto {
     panName: string;
-    maskedPan: string;
+    panNumber?: string;
+    maskedPan?: string;
     taxResidency?: string;
     hasGST?: boolean;
     gstNumber?: string;
 }
 export declare class SaveBankDto {
     holderName: string;
-    maskedAccount: string;
+    accountNumber?: string;
+    maskedAccount?: string;
     ifsc: string;
-    accountType: string;
-    bankName: string;
+    accountType?: string;
+    bankName?: string;
 }
 export declare class VerifyBankDto {
     bankId: string;
 }
 export declare class SaveUpiDto {
-    maskedUpi: string;
+    upiId?: string;
+    maskedUpi?: string;
     payoutLabel?: string;
     isPrimary?: boolean;
 }

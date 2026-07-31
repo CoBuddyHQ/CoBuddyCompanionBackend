@@ -25,7 +25,7 @@ exports.AuthModule = AuthModule = __decorate([
                 imports: [config_1.ConfigModule],
                 useFactory: (config) => ({
                     secret: config.get('JWT_SECRET') ?? 'default-secret',
-                    signOptions: { expiresIn: '15m' },
+                    signOptions: { expiresIn: (config.get('JWT_EXPIRES_IN') || '30d') },
                 }),
                 inject: [config_1.ConfigService],
             }),

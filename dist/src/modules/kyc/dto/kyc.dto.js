@@ -193,7 +193,14 @@ __decorate([
     __metadata("design:type", String)
 ], SavePanDto.prototype, "panName", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: 'ABCXXXXX34F' }),
+    (0, swagger_1.ApiPropertyOptional)({ example: 'SEQPS5533K' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SavePanDto.prototype, "panNumber", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'ABCXXXXX34F' }),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], SavePanDto.prototype, "maskedPan", void 0);
@@ -224,7 +231,14 @@ __decorate([
     __metadata("design:type", String)
 ], SaveBankDto.prototype, "holderName", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: '4821' }),
+    (0, swagger_1.ApiPropertyOptional)({ example: '1234567890' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveBankDto.prototype, "accountNumber", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: '4821' }),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], SaveBankDto.prototype, "maskedAccount", void 0);
@@ -234,12 +248,14 @@ __decorate([
     __metadata("design:type", String)
 ], SaveBankDto.prototype, "ifsc", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: 'savings' }),
+    (0, swagger_1.ApiPropertyOptional)({ example: 'savings' }),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], SaveBankDto.prototype, "accountType", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: 'HDFC Bank' }),
+    (0, swagger_1.ApiPropertyOptional)({ example: 'HDFC Bank' }),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], SaveBankDto.prototype, "bankName", void 0);
@@ -255,7 +271,14 @@ class SaveUpiDto {
 }
 exports.SaveUpiDto = SaveUpiDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: 'ra••••@okaxis' }),
+    (0, swagger_1.ApiPropertyOptional)({ example: 'rahul@okaxis' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SaveUpiDto.prototype, "upiId", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'ra••••@okaxis' }),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], SaveUpiDto.prototype, "maskedUpi", void 0);

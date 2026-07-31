@@ -192,16 +192,18 @@ let KycService = class KycService {
         return { success: true, message: 'Address details saved successfully.' };
     }
     async saveUpi(companionId, dto) {
+        const rawUpi = dto.upiId || dto.maskedUpi || '';
+        const maskedUpi = dto.maskedUpi || (rawUpi.includes('@') ? `${rawUpi.slice(0, 2)}••••@${rawUpi.split('@')[1]}` : rawUpi);
         await this.prisma.companionKYC.upsert({
             where: { companionId },
             update: {
-                maskedUpi: dto.maskedUpi,
+                maskedUpi,
                 upiPayoutLabel: dto.payoutLabel,
                 upiIsPrimary: dto.isPrimary ?? true,
             },
             create: {
                 companionId,
-                maskedUpi: dto.maskedUpi,
+                maskedUpi,
                 upiPayoutLabel: dto.payoutLabel,
                 upiIsPrimary: dto.isPrimary ?? true,
             },
@@ -209,52 +211,56 @@ let KycService = class KycService {
         return { success: true, message: 'UPI details saved.' };
     }
     async savePan(companionId, dto) {
+        const rawPan = dto.panNumber || dto.maskedPan || '';
+        const maskedPan = dto.maskedPan || (rawPan.length >= 6 ? `${rawPan.slice(0, 4)}****${rawPan.slice(-2)}` : rawPan);
         await this.prisma.companionKYC.upsert({
             where: { companionId },
             update: {
-                maskedPan: dto.maskedPan,
+                maskedPan,
                 panName: dto.panName,
-                taxResidency: dto.taxResidency,
-                hasGST: dto.hasGST,
+                taxResidency: dto.taxResidency ?? 'India',
+                hasGST: dto.hasGST ?? false,
                 gstNumber: dto.hasGST ? dto.gstNumber ?? null : null,
             },
             create: {
                 companionId,
-                maskedPan: dto.maskedPan,
+                maskedPan,
                 panName: dto.panName,
-                taxResidency: dto.taxResidency,
-                hasGST: dto.hasGST,
+                taxResidency: dto.taxResidency ?? 'India',
+                hasGST: dto.hasGST ?? false,
                 gstNumber: dto.hasGST ? dto.gstNumber ?? null : null,
             },
         });
         return { success: true, message: 'PAN details saved.' };
     }
     async saveBank(companionId, dto) {
+        const rawAcc = dto.accountNumber || dto.maskedAccount || '';
+        const maskedAccount = dto.maskedAccount || (rawAcc.length >= 4 ? `••••${rawAcc.slice(-4)}` : rawAcc || '••••');
         await this.prisma.companionKYC.upsert({
             where: { companionId },
             update: {
                 bankHolderName: dto.holderName,
-                maskedBankAccount: dto.maskedAccount,
+                maskedBankAccount: maskedAccount,
                 bankIfsc: dto.ifsc,
-                bankAccountType: dto.accountType,
-                bankName: dto.bankName,
+                bankAccountType: dto.accountType ?? 'savings',
+                bankName: dto.bankName ?? 'Bank Account',
                 bankVerified: false,
             },
             create: {
                 companionId,
                 bankHolderName: dto.holderName,
-                maskedBankAccount: dto.maskedAccount,
+                maskedBankAccount: maskedAccount,
                 bankIfsc: dto.ifsc,
-                bankAccountType: dto.accountType,
-                bankName: dto.bankName,
+                bankAccountType: dto.accountType ?? 'savings',
+                bankName: dto.bankName ?? 'Bank Account',
                 bankVerified: false,
             },
         });
         return {
             success: true,
             bankId: `bank-${companionId.slice(-8)}`,
-            maskedAccount: dto.maskedAccount,
-            bankName: dto.bankName,
+            maskedAccount,
+            bankName: dto.bankName ?? 'Bank Account',
             message: 'Bank account submitted for verification.',
         };
     }
