@@ -49,7 +49,7 @@ export class SupportGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
     // Send welcome message to joining companion
     client.emit('receive_support_message', {
-      id: `sys-${Date.now()}`,
+      id: 'sys-welcome-default',
       senderId: 'system',
       senderType: 'support',
       text: 'Support chat connected. An agent will assist you shortly.',
@@ -58,7 +58,6 @@ export class SupportGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
     return { event: 'joined', room };
   }
-
 
   @SubscribeMessage('send_support_message')
   async handleMessage(
@@ -69,6 +68,7 @@ export class SupportGateway implements OnGatewayConnection, OnGatewayDisconnect 
     const room = `ticket_${payload.ticketId}`;
 
     const message = {
+      id: `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       senderId: companion.sub,
       senderType: 'companion',
       text: payload.text,
@@ -76,10 +76,19 @@ export class SupportGateway implements OnGatewayConnection, OnGatewayDisconnect 
       timestamp: new Date().toISOString(),
     };
 
-    // Broadcast to the support agent and companion in the room
-    this.server.to(room).emit('receive_support_message', message);
+    // Broadcast to others in the room
+    client.to(room).emit('receive_support_message', message);
     
-    // In a real scenario, we'd also call SupportService to save the message to DB
     return { success: true, message };
+  }
+
+  @SubscribeMessage('support_typing')
+  async handleSupportTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { ticketId: string; isTyping: boolean },
+  ) {
+    const companion = client.data.companion;
+    const room = `ticket_${payload.ticketId}`;
+    client.to(room).emit('support_typing', { senderId: companion.sub, isTyping: payload.isTyping });
   }
 }

@@ -5,9 +5,9 @@ export declare class AccountController {
     constructor(accountService: AccountService);
     getSettings(c: JwtPayload): Promise<{
         companionId: string;
-        accountStatus: import("@prisma/client").$Enums.AccountStatus;
-        profileStatus: import("@prisma/client").$Enums.ProfileStatus;
-        verificationStatus: import("@prisma/client").$Enums.VerificationStatus;
+        accountStatus: import(".prisma/client").$Enums.AccountStatus;
+        profileStatus: import(".prisma/client").$Enums.ProfileStatus;
+        verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         phone: string;
         settings: {
             notificationPrefs: import("@prisma/client/runtime/client").JsonValue;

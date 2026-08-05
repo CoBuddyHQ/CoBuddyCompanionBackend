@@ -65,16 +65,34 @@ export declare class AvailabilityService {
         times: string;
     }>;
     addOverride(companionId: string, dto: any): Promise<{
-        id: string;
-        createdAt: Date;
-        companionId: string;
-        startDate: string;
-        endDate: string;
-        reason: string;
-        note: string | null;
-        fullDay: boolean;
-        startTime: string | null;
-        endTime: string | null;
+        isAvailable: boolean;
+        vacationMode: {
+            enabled: boolean;
+            awayFrom: string;
+            returnOn: string;
+        };
+        defaultHours: {
+            day: string;
+            active: boolean;
+            times: string;
+        }[];
+        dateOverrides: {
+            id: string;
+            startDate: string;
+            endDate: string;
+            reason: string;
+            note: string;
+            fullDay: boolean;
+            startTime: string;
+            endTime: string;
+        }[];
+        slots: {
+            id: string;
+            date: string;
+            startTime: string;
+            endTime: string;
+            repeat: boolean;
+        }[];
     }>;
     removeOverride(companionId: string, id: string): Promise<{
         id: string;
@@ -98,21 +116,63 @@ export declare class AvailabilityService {
         date: string;
     }>;
     updateSlot(companionId: string, id: string, dto: any): Promise<{
-        id: string;
-        createdAt: Date;
-        repeat: boolean;
-        companionId: string;
-        startTime: string;
-        endTime: string;
-        date: string;
+        isAvailable: boolean;
+        vacationMode: {
+            enabled: boolean;
+            awayFrom: string;
+            returnOn: string;
+        };
+        defaultHours: {
+            day: string;
+            active: boolean;
+            times: string;
+        }[];
+        dateOverrides: {
+            id: string;
+            startDate: string;
+            endDate: string;
+            reason: string;
+            note: string;
+            fullDay: boolean;
+            startTime: string;
+            endTime: string;
+        }[];
+        slots: {
+            id: string;
+            date: string;
+            startTime: string;
+            endTime: string;
+            repeat: boolean;
+        }[];
     }>;
     removeSlot(companionId: string, id: string): Promise<{
-        id: string;
-        createdAt: Date;
-        repeat: boolean;
-        companionId: string;
-        startTime: string;
-        endTime: string;
-        date: string;
+        isAvailable: boolean;
+        vacationMode: {
+            enabled: boolean;
+            awayFrom: string;
+            returnOn: string;
+        };
+        defaultHours: {
+            day: string;
+            active: boolean;
+            times: string;
+        }[];
+        dateOverrides: {
+            id: string;
+            startDate: string;
+            endDate: string;
+            reason: string;
+            note: string;
+            fullDay: boolean;
+            startTime: string;
+            endTime: string;
+        }[];
+        slots: {
+            id: string;
+            date: string;
+            startTime: string;
+            endTime: string;
+            repeat: boolean;
+        }[];
     }>;
 }

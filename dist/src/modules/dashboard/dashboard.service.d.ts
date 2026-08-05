@@ -15,8 +15,12 @@ export declare class DashboardService {
         };
         stats: {
             totalEarnedThisMonth: number;
+            todayEarnings: number;
+            pendingEarnings: number;
+            thisWeekEarnings: number;
             unreadNotificationsCount: number;
             pendingRequestsCount: number;
+            upcomingSessionsCount: number;
         };
         activeSession: {
             sessionId: any;
@@ -41,6 +45,32 @@ export declare class DashboardService {
             proposedStart: any;
             estimatedEarning: number;
             venueArea: any;
+        }[];
+    }>;
+    private ensureDemoData;
+    getPerformanceInsights(companionId: string, period?: 'week' | 'month'): Promise<{
+        period: "week" | "month";
+        views: number;
+        delta: number;
+        conversionRate: string;
+        avgResponseTime: string;
+        profileClickThrough: string;
+        totalSessions: number;
+        totalReviews: number;
+        rating: number;
+    }>;
+    getAnnouncements(): Promise<{
+        announcements: {
+            id: string;
+            icon: string;
+            iconColor: string;
+            iconBg: string;
+            tag: string;
+            tagColor: string;
+            title: string;
+            body: string;
+            date: string;
+            url: string;
         }[];
     }>;
     private toSessionPreview;

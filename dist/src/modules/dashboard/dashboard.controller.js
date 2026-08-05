@@ -25,6 +25,12 @@ let DashboardController = class DashboardController {
     getDashboardData(c) {
         return this.dashboardService.getDashboardData(c.sub);
     }
+    getPerformanceInsights(c) {
+        return this.dashboardService.getPerformanceInsights(c.sub);
+    }
+    getAnnouncements() {
+        return this.dashboardService.getAnnouncements();
+    }
 };
 exports.DashboardController = DashboardController;
 __decorate([
@@ -35,6 +41,21 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], DashboardController.prototype, "getDashboardData", null);
+__decorate([
+    (0, common_1.Get)('performance'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get companion performance insights' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], DashboardController.prototype, "getPerformanceInsights", null);
+__decorate([
+    (0, common_1.Get)('announcements'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get companion platform announcements' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], DashboardController.prototype, "getAnnouncements", null);
 exports.DashboardController = DashboardController = __decorate([
     (0, swagger_1.ApiTags)('Dashboard'),
     (0, swagger_1.ApiBearerAuth)('companion-jwt'),

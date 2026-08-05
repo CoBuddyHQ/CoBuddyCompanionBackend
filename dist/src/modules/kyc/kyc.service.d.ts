@@ -48,6 +48,7 @@ export declare class KycService {
         submittedAt: string;
         approvedAt: string;
     }>;
+    private logCompletion;
     saveBasicDetails(companionId: string, dto: BasicDetailsDto): Promise<{
         success: boolean;
         message: string;

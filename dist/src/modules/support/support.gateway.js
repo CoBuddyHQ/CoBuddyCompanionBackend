@@ -39,7 +39,7 @@ let SupportGateway = SupportGateway_1 = class SupportGateway {
         this.connectedClients.set(client.id, client);
         this.logger.log(`Companion ${companion.sub} joined ticket room: ${room}`);
         client.emit('receive_support_message', {
-            id: `sys-${Date.now()}`,
+            id: 'sys-welcome-default',
             senderId: 'system',
             senderType: 'support',
             text: 'Support chat connected. An agent will assist you shortly.',
@@ -51,14 +51,20 @@ let SupportGateway = SupportGateway_1 = class SupportGateway {
         const companion = client.data.companion;
         const room = `ticket_${payload.ticketId}`;
         const message = {
+            id: `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             senderId: companion.sub,
             senderType: 'companion',
             text: payload.text,
             attachmentUrl: payload.attachmentUrl,
             timestamp: new Date().toISOString(),
         };
-        this.server.to(room).emit('receive_support_message', message);
+        client.to(room).emit('receive_support_message', message);
         return { success: true, message };
+    }
+    async handleSupportTyping(client, payload) {
+        const companion = client.data.companion;
+        const room = `ticket_${payload.ticketId}`;
+        client.to(room).emit('support_typing', { senderId: companion.sub, isTyping: payload.isTyping });
     }
 };
 exports.SupportGateway = SupportGateway;
@@ -82,6 +88,14 @@ __decorate([
     __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
     __metadata("design:returntype", Promise)
 ], SupportGateway.prototype, "handleMessage", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('support_typing'),
+    __param(0, (0, websockets_1.ConnectedSocket)()),
+    __param(1, (0, websockets_1.MessageBody)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
+    __metadata("design:returntype", Promise)
+], SupportGateway.prototype, "handleSupportTyping", null);
 exports.SupportGateway = SupportGateway = SupportGateway_1 = __decorate([
     (0, websockets_1.WebSocketGateway)({
         namespace: '/support',

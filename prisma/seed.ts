@@ -427,6 +427,190 @@ async function main() {
     }
   });
 
+  // 7. Seed All Remaining Tables for Prisma Studio Completeness
+  await prisma.companionServiceArea.deleteMany({ where: { companionId: companion.id } });
+  await prisma.companionServiceArea.createMany({
+    data: [
+      { companionId: companion.id, area: 'MP Nagar', city: 'Bhopal' },
+      { companionId: companion.id, area: 'Arera Colony', city: 'Bhopal' },
+      { companionId: companion.id, area: 'Indrapuri', city: 'Bhopal' },
+    ],
+  });
+
+  await prisma.companionBadge.deleteMany({ where: { companionId: companion.id } });
+  await prisma.companionBadge.createMany({
+    data: [
+      { companionId: companion.id, badgeKey: 'verified_profile', badgeName: 'Verified Companion' },
+      { companionId: companion.id, badgeKey: 'rising_star', badgeName: 'Rising Star' },
+      { companionId: companion.id, badgeKey: 'top_rated', badgeName: 'Top Rated' },
+    ],
+  });
+
+  await prisma.companionBiometric.deleteMany({ where: { companionId: companion.id } });
+  await prisma.companionBiometric.create({
+    data: {
+      companionId: companion.id,
+      deviceId: 'device-uuid-999',
+      publicKey: 'mock-public-key-xyz-123',
+    },
+  });
+
+  await prisma.payoutRecord.create({
+    data: {
+      companionId: companion.id,
+      amount: 3500.0,
+      status: 'completed',
+      maskedBank: '•••• 2365',
+      utrNumber: 'UTR998877665544',
+      requestedAt: new Date(now.getTime() - 3 * 24 * 3600 * 1000),
+      completedAt: new Date(now.getTime() - 3 * 24 * 3600 * 1000 + 3600 * 1000),
+    },
+  });
+
+  await prisma.weeklySchedule.deleteMany({ where: { companionId: companion.id } });
+  await prisma.weeklySchedule.createMany({
+    data: [
+      { companionId: companion.id, day: 'Mon', active: true, times: '09:00 AM - 06:00 PM' },
+      { companionId: companion.id, day: 'Tue', active: true, times: '09:00 AM - 06:00 PM' },
+      { companionId: companion.id, day: 'Wed', active: true, times: '09:00 AM - 06:00 PM' },
+      { companionId: companion.id, day: 'Thu', active: true, times: '09:00 AM - 06:00 PM' },
+      { companionId: companion.id, day: 'Fri', active: true, times: '10:00 AM - 08:00 PM' },
+      { companionId: companion.id, day: 'Sat', active: true, times: '10:00 AM - 10:00 PM' },
+      { companionId: companion.id, day: 'Sun', active: false, times: '10:00 AM - 06:00 PM' },
+    ],
+  });
+
+  await prisma.dateOverride.create({
+    data: {
+      companionId: companion.id,
+      startDate: '2026-08-15',
+      endDate: '2026-08-15',
+      reason: 'Independence Day Holiday',
+      note: 'Independence Day Holiday',
+      fullDay: true,
+    },
+  });
+
+  await prisma.vacationMode.upsert({
+    where: { companionId: companion.id },
+    update: { enabled: false },
+    create: { companionId: companion.id, enabled: false, awayFrom: null, returnOn: null },
+  });
+
+  await prisma.pushToken.create({
+    data: {
+      companionId: companion.id,
+      deviceId: 'device-uuid-999',
+      token: 'fcm_token_sample_123456789',
+      platform: 'android',
+    },
+  });
+
+  await prisma.sOSEvent.create({
+    data: {
+      companionId: companion.id,
+      sessionId: 'sess_sample_sos',
+      latitude: 23.2599,
+      longitude: 77.4126,
+      resolvedAt: new Date(now.getTime() - 2 * 24 * 3600 * 1000),
+    },
+  });
+
+  await prisma.safetyTimer.upsert({
+    where: { companionId: companion.id },
+    update: { status: 'active' },
+    create: {
+      companionId: companion.id,
+      status: 'active',
+      durationMinutes: 90,
+      startedAt: new Date(now.getTime() - 4 * 3600 * 1000),
+      expiresAt: new Date(now.getTime() - 2.5 * 3600 * 1000),
+    },
+  });
+
+  await prisma.trustedContact.createMany({
+    data: [
+      { companionId: companion.id, name: 'Mom', phone: '+919876500001', maskedPhone: '+91 98765••••1', relationship: 'Parent', isEmergencyContact: true },
+      { companionId: companion.id, name: 'Rahul (Brother)', phone: '+919876500002', maskedPhone: '+91 98765••••2', relationship: 'Sibling', isEmergencyContact: false },
+    ],
+  });
+
+  await prisma.blockedCustomer.create({
+    data: {
+      companionId: companion.id,
+      customerId: 'cust_blocked_01',
+      reason: 'Inappropriate language',
+    },
+  });
+
+  await prisma.incidentReport.create({
+    data: {
+      companionId: companion.id,
+      sessionId: 'sess_incident_01',
+      description: 'Customer asked for private contact outside platform',
+      status: 'resolved',
+    },
+  });
+
+  await prisma.trustTask.createMany({
+    data: [
+      { companionId: companion.id, taskId: 'verify_id', title: 'Verify Government ID', description: 'Upload Aadhaar or Passport', category: 'verification', points: 30, isCompleted: true },
+      { companionId: companion.id, taskId: 'complete_quiz', title: 'Complete Safety Quiz', description: 'Pass 5 safety questions', category: 'safety', points: 20, isCompleted: true },
+      { companionId: companion.id, taskId: 'first_session', title: 'Complete First Session', description: 'Finish 1 session with positive rating', category: 'activity', points: 35, isCompleted: true },
+    ],
+  });
+
+  await prisma.moduleCompletion.createMany({
+    data: [
+      { companionId: companion.id, moduleName: 'onboarding', screenName: 'BasicDetailsScreen', stepName: 'basic_details', completionStatus: 'completed', completionPercentage: 20 },
+      { companionId: companion.id, moduleName: 'onboarding', screenName: 'GovernmentIdUploadScreen', stepName: 'government_id', completionStatus: 'completed', completionPercentage: 40 },
+      { companionId: companion.id, moduleName: 'onboarding', screenName: 'PANTaxDetailsScreen', stepName: 'pan', completionStatus: 'completed', completionPercentage: 60 },
+      { companionId: companion.id, moduleName: 'onboarding', screenName: 'AddBankAccountScreen', stepName: 'bank', completionStatus: 'completed', completionPercentage: 80 },
+      { companionId: companion.id, moduleName: 'onboarding', screenName: 'SubmitProfileForApprovalScreen', stepName: 'submit', completionStatus: 'completed', completionPercentage: 100 },
+      { companionId: companion.id, moduleId: module1.id, moduleName: 'training', screenName: 'TrainingModuleDetailScreen', stepName: 'mod_1_intro', completionStatus: 'completed', score: 100, completionPercentage: 100 },
+    ] as any[],
+  });
+
+
+  await prisma.uploadedFile.create({
+    data: {
+      companionId: companion.id,
+      url: 'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a',
+      key: 'uploads/companion/profile_photo_sample.jpg',
+      category: 'profile_photo',
+      originalName: 'photo.jpg',
+      mimeType: 'image/jpeg',
+      size: 154200,
+    },
+  });
+
+  await prisma.oTPSession.create({
+    data: {
+      phone: '9999992398',
+      otp: '123456',
+      expiresAt: new Date(now.getTime() + 10 * 60 * 1000),
+      verified: true,
+    },
+  });
+
+  await prisma.refreshToken.create({
+    data: {
+      companionId: companion.id,
+      token: 'sample_refresh_token_jwt_999',
+      deviceId: 'device-uuid-999',
+      expiresAt: new Date(now.getTime() + 30 * 24 * 3600 * 1000),
+    },
+  });
+
+  await prisma.razorpayOrder.create({
+    data: {
+      razorpayOrderId: 'order_sample_rzp_123',
+      companionId: companion.id,
+      amountPaisa: 74900,
+      status: 'paid',
+    },
+  });
+
   console.log('Seeding Finished!');
 }
 main()

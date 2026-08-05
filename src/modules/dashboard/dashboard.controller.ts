@@ -17,4 +17,16 @@ export class DashboardController {
   getDashboardData(@CurrentCompanion() c: JwtPayload) {
     return this.dashboardService.getDashboardData(c.sub);
   }
+
+  @Get('performance')
+  @ApiOperation({ summary: 'Get companion performance insights' })
+  getPerformanceInsights(@CurrentCompanion() c: JwtPayload) {
+    return this.dashboardService.getPerformanceInsights(c.sub);
+  }
+
+  @Get('announcements')
+  @ApiOperation({ summary: 'Get companion platform announcements' })
+  getAnnouncements() {
+    return this.dashboardService.getAnnouncements();
+  }
 }

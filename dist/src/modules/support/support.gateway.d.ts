@@ -19,6 +19,7 @@ export declare class SupportGateway implements OnGatewayConnection, OnGatewayDis
     }): Promise<{
         success: boolean;
         message: {
+            id: string;
             senderId: any;
             senderType: string;
             text: string;
@@ -26,4 +27,8 @@ export declare class SupportGateway implements OnGatewayConnection, OnGatewayDis
             timestamp: string;
         };
     }>;
+    handleSupportTyping(client: Socket, payload: {
+        ticketId: string;
+        isTyping: boolean;
+    }): Promise<void>;
 }

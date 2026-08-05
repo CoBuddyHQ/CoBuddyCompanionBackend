@@ -71,6 +71,25 @@ let KycService = class KycService {
             approvedAt: kyc.approvedAt?.toISOString() ?? null,
         };
     }
+    async logCompletion(companionId, stepName, screenName, percentage = 100) {
+        try {
+            await this.prisma.moduleCompletion.create({
+                data: {
+                    companionId,
+                    moduleName: 'kyc',
+                    stepName,
+                    screenName: screenName || stepName,
+                    completionStatus: 'completed',
+                    completionPercentage: percentage,
+                    lastScreen: screenName || stepName,
+                    lastAction: 'save',
+                    completedAt: new Date(),
+                },
+            });
+        }
+        catch {
+        }
+    }
     async saveBasicDetails(companionId, dto) {
         const companionData = {};
         if (dto.email && dto.email.trim().length > 0)
@@ -106,6 +125,7 @@ let KycService = class KycService {
                 },
             });
         }
+        await this.logCompletion(companionId, 'basic_details', 'BasicDetailsScreen', 10);
         return { success: true, message: 'Basic details saved successfully' };
     }
     async saveDraft(companionId, dto) {
@@ -322,12 +342,56 @@ let KycService = class KycService {
             where: { companionId },
             data: { submittedAt: new Date() },
         });
+        const updateData = {
+            verificationStatus: 'pending_review',
+            profileStatus: 'submitted',
+        };
+        if (kyc.draftData) {
+            try {
+                const draft = typeof kyc.draftData === 'string' ? JSON.parse(kyc.draftData) : kyc.draftData;
+                if (draft.professionalBio)
+                    updateData.bio = draft.professionalBio;
+                if (draft.city)
+                    updateData.city = draft.city;
+                if (draft.sessionRateINR)
+                    updateData.hourlyRate = draft.sessionRateINR;
+                if (draft.sessionDurationMins)
+                    updateData.sessionDuration = draft.sessionDurationMins;
+                if (Array.isArray(draft.spokenLanguages) && draft.spokenLanguages.length > 0) {
+                    await this.prisma.companionLanguage.deleteMany({ where: { companionId } });
+                    await this.prisma.companionLanguage.createMany({
+                        data: draft.spokenLanguages.map((lang, i) => ({
+                            companionId,
+                            language: lang,
+                            isPrimary: i === 0,
+                        })),
+                    });
+                }
+                if (Array.isArray(draft.broadAreas) && draft.broadAreas.length > 0) {
+                    await this.prisma.companionServiceArea.deleteMany({ where: { companionId } });
+                    await this.prisma.companionServiceArea.createMany({
+                        data: draft.broadAreas.map((area) => ({
+                            companionId,
+                            areaName: area,
+                        })),
+                    });
+                }
+                if (Array.isArray(draft.experienceCategories) && draft.experienceCategories.length > 0) {
+                    await this.prisma.companionCategory.deleteMany({ where: { companionId } });
+                    await this.prisma.companionCategory.createMany({
+                        data: draft.experienceCategories.map((cat) => ({
+                            companionId,
+                            categoryName: cat,
+                        })),
+                    });
+                }
+            }
+            catch (e) {
+            }
+        }
         await this.prisma.companion.update({
             where: { id: companionId },
-            data: {
-                verificationStatus: 'pending_review',
-                profileStatus: 'submitted',
-            },
+            data: updateData,
         });
         return {
             success: true,

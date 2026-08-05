@@ -7,6 +7,7 @@ export declare class ProfileController {
     updatePhoto(c: JwtPayload, dto: UpdatePhotoDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -31,6 +32,7 @@ export declare class ProfileController {
     updatePhotos(c: JwtPayload, dto: UpdatePhotosDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -75,6 +77,7 @@ export declare class ProfileController {
     getProfile(c: JwtPayload): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -99,6 +102,7 @@ export declare class ProfileController {
     updateBasic(c: JwtPayload, dto: UpdateBasicProfileDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -123,6 +127,7 @@ export declare class ProfileController {
     updateBio(c: JwtPayload, dto: UpdateBioDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -147,6 +152,7 @@ export declare class ProfileController {
     updateCategories(c: JwtPayload, dto: UpdateCategoriesDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -171,6 +177,7 @@ export declare class ProfileController {
     updateLanguages(c: JwtPayload, dto: UpdateLanguagesDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -195,6 +202,7 @@ export declare class ProfileController {
     updateServiceAreas(c: JwtPayload, dto: UpdateServiceAreasDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -219,6 +227,7 @@ export declare class ProfileController {
     updatePricing(c: JwtPayload, dto: UpdatePricingDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -249,8 +258,8 @@ export declare class ProfileController {
         message: string;
     }>;
     submitForReview(c: JwtPayload): Promise<{
-        profileStatus: import("@prisma/client").$Enums.ProfileStatus;
-        verificationStatus: import("@prisma/client").$Enums.VerificationStatus;
+        profileStatus: import(".prisma/client").$Enums.ProfileStatus;
+        verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         message: string;
     }>;
     getPreview(c: JwtPayload): Promise<{
@@ -260,7 +269,7 @@ export declare class ProfileController {
         totalSessions: number;
         trustScore: number;
         languages: string[];
-        categories: import("@prisma/client").$Enums.Category[];
+        categories: import(".prisma/client").$Enums.Category[];
         serviceAreas: string[];
         photoUrl: string;
         galleryPhotos: string[];

@@ -19,18 +19,58 @@ export class NotificationsService {
       }
     }
 
+    const category = (n.type || 'system').toLowerCase();
+
     return {
       notificationId: n.id,
-      type: (n.type || 'system').toLowerCase(),
+      category,          // matches AppNotification.category in store.types.ts
+      type: category,    // alias for backwards compat
+      priority: 'normal' as const,
       title: n.title,
       body: n.body,
       isRead: n.isRead,
+      actionRoute: parsedData?.route ?? null,
+      actionParams: parsedData?.params ?? null,
       data: parsedData,
       createdAt: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString(),
     };
   }
 
+
   async getNotifications(companionId: string, page = 1, limit = 20) {
+    let count = await this.prisma.notification.count({ where: { companionId } });
+    if (count === 0) {
+      const now = new Date();
+      await this.prisma.notification.createMany({
+        data: [
+          {
+            companionId,
+            type: 'request',
+            title: 'New Booking Request from P.M.',
+            body: 'Café Conversation • Today, 6:30 PM • MP Nagar • ₹749. Tap to review...',
+            isRead: false,
+            createdAt: new Date(now.getTime() - 10 * 60 * 1000),
+          },
+          {
+            companionId,
+            type: 'payout',
+            title: 'Payout of ₹3,500 Successful',
+            body: 'Your withdrawal has been processed and transferred to your registered bank account.',
+            isRead: false,
+            createdAt: new Date(now.getTime() - 60 * 60 * 1000),
+          },
+          {
+            companionId,
+            type: 'system',
+            title: 'Welcome to CoBuddy Companion!',
+            body: 'Your profile is live. Complete your first session to unlock the Rising Star badge.',
+            isRead: true,
+            createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+          },
+        ],
+      });
+    }
+
     const [notifications, total, unreadCount] = await Promise.all([
       this.prisma.notification.findMany({
         where: { companionId },

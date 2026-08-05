@@ -110,9 +110,26 @@ let AvailabilityService = class AvailabilityService {
         });
     }
     async addOverride(companionId, dto) {
-        return this.prisma.dateOverride.create({
-            data: { companionId, ...dto }
+        const startDate = dto.startDate || dto.date || new Date().toISOString();
+        const endDate = dto.endDate || dto.date || startDate;
+        const reason = dto.reason || 'Personal Leave';
+        const note = dto.note || null;
+        const fullDay = dto.fullDay ?? (dto.isBlocked ?? true);
+        const startTime = dto.startTime || null;
+        const endTime = dto.endTime || null;
+        await this.prisma.dateOverride.create({
+            data: {
+                companionId,
+                startDate,
+                endDate,
+                reason,
+                note,
+                fullDay,
+                startTime,
+                endTime,
+            }
         });
+        return this.getAvailability(companionId);
     }
     async removeOverride(companionId, id) {
         return this.prisma.dateOverride.delete({ where: { id } });
@@ -123,13 +140,41 @@ let AvailabilityService = class AvailabilityService {
         });
     }
     async updateSlot(companionId, id, dto) {
-        return this.prisma.customSlot.update({
-            where: { id },
-            data: dto
+        const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        if (DAYS.includes(id)) {
+            const times = dto.times ?? (dto.startTime && dto.endTime ? `${dto.startTime} - ${dto.endTime}` : '09:00 AM - 06:00 PM');
+            await this.setDayTimes(companionId, id, times);
+            return this.getAvailability(companionId);
+        }
+        const existing = await this.prisma.customSlot.findFirst({
+            where: { id }
         });
+        if (!existing) {
+            await this.prisma.customSlot.create({
+                data: {
+                    companionId,
+                    date: dto.date ?? new Date().toISOString(),
+                    startTime: dto.startTime ?? '09:00 AM',
+                    endTime: dto.endTime ?? '06:00 PM',
+                    repeat: dto.repeat ?? false,
+                }
+            });
+        }
+        else {
+            await this.prisma.customSlot.update({
+                where: { id },
+                data: dto
+            });
+        }
+        return this.getAvailability(companionId);
     }
     async removeSlot(companionId, id) {
-        return this.prisma.customSlot.delete({ where: { id } });
+        try {
+            await this.prisma.customSlot.delete({ where: { id } });
+        }
+        catch (e) {
+        }
+        return this.getAvailability(companionId);
     }
 };
 exports.AvailabilityService = AvailabilityService;

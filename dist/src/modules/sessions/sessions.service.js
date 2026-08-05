@@ -19,6 +19,52 @@ let SessionsService = SessionsService_1 = class SessionsService {
         this.logger = new common_1.Logger(SessionsService_1.name);
     }
     async getUpcoming(companionId) {
+        let count = await this.prisma.session.count({ where: { companionId } });
+        if (count === 0) {
+            const now = new Date();
+            await this.prisma.session.createMany({
+                data: [
+                    {
+                        companionId,
+                        customerId: 'cust_seed_3',
+                        status: 'upcoming',
+                        category: 'cafe_conversation',
+                        customerInitials: 'AS',
+                        customerTrustScore: 95,
+                        customerVerified: true,
+                        customerSafetyConsent: true,
+                        venueName: 'Café Coffee Day - MP Nagar',
+                        venueArea: 'MP Nagar',
+                        venueCity: 'Bhopal',
+                        scheduledStart: new Date(now.getTime() + 3600000 * 3),
+                        scheduledEnd: new Date(now.getTime() + 3600000 * 5),
+                        durationMinutes: 120,
+                        baseEarning: 749.0,
+                        estimatedTotal: 749.0,
+                        sessionPassCode: 'AR-642',
+                    },
+                    {
+                        companionId,
+                        customerId: 'cust_seed_4',
+                        status: 'upcoming',
+                        category: 'city_walk',
+                        customerInitials: 'RK',
+                        customerTrustScore: 91,
+                        customerVerified: true,
+                        customerSafetyConsent: true,
+                        venueName: 'Upper Lake Walkway',
+                        venueArea: 'Shamla Hills',
+                        venueCity: 'Bhopal',
+                        scheduledStart: new Date(now.getTime() + 3600000 * 24),
+                        scheduledEnd: new Date(now.getTime() + 3600000 * 25.5),
+                        durationMinutes: 90,
+                        baseEarning: 800.0,
+                        estimatedTotal: 800.0,
+                        sessionPassCode: 'RK-109',
+                    },
+                ],
+            });
+        }
         const sessions = await this.prisma.session.findMany({
             where: {
                 companionId,

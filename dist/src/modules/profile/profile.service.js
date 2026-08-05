@@ -429,6 +429,7 @@ let ProfileService = ProfileService_1 = class ProfileService {
         return {
             companionId: companion.id,
             displayName: companion.displayName ?? '',
+            tagline: companion.tagline ?? '',
             maskedPhone: this.maskPhone(companion.phone),
             city: companion.city ?? '',
             serviceAreas: (companion.serviceAreas ?? []).map((a) => a.area),

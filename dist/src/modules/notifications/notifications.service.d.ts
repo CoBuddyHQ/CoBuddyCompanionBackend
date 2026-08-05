@@ -6,10 +6,14 @@ export declare class NotificationsService {
     getNotifications(companionId: string, page?: number, limit?: number): Promise<{
         notifications: {
             notificationId: any;
+            category: any;
             type: any;
+            priority: "normal";
             title: any;
             body: any;
             isRead: any;
+            actionRoute: any;
+            actionParams: any;
             data: any;
             createdAt: string;
         }[];
@@ -39,10 +43,14 @@ export declare class NotificationsService {
     getAnnouncements(companionId: string): Promise<{
         announcements: {
             notificationId: any;
+            category: any;
             type: any;
+            priority: "normal";
             title: any;
             body: any;
             isRead: any;
+            actionRoute: any;
+            actionParams: any;
             data: any;
             createdAt: string;
         }[];

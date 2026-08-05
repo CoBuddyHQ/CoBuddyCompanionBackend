@@ -16,8 +16,12 @@ export declare class DashboardController {
         };
         stats: {
             totalEarnedThisMonth: number;
+            todayEarnings: number;
+            pendingEarnings: number;
+            thisWeekEarnings: number;
             unreadNotificationsCount: number;
             pendingRequestsCount: number;
+            upcomingSessionsCount: number;
         };
         activeSession: {
             sessionId: any;
@@ -42,6 +46,31 @@ export declare class DashboardController {
             proposedStart: any;
             estimatedEarning: number;
             venueArea: any;
+        }[];
+    }>;
+    getPerformanceInsights(c: JwtPayload): Promise<{
+        period: "week" | "month";
+        views: number;
+        delta: number;
+        conversionRate: string;
+        avgResponseTime: string;
+        profileClickThrough: string;
+        totalSessions: number;
+        totalReviews: number;
+        rating: number;
+    }>;
+    getAnnouncements(): Promise<{
+        announcements: {
+            id: string;
+            icon: string;
+            iconColor: string;
+            iconBg: string;
+            tag: string;
+            tagColor: string;
+            title: string;
+            body: string;
+            date: string;
+            url: string;
         }[];
     }>;
 }

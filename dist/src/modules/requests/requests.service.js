@@ -55,6 +55,55 @@ let RequestsService = RequestsService_1 = class RequestsService {
         };
     }
     async getRequests(companionId, status, categories, minEarning, sortBy, page = 1, limit = 20) {
+        let totalCount = await this.prisma.bookingRequest.count({ where: { companionId } });
+        if (totalCount === 0) {
+            const now = new Date();
+            await this.prisma.bookingRequest.createMany({
+                data: [
+                    {
+                        companionId,
+                        customerId: 'cust_seed_1',
+                        status: 'pending',
+                        category: 'cafe_conversation',
+                        customerInitials: 'PM',
+                        customerTrustScore: 94,
+                        customerVerified: true,
+                        customerSafetyConsent: true,
+                        customerIdentityVerified: true,
+                        venueName: 'Café Coffee Day - MP Nagar',
+                        venueArea: 'MP Nagar',
+                        venueCity: 'Bhopal',
+                        proposedStart: new Date(now.getTime() + 3600000 * 2),
+                        proposedEnd: new Date(now.getTime() + 3600000 * 4),
+                        durationMinutes: 120,
+                        estimatedEarning: 1299.0,
+                        matchScore: 94,
+                        customerNote: 'Looking forward to exploring the city!',
+                        expiresAt: new Date(now.getTime() + 3600000 * 23),
+                    },
+                    {
+                        companionId,
+                        customerId: 'cust_seed_2',
+                        status: 'pending',
+                        category: 'city_walk',
+                        customerInitials: 'RK',
+                        customerTrustScore: 88,
+                        customerVerified: true,
+                        customerSafetyConsent: true,
+                        customerIdentityVerified: true,
+                        venueName: 'DB Mall',
+                        venueArea: 'Arera Hills',
+                        venueCity: 'Bhopal',
+                        proposedStart: new Date(now.getTime() + 3600000 * 5),
+                        proposedEnd: new Date(now.getTime() + 3600000 * 6.5),
+                        durationMinutes: 90,
+                        estimatedEarning: 1099.0,
+                        matchScore: 88,
+                        expiresAt: new Date(now.getTime() + 3600000 * 20),
+                    },
+                ],
+            });
+        }
         const where = { companionId };
         if (status && status !== 'all') {
             where.status = status.toLowerCase();
@@ -67,9 +116,6 @@ let RequestsService = RequestsService_1 = class RequestsService {
             if (catsArray.length > 0) {
                 where.category = { in: catsArray };
             }
-        }
-        if (minEarning && minEarning > 0) {
-            where.estimatedEarning = { gte: minEarning };
         }
         let orderBy = { receivedAt: 'desc' };
         if (sortBy === 'newest') {

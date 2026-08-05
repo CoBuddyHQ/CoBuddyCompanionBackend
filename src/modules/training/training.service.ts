@@ -52,11 +52,17 @@ export class TrainingService {
     // Upsert completion entry
     const existing = await this.prisma.trainingModule.findUnique({ where: { id: moduleId } });
     if (existing) {
-      await this.prisma.moduleCompletion.upsert({
-        where: { companionId_moduleId: { companionId, moduleId } },
-        update: { score, completedAt: new Date() },
-        create: { companionId, moduleId, score: score ?? 0, completedAt: new Date() },
-      });
+      const found = await this.prisma.moduleCompletion.findFirst({ where: { companionId, moduleId } });
+      if (found) {
+        await this.prisma.moduleCompletion.update({
+          where: { id: found.id },
+          data: { score, completedAt: new Date(), completionStatus: 'completed' },
+        });
+      } else {
+        await this.prisma.moduleCompletion.create({
+          data: { companionId, moduleId, moduleName: 'training', score: score ?? 0, completedAt: new Date(), completionStatus: 'completed' },
+        });
+      }
     }
 
     return {

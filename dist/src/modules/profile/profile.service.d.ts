@@ -23,6 +23,7 @@ export declare class ProfileService {
     getProfile(companionId: string): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -47,6 +48,7 @@ export declare class ProfileService {
     updatePhoto(companionId: string, dto: UpdatePhotoDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -79,7 +81,7 @@ export declare class ProfileService {
         totalSessions: number;
         trustScore: number;
         languages: string[];
-        categories: import("@prisma/client").$Enums.Category[];
+        categories: import(".prisma/client").$Enums.Category[];
         serviceAreas: string[];
         photoUrl: string;
         galleryPhotos: string[];
@@ -107,6 +109,7 @@ export declare class ProfileService {
     updateBasic(companionId: string, dto: UpdateBasicProfileDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -131,6 +134,7 @@ export declare class ProfileService {
     updateBio(companionId: string, dto: UpdateBioDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -155,6 +159,7 @@ export declare class ProfileService {
     updateCategories(companionId: string, dto: UpdateCategoriesDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -179,6 +184,7 @@ export declare class ProfileService {
     updateLanguages(companionId: string, dto: UpdateLanguagesDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -203,6 +209,7 @@ export declare class ProfileService {
     updateServiceAreas(companionId: string, dto: UpdateServiceAreasDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -227,6 +234,7 @@ export declare class ProfileService {
     updatePricing(companionId: string, dto: UpdatePricingDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -251,6 +259,7 @@ export declare class ProfileService {
     updatePhotos(companionId: string, dto: UpdatePhotosDto): Promise<{
         companionId: any;
         displayName: any;
+        tagline: any;
         maskedPhone: string;
         city: any;
         serviceAreas: any;
@@ -281,8 +290,8 @@ export declare class ProfileService {
         message: string;
     }>;
     submitForReview(companionId: string): Promise<{
-        profileStatus: import("@prisma/client").$Enums.ProfileStatus;
-        verificationStatus: import("@prisma/client").$Enums.VerificationStatus;
+        profileStatus: import(".prisma/client").$Enums.ProfileStatus;
+        verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         message: string;
     }>;
     private toProfileResponse;

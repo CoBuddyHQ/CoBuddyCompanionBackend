@@ -63,8 +63,10 @@ export class AccountController {
     return this.accountService.deleteAccount(c.sub, dto);
   }
 
-  /** GET /companion/account/data-export — Endpoints.ACCOUNT.DATA_EXPORT */
+  /** GET/POST /companion/account/data-export — Endpoints.ACCOUNT.DATA_EXPORT */
   @Get('data-export')
+  @Post('data-export')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request data export download link' })
   exportData(@CurrentCompanion() c: JwtPayload) {
     return this.accountService.exportData(c.sub);

@@ -916,16 +916,26 @@ model TrainingModule {
 }
 
 model ModuleCompletion {
-  id          String   @id @default(cuid())
-  companionId String
-  moduleId    String
-  score       Int      @default(0)
-  completedAt DateTime @default(now())
+  id                   String          @id @default(cuid())
+  companionId          String
+  moduleId             String?
+  moduleName           String          @default("onboarding")
+  screenName           String?
+  stepName             String?
+  completionStatus     String          @default("completed")
+  score                Int             @default(0)
+  completionPercentage Int             @default(0)
+  lastScreen           String?
+  lastAction           String?
+  resumePosition       String?
+  startedAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  completedAt          DateTime?       @default(now())
 
-  companion Companion      @relation(fields: [companionId], references: [id], onDelete: Cascade)
-  module    TrainingModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  companion Companion       @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  module    TrainingModule? @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
-  @@unique([companionId, moduleId])
+  @@index([companionId])
   @@map("module_completions")
 }
 
