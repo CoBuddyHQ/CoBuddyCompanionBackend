@@ -42,8 +42,20 @@ export declare class ProfileService {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     updatePhoto(companionId: string, dto: UpdatePhotoDto): Promise<{
         companionId: any;
@@ -67,8 +79,20 @@ export declare class ProfileService {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     setupBulk(companionId: string, dto: ProfileSetupBulkDto): Promise<{
         success: boolean;
@@ -128,8 +152,20 @@ export declare class ProfileService {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     updateBio(companionId: string, dto: UpdateBioDto): Promise<{
         companionId: any;
@@ -153,8 +189,20 @@ export declare class ProfileService {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     updateCategories(companionId: string, dto: UpdateCategoriesDto): Promise<{
         companionId: any;
@@ -178,8 +226,20 @@ export declare class ProfileService {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     updateLanguages(companionId: string, dto: UpdateLanguagesDto): Promise<{
         companionId: any;
@@ -203,8 +263,20 @@ export declare class ProfileService {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     updateServiceAreas(companionId: string, dto: UpdateServiceAreasDto): Promise<{
         companionId: any;
@@ -228,8 +300,20 @@ export declare class ProfileService {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     updatePricing(companionId: string, dto: UpdatePricingDto): Promise<{
         companionId: any;
@@ -253,8 +337,20 @@ export declare class ProfileService {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     updatePhotos(companionId: string, dto: UpdatePhotosDto): Promise<{
         companionId: any;
@@ -278,8 +374,20 @@ export declare class ProfileService {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     reorderPhotos(companionId: string, dto: ReorderPhotosDto): Promise<{
         galleryPhotos: string[];

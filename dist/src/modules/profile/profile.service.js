@@ -448,8 +448,32 @@ let ProfileService = ProfileService_1 = class ProfileService {
             isAvailable: companion.isAvailable ?? false,
             isOnline: companion.isOnline ?? false,
             photoUrl: companion.photoUrl ?? null,
-            galleryPhotos: (companion.galleryPhotos ?? []).map((p) => p?.url).filter(Boolean),
             joinedAt: companion.createdAt ? new Date(companion.createdAt).toISOString() : new Date().toISOString(),
+            completedModules: {
+                basicDetails: !!(companion.displayName || companion.legalName),
+                bio: !!(companion.bio && companion.bio.trim().length > 0),
+                languages: (companion.languages ?? []).length > 0,
+                categories: (companion.categories ?? []).length > 0,
+                pricing: (companion.hourlyRate ? Number(companion.hourlyRate) : 0) > 0,
+                city: !!companion.city,
+                gallery: (companion.galleryPhotos ?? []).length > 0 || !!companion.photoUrl,
+                workPreference: !!(companion.workPreferences && Object.keys(companion.workPreferences).length > 0),
+                boundaries: !!companion.boundariesAccepted,
+            },
+            pendingModules: [
+                !companion.displayName && 'basicDetails',
+                !companion.bio && 'bio',
+                !(companion.languages ?? []).length && 'languages',
+                !(companion.categories ?? []).length && 'categories',
+                !companion.hourlyRate && 'pricing',
+                !companion.city && 'city',
+                !(companion.galleryPhotos ?? []).length && !companion.photoUrl && 'gallery',
+            ].filter(Boolean),
+            resumeRoute: !companion.displayName ? 'CPN_022_BasicDetails' :
+                !companion.bio ? 'CPN_023_BioIntroduction' :
+                    !(companion.languages ?? []).length ? 'CPN_034_LanguagesSelection' :
+                        !(companion.categories ?? []).length ? 'CPN_026_ExperienceCategories' :
+                            !companion.hourlyRate ? 'CPN_033_CompanionPricing' : 'CPN_051_VerificationHub',
         };
     }
     maskPhone(phone) {

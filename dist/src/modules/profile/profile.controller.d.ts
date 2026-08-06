@@ -26,8 +26,20 @@ export declare class ProfileController {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     updatePhotos(c: JwtPayload, dto: UpdatePhotosDto): Promise<{
         companionId: any;
@@ -51,8 +63,20 @@ export declare class ProfileController {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     updateWorkPreference(c: JwtPayload, dto: UpdateWorkPreferenceDto): Promise<{
         success: boolean;
@@ -96,8 +120,20 @@ export declare class ProfileController {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     updateBasic(c: JwtPayload, dto: UpdateBasicProfileDto): Promise<{
         companionId: any;
@@ -121,8 +157,20 @@ export declare class ProfileController {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     updateBio(c: JwtPayload, dto: UpdateBioDto): Promise<{
         companionId: any;
@@ -146,8 +194,20 @@ export declare class ProfileController {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     updateCategories(c: JwtPayload, dto: UpdateCategoriesDto): Promise<{
         companionId: any;
@@ -171,8 +231,20 @@ export declare class ProfileController {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     updateLanguages(c: JwtPayload, dto: UpdateLanguagesDto): Promise<{
         companionId: any;
@@ -196,8 +268,20 @@ export declare class ProfileController {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     updateServiceAreas(c: JwtPayload, dto: UpdateServiceAreasDto): Promise<{
         companionId: any;
@@ -221,8 +305,20 @@ export declare class ProfileController {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     updatePricing(c: JwtPayload, dto: UpdatePricingDto): Promise<{
         companionId: any;
@@ -246,8 +342,20 @@ export declare class ProfileController {
         isAvailable: any;
         isOnline: any;
         photoUrl: any;
-        galleryPhotos: any;
         joinedAt: string;
+        completedModules: {
+            basicDetails: boolean;
+            bio: boolean;
+            languages: boolean;
+            categories: boolean;
+            pricing: boolean;
+            city: boolean;
+            gallery: boolean;
+            workPreference: boolean;
+            boundaries: boolean;
+        };
+        pendingModules: string[];
+        resumeRoute: string;
     }>;
     reorderPhotos(c: JwtPayload, dto: ReorderPhotosDto): Promise<{
         galleryPhotos: string[];

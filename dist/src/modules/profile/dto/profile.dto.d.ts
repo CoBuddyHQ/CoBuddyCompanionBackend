@@ -21,10 +21,10 @@ export declare class UpdateLanguagesDto {
     languages?: string[];
 }
 export declare class UpdateWorkPreferenceDto {
-    durations: string[];
-    days: string[];
-    timeRanges: string[];
-    frequency: string;
+    durations?: string[];
+    days?: string[];
+    timeRanges?: string[];
+    frequency?: string;
 }
 export declare class UpdateServiceAreasDto {
     city?: string;
