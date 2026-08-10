@@ -27,17 +27,8 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         joinedAt: string;
-        completedModules: {
-            basicDetails: boolean;
-            bio: boolean;
-            languages: boolean;
-            categories: boolean;
-            pricing: boolean;
-            city: boolean;
-            gallery: boolean;
-            workPreference: boolean;
-            boundaries: boolean;
-        };
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
+        completedModules: string[];
         pendingModules: string[];
         resumeRoute: string;
     }>;
@@ -64,38 +55,34 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         joinedAt: string;
-        completedModules: {
-            basicDetails: boolean;
-            bio: boolean;
-            languages: boolean;
-            categories: boolean;
-            pricing: boolean;
-            city: boolean;
-            gallery: boolean;
-            workPreference: boolean;
-            boundaries: boolean;
-        };
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
+        completedModules: string[];
         pendingModules: string[];
         resumeRoute: string;
     }>;
     updateWorkPreference(c: JwtPayload, dto: UpdateWorkPreferenceDto): Promise<{
         success: boolean;
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
         message: string;
     }>;
     updateCommActivity(c: JwtPayload, dto: UpdateCommActivityDto): Promise<{
         success: boolean;
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
         message: string;
     }>;
     updateVenues(c: JwtPayload, dto: UpdateVenuesDto): Promise<{
         success: boolean;
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
         message: string;
     }>;
     updateBoundaries(c: JwtPayload, dto: UpdateBoundariesDto): Promise<{
         success: boolean;
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
         message: string;
     }>;
     setupBulk(c: JwtPayload, dto: ProfileSetupBulkDto): Promise<{
         success: boolean;
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
         message: string;
     }>;
     getProfile(c: JwtPayload): Promise<{
@@ -121,17 +108,8 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         joinedAt: string;
-        completedModules: {
-            basicDetails: boolean;
-            bio: boolean;
-            languages: boolean;
-            categories: boolean;
-            pricing: boolean;
-            city: boolean;
-            gallery: boolean;
-            workPreference: boolean;
-            boundaries: boolean;
-        };
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
+        completedModules: string[];
         pendingModules: string[];
         resumeRoute: string;
     }>;
@@ -158,17 +136,8 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         joinedAt: string;
-        completedModules: {
-            basicDetails: boolean;
-            bio: boolean;
-            languages: boolean;
-            categories: boolean;
-            pricing: boolean;
-            city: boolean;
-            gallery: boolean;
-            workPreference: boolean;
-            boundaries: boolean;
-        };
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
+        completedModules: string[];
         pendingModules: string[];
         resumeRoute: string;
     }>;
@@ -195,17 +164,8 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         joinedAt: string;
-        completedModules: {
-            basicDetails: boolean;
-            bio: boolean;
-            languages: boolean;
-            categories: boolean;
-            pricing: boolean;
-            city: boolean;
-            gallery: boolean;
-            workPreference: boolean;
-            boundaries: boolean;
-        };
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
+        completedModules: string[];
         pendingModules: string[];
         resumeRoute: string;
     }>;
@@ -232,17 +192,8 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         joinedAt: string;
-        completedModules: {
-            basicDetails: boolean;
-            bio: boolean;
-            languages: boolean;
-            categories: boolean;
-            pricing: boolean;
-            city: boolean;
-            gallery: boolean;
-            workPreference: boolean;
-            boundaries: boolean;
-        };
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
+        completedModules: string[];
         pendingModules: string[];
         resumeRoute: string;
     }>;
@@ -269,17 +220,8 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         joinedAt: string;
-        completedModules: {
-            basicDetails: boolean;
-            bio: boolean;
-            languages: boolean;
-            categories: boolean;
-            pricing: boolean;
-            city: boolean;
-            gallery: boolean;
-            workPreference: boolean;
-            boundaries: boolean;
-        };
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
+        completedModules: string[];
         pendingModules: string[];
         resumeRoute: string;
     }>;
@@ -306,17 +248,8 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         joinedAt: string;
-        completedModules: {
-            basicDetails: boolean;
-            bio: boolean;
-            languages: boolean;
-            categories: boolean;
-            pricing: boolean;
-            city: boolean;
-            gallery: boolean;
-            workPreference: boolean;
-            boundaries: boolean;
-        };
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
+        completedModules: string[];
         pendingModules: string[];
         resumeRoute: string;
     }>;
@@ -343,17 +276,8 @@ export declare class ProfileController {
         isOnline: any;
         photoUrl: any;
         joinedAt: string;
-        completedModules: {
-            basicDetails: boolean;
-            bio: boolean;
-            languages: boolean;
-            categories: boolean;
-            pricing: boolean;
-            city: boolean;
-            gallery: boolean;
-            workPreference: boolean;
-            boundaries: boolean;
-        };
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
+        completedModules: string[];
         pendingModules: string[];
         resumeRoute: string;
     }>;
@@ -395,10 +319,12 @@ export declare class ProfileController {
         points: number;
     }): Promise<{
         success: boolean;
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
         message: string;
         newScore?: undefined;
     } | {
         success: boolean;
+        onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
         newScore: number;
         message?: undefined;
     }>;

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProgressEngineService } from './progress-engine.service';
 import { BasicDetailsDto, SaveDeclarationDto, SubmitGovernmentIdDto, UpdateGovernmentIdTypeDto, SubmitSelfieDto, SaveAddressDto, SavePanDto, SaveBankDto, VerifyBankDto, SaveUpiDto } from './dto/kyc.dto';
@@ -56,7 +56,7 @@ export class KycService {
         });
       } catch (error: any) {
         if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
-          throw new import('@nestjs/common').ConflictException('This email is already registered to another account.');
+          throw new ConflictException('This email is already registered to another account.');
         }
         throw error;
       }
@@ -64,6 +64,11 @@ export class KycService {
 
     // 2. Update KYC record (legal names)
     const kycData: any = {};
+    if (dto.legalName) {
+      const parts = dto.legalName.trim().split(' ');
+      kycData.legalFirstName = parts[0] || '';
+      kycData.legalLastName = parts.slice(1).join(' ') || '';
+    }
     if (dto.legalFirstName !== undefined) kycData.legalFirstName = dto.legalFirstName;
     if (dto.legalLastName !== undefined) kycData.legalLastName = dto.legalLastName;
 

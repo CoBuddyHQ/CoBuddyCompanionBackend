@@ -1,4 +1,5 @@
 export declare class BasicDetailsDto {
+    legalName?: string;
     legalFirstName?: string;
     legalLastName?: string;
     displayName?: string;

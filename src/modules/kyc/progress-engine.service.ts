@@ -15,6 +15,7 @@ export interface OnboardingStatus {
   verificationStatus: string;
   applicationStatus: string;
   lastUpdated: string;
+  hasStarted: boolean;   // true when completedModules.length > 0
 }
 
 @Injectable()
@@ -23,6 +24,7 @@ export class ProgressEngineService {
 
   // List of all required modules in logical linear order
   private readonly MODULES = [
+    { id: 'eligibility', route: 'CPN_022_EligibilityConfirmation' },
     { id: 'basic_details', route: 'CPN_023_BasicDetails' },
     { id: 'bio', route: 'CPN_024_BioIntroduction' },
     { id: 'declaration', route: 'CPN_025_BackgroundDeclaration' },
@@ -72,7 +74,7 @@ export class ProgressEngineService {
       else pendingModules.push(id);
     };
 
-    // basic_details: need dob, gender, name
+    checkModule('eligibility', !!(kyc.declarationAgreedAt));
     checkModule('basic_details', !!(companion?.dateOfBirth && companion?.gender && companion?.displayName));
     checkModule('bio', !!(companion?.bio && companion.bio.length > 0));
     checkModule('declaration', !!(kyc.declarationAgreedAt));
@@ -125,7 +127,8 @@ export class ProgressEngineService {
       draftStatus: companion?.profileStatus || 'draft',
       verificationStatus: companion?.verificationStatus || 'not_started',
       applicationStatus: companion?.profileStatus || 'pending',
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      hasStarted: completedModules.length > 0,
     };
   }
 }

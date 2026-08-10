@@ -39,7 +39,7 @@ export class UploadsController {
   ) {
     const result = await this.uploadsService.uploadFile(c.sub, file, 'profile_photo');
     const profileResponse = await this.profileService.updatePhoto(c.sub, { photoUrl: result.url });
-    return { photoUrl: result.url, onboardingStatus: profileResponse.onboardingStatus, message: 'Profile photo updated successfully' };
+    return { photoUrl: result.url, profile: profileResponse, onboardingStatus: (profileResponse as any).onboardingStatus, message: 'Profile photo updated successfully' };
   }
 
   /**

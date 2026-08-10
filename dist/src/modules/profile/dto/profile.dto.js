@@ -111,29 +111,22 @@ exports.UpdateWorkPreferenceDto = UpdateWorkPreferenceDto;
 __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsArray)(),
-    (0, class_validator_1.IsString)({ each: true }),
-    __metadata("design:type", Array)
+    __metadata("design:type", Object)
 ], UpdateWorkPreferenceDto.prototype, "durations", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsArray)(),
-    (0, class_validator_1.IsString)({ each: true }),
-    __metadata("design:type", Array)
+    __metadata("design:type", Object)
 ], UpdateWorkPreferenceDto.prototype, "days", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsArray)(),
-    (0, class_validator_1.IsString)({ each: true }),
-    __metadata("design:type", Array)
+    __metadata("design:type", Object)
 ], UpdateWorkPreferenceDto.prototype, "timeRanges", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UpdateWorkPreferenceDto.prototype, "frequency", void 0);
 class UpdateServiceAreasDto {
 }

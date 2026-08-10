@@ -50,11 +50,25 @@ const prisma_service_1 = require("../../prisma/prisma.service");
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 const crypto = __importStar(require("crypto"));
+const cloudinary_1 = require("cloudinary");
 let UploadsService = UploadsService_1 = class UploadsService {
     constructor(prisma, config) {
         this.prisma = prisma;
         this.config = config;
         this.logger = new common_1.Logger(UploadsService_1.name);
+        this.isCloudinaryConfigured = false;
+        const cloudName = this.config.get('CLOUDINARY_CLOUD_NAME');
+        const apiKey = this.config.get('CLOUDINARY_API_KEY');
+        const apiSecret = this.config.get('CLOUDINARY_API_SECRET');
+        if (cloudName && apiKey && apiSecret && apiSecret !== 'YOUR_API_SECRET') {
+            cloudinary_1.v2.config({
+                cloud_name: cloudName,
+                api_key: apiKey,
+                api_secret: apiSecret,
+            });
+            this.isCloudinaryConfigured = true;
+            this.logger.log(`Cloudinary configured for ${cloudName}`);
+        }
     }
     async uploadFile(companionId, file, category) {
         if (!file)
@@ -70,7 +84,14 @@ let UploadsService = UploadsService_1 = class UploadsService {
         const ext = path.extname(file.originalname).toLowerCase();
         const fileKey = `companions/${companionId}/${category}/${crypto.randomBytes(16).toString('hex')}${ext}`;
         let url;
-        if (this.config.get('AWS_ACCESS_KEY_ID') && this.config.get('AWS_SECRET_ACCESS_KEY')) {
+        let finalKey = fileKey;
+        if (this.isCloudinaryConfigured) {
+            const publicId = `cobuddy/companions/${companionId}/${category}/${crypto.randomBytes(16).toString('hex')}`;
+            const uploadResult = await this.uploadToCloudinary(file, publicId);
+            url = uploadResult.secure_url;
+            finalKey = uploadResult.public_id;
+        }
+        else if (this.config.get('AWS_ACCESS_KEY_ID') && this.config.get('AWS_SECRET_ACCESS_KEY')) {
             url = await this.uploadToS3(file, fileKey);
         }
         else {
@@ -80,17 +101,17 @@ let UploadsService = UploadsService_1 = class UploadsService {
             data: {
                 companionId,
                 url,
-                key: fileKey,
+                key: finalKey,
                 category,
                 originalName: file.originalname,
                 mimeType: file.mimetype,
                 size: file.size,
             },
         });
-        this.logger.log(`File uploaded: ${fileKey} (${category}) — ${file.size} bytes`);
+        this.logger.log(`File uploaded: ${finalKey} (${category}) — ${file.size} bytes`);
         return {
             url,
-            key: fileKey,
+            key: finalKey,
             size: file.size,
             mimeType: file.mimetype,
         };
@@ -113,6 +134,16 @@ let UploadsService = UploadsService_1 = class UploadsService {
             where: { id: photoId, companionId },
         });
         return { message: 'Photo deleted' };
+    }
+    async uploadToCloudinary(file, publicId) {
+        return new Promise((resolve, reject) => {
+            const uploadStream = cloudinary_1.v2.uploader.upload_stream({ public_id: publicId, resource_type: 'auto' }, (error, result) => {
+                if (error)
+                    return reject(error);
+                resolve(result);
+            });
+            uploadStream.end(file.buffer);
+        });
     }
     async uploadToS3(file, key) {
         const { S3Client, PutObjectCommand } = await Promise.resolve().then(() => __importStar(require('@aws-sdk/client-s3')));

@@ -12,64 +12,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.KycService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const progress_engine_service_1 = require("./progress-engine.service");
 let KycService = class KycService {
-    constructor(prisma) {
+    constructor(prisma, progressEngine) {
         this.prisma = prisma;
+        this.progressEngine = progressEngine;
     }
     async getKycStatus(companionId) {
-        let kyc = await this.prisma.companionKYC.findUnique({ where: { companionId } });
-        if (!kyc) {
-            kyc = await this.prisma.companionKYC.create({ data: { companionId } });
-        }
-        const companion = await this.prisma.companion.findUnique({
-            where: { id: companionId },
-            select: { verificationStatus: true, profileStatus: true },
-        });
-        return {
-            kycId: kyc.id,
-            overallStatus: companion?.verificationStatus?.toLowerCase() ?? 'unverified',
-            profileStatus: companion?.profileStatus?.toLowerCase() ?? 'incomplete',
-            steps: {
-                identity: {
-                    status: (kyc.identityDocumentUrl || kyc.identityDocumentType || kyc.identitySubmittedAt) ? 'submitted' : 'pending',
-                    documentType: kyc.identityDocumentType ?? null,
-                    submittedAt: kyc.identitySubmittedAt?.toISOString() ?? null,
-                },
-                selfie: {
-                    status: (kyc.selfieVideoUrl || kyc.selfieSubmittedAt) ? 'submitted' : 'pending',
-                    submittedAt: kyc.selfieSubmittedAt?.toISOString() ?? null,
-                },
-                address: {
-                    status: (kyc.addressDocumentUrl || kyc.addressSubmittedAt || kyc.addressLine1) ? 'submitted' : 'pending',
-                    documentType: kyc.addressDocumentType ?? null,
-                    submittedAt: kyc.addressSubmittedAt?.toISOString() ?? null,
-                },
-                pan: {
-                    status: kyc.maskedPan ? 'submitted' : 'pending',
-                    maskedPan: kyc.maskedPan ?? null,
-                },
-                bank: {
-                    status: kyc.maskedBankAccount ? 'submitted' : 'pending',
-                    maskedAccount: kyc.maskedBankAccount ?? null,
-                    bankName: kyc.bankName ?? null,
-                },
-                upi: {
-                    status: kyc.maskedUpi ? 'submitted' : 'pending',
-                    maskedUpi: kyc.maskedUpi ?? null,
-                },
-                emergencyContact: {
-                    status: kyc.emergencyContactName ? 'submitted' : 'pending',
-                    name: kyc.emergencyContactName ?? null,
-                },
-                declaration: {
-                    status: kyc.declarationAgreedAt ? 'submitted' : 'pending',
-                    agreedAt: kyc.declarationAgreedAt?.toISOString() ?? null,
-                },
-            },
-            rejectionReason: kyc.rejectionReason ?? null,
-            submittedAt: kyc.submittedAt?.toISOString() ?? null,
-            approvedAt: kyc.approvedAt?.toISOString() ?? null,
-        };
+        const onboardingStatus = await this.progressEngine.getOnboardingStatus(companionId);
+        return { success: true, onboardingStatus };
     }
     async logCompletion(companionId, stepName, screenName, percentage = 100) {
         try {
@@ -105,12 +56,25 @@ let KycService = class KycService {
         if (dto.displayName)
             companionData.displayName = dto.displayName;
         if (Object.keys(companionData).length > 0) {
-            await this.prisma.companion.update({
-                where: { id: companionId },
-                data: companionData,
-            });
+            try {
+                await this.prisma.companion.update({
+                    where: { id: companionId },
+                    data: companionData,
+                });
+            }
+            catch (error) {
+                if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+                    throw new common_1.ConflictException('This email is already registered to another account.');
+                }
+                throw error;
+            }
         }
         const kycData = {};
+        if (dto.legalName) {
+            const parts = dto.legalName.trim().split(' ');
+            kycData.legalFirstName = parts[0] || '';
+            kycData.legalLastName = parts.slice(1).join(' ') || '';
+        }
         if (dto.legalFirstName !== undefined)
             kycData.legalFirstName = dto.legalFirstName;
         if (dto.legalLastName !== undefined)
@@ -126,7 +90,7 @@ let KycService = class KycService {
             });
         }
         await this.logCompletion(companionId, 'basic_details', 'BasicDetailsScreen', 10);
-        return { success: true, message: 'Basic details saved successfully' };
+        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Basic details saved successfully' };
     }
     async saveDraft(companionId, dto) {
         await this.prisma.companion.update({
@@ -138,8 +102,7 @@ let KycService = class KycService {
             update: { draftStage: dto.stage, draftData: dto.data ? JSON.stringify(dto.data) : null },
             create: { companionId, draftStage: dto.stage },
         });
-        return {
-            success: true,
+        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
             savedAt: new Date().toISOString(),
             stage: dto.stage,
             message: 'Progress saved. You can resume from where you left off.',
@@ -151,7 +114,7 @@ let KycService = class KycService {
             update: { identityDocumentType: dto.documentType },
             create: { companionId, identityDocumentType: dto.documentType },
         });
-        return { success: true, message: 'Government ID type saved successfully.' };
+        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Government ID type saved successfully.' };
     }
     async submitGovernmentId(companionId, dto) {
         await this.prisma.companionKYC.upsert({
@@ -170,7 +133,7 @@ let KycService = class KycService {
                 identitySubmittedAt: new Date(),
             },
         });
-        return { success: true, message: 'Government ID submitted for verification.' };
+        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Government ID submitted for verification.' };
     }
     async submitSelfie(companionId, dto) {
         await this.prisma.companionKYC.upsert({
@@ -178,7 +141,7 @@ let KycService = class KycService {
             update: { selfieImageUrl: dto.imageUrl, selfieVideoUrl: dto.videoUrl, selfieSubmittedAt: new Date() },
             create: { companionId, selfieImageUrl: dto.imageUrl, selfieVideoUrl: dto.videoUrl, selfieSubmittedAt: new Date() },
         });
-        return { success: true, message: 'Selfie submitted for liveness verification.' };
+        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Selfie submitted for liveness verification.' };
     }
     async saveAddress(companionId, dto) {
         await this.prisma.companionKYC.upsert({
@@ -209,7 +172,7 @@ let KycService = class KycService {
                 addressSubmittedAt: new Date(),
             },
         });
-        return { success: true, message: 'Address details saved successfully.' };
+        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Address details saved successfully.' };
     }
     async saveUpi(companionId, dto) {
         const rawUpi = dto.upiId || dto.maskedUpi || '';
@@ -228,7 +191,7 @@ let KycService = class KycService {
                 upiIsPrimary: dto.isPrimary ?? true,
             },
         });
-        return { success: true, message: 'UPI details saved.' };
+        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'UPI details saved.' };
     }
     async savePan(companionId, dto) {
         const rawPan = dto.panNumber || dto.maskedPan || '';
@@ -251,7 +214,7 @@ let KycService = class KycService {
                 gstNumber: dto.hasGST ? dto.gstNumber ?? null : null,
             },
         });
-        return { success: true, message: 'PAN details saved.' };
+        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'PAN details saved.' };
     }
     async saveBank(companionId, dto) {
         const rawAcc = dto.accountNumber || dto.maskedAccount || '';
@@ -276,8 +239,7 @@ let KycService = class KycService {
                 bankVerified: false,
             },
         });
-        return {
-            success: true,
+        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
             bankId: `bank-${companionId.slice(-8)}`,
             maskedAccount,
             bankName: dto.bankName ?? 'Bank Account',
@@ -292,8 +254,7 @@ let KycService = class KycService {
             where: { companionId },
             data: { bankVerified: true },
         });
-        return {
-            success: true,
+        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
             verified: true,
             maskedAccount: kyc.maskedBankAccount,
             bankName: kyc.bankName,
@@ -315,7 +276,7 @@ let KycService = class KycService {
                 emergencyContactRelationship: dto.relationship,
             },
         });
-        return { success: true, message: 'Emergency contact saved.' };
+        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Emergency contact saved.' };
     }
     async saveDeclaration(companionId, dto) {
         const { agreedAt, ...consents } = dto;
@@ -332,7 +293,7 @@ let KycService = class KycService {
                 declarationConsents: consents,
             },
         });
-        return { success: true, message: 'Declaration confirmed.' };
+        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Declaration confirmed.' };
     }
     async submitKyc(companionId) {
         const kyc = await this.prisma.companionKYC.findUnique({ where: { companionId } });
@@ -393,8 +354,7 @@ let KycService = class KycService {
             where: { id: companionId },
             data: updateData,
         });
-        return {
-            success: true,
+        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
             message: 'Your application has been submitted for review. We will notify you within 2–3 business days.',
             submittedAt: new Date().toISOString(),
         };
@@ -412,8 +372,7 @@ let KycService = class KycService {
             where: { id: companionId },
             data: { verificationStatus: 'pending_review', profileStatus: 'submitted' },
         });
-        return {
-            success: true,
+        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
             message: 'Documents resubmitted for review.',
             submittedAt: new Date().toISOString(),
         };
@@ -422,6 +381,6 @@ let KycService = class KycService {
 exports.KycService = KycService;
 exports.KycService = KycService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService, progress_engine_service_1.ProgressEngineService])
 ], KycService);
 //# sourceMappingURL=kyc.service.js.map

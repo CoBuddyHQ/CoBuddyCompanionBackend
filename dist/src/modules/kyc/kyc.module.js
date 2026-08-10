@@ -10,10 +10,15 @@ exports.KycModule = void 0;
 const common_1 = require("@nestjs/common");
 const kyc_controller_1 = require("./kyc.controller");
 const kyc_service_1 = require("./kyc.service");
+const progress_engine_service_1 = require("./progress-engine.service");
 let KycModule = class KycModule {
 };
 exports.KycModule = KycModule;
 exports.KycModule = KycModule = __decorate([
-    (0, common_1.Module)({ controllers: [kyc_controller_1.KycController], providers: [kyc_service_1.KycService] })
+    (0, common_1.Module)({
+        controllers: [kyc_controller_1.KycController],
+        providers: [kyc_service_1.KycService, progress_engine_service_1.ProgressEngineService],
+        exports: [kyc_service_1.KycService, progress_engine_service_1.ProgressEngineService]
+    })
 ], KycModule);
 //# sourceMappingURL=kyc.module.js.map

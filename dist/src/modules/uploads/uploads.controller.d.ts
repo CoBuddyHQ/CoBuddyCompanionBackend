@@ -7,6 +7,35 @@ export declare class UploadsController {
     constructor(uploadsService: UploadsService, profileService: ProfileService);
     uploadProfilePhoto(c: JwtPayload, file: Express.Multer.File): Promise<{
         photoUrl: string;
+        profile: {
+            companionId: any;
+            displayName: any;
+            tagline: any;
+            maskedPhone: string;
+            city: any;
+            serviceAreas: any;
+            categories: any;
+            languages: any;
+            bio: any;
+            hourlyRate: number;
+            sessionDuration: any;
+            profileStatus: string;
+            verificationStatus: string;
+            trustScore: any;
+            trustLevel: string;
+            rating: number;
+            totalReviews: any;
+            totalSessions: any;
+            isAvailable: any;
+            isOnline: any;
+            photoUrl: any;
+            joinedAt: string;
+            onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
+            completedModules: string[];
+            pendingModules: string[];
+            resumeRoute: string;
+        };
+        onboardingStatus: any;
         message: string;
     }>;
     uploadGalleryPhoto(c: JwtPayload, file: Express.Multer.File): Promise<{

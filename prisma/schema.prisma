@@ -958,3 +958,4 @@ model UploadedFile {
 
   @@map("uploaded_files")
 }
+

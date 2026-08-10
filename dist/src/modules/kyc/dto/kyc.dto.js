@@ -16,6 +16,12 @@ class BasicDetailsDto {
 }
 exports.BasicDetailsDto = BasicDetailsDto;
 __decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'Aditi Sharma' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], BasicDetailsDto.prototype, "legalName", void 0);
+__decorate([
     (0, swagger_1.ApiPropertyOptional)({ example: 'Aditi' }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

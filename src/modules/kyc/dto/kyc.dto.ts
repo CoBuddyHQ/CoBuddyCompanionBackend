@@ -2,6 +2,10 @@ import { IsString, IsOptional, IsDateString, IsEmail, IsBoolean } from 'class-va
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class BasicDetailsDto {
+  @ApiPropertyOptional({ example: 'Aditi Sharma' })
+  @IsOptional() @IsString()
+  legalName?: string;
+
   @ApiPropertyOptional({ example: 'Aditi' })
   @IsOptional() @IsString()
   legalFirstName?: string;

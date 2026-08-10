@@ -29,8 +29,8 @@ let UploadsController = class UploadsController {
     }
     async uploadProfilePhoto(c, file) {
         const result = await this.uploadsService.uploadFile(c.sub, file, 'profile_photo');
-        await this.profileService.updatePhotos(c.sub, { photoUrl: result.url });
-        return { photoUrl: result.url, message: 'Profile photo updated successfully' };
+        const profileResponse = await this.profileService.updatePhoto(c.sub, { photoUrl: result.url });
+        return { photoUrl: result.url, profile: profileResponse, onboardingStatus: profileResponse.onboardingStatus, message: 'Profile photo updated successfully' };
     }
     async uploadGalleryPhoto(c, file) {
         const result = await this.uploadsService.uploadFile(c.sub, file, 'gallery');

@@ -11,11 +11,13 @@ const common_1 = require("@nestjs/common");
 const requests_controller_1 = require("./requests.controller");
 const requests_service_1 = require("./requests.service");
 const request_simulator_service_1 = require("./request-simulator.service");
+const notifications_module_1 = require("../notifications/notifications.module");
 let RequestsModule = class RequestsModule {
 };
 exports.RequestsModule = RequestsModule;
 exports.RequestsModule = RequestsModule = __decorate([
     (0, common_1.Module)({
+        imports: [notifications_module_1.NotificationsModule],
         controllers: [requests_controller_1.RequestsController],
         providers: [requests_service_1.RequestsService, request_simulator_service_1.RequestSimulatorService],
         exports: [requests_service_1.RequestsService],

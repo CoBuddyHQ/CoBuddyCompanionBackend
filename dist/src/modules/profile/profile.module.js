@@ -10,11 +10,13 @@ exports.ProfileModule = void 0;
 const common_1 = require("@nestjs/common");
 const profile_controller_1 = require("./profile.controller");
 const profile_service_1 = require("./profile.service");
+const kyc_module_1 = require("../kyc/kyc.module");
 let ProfileModule = class ProfileModule {
 };
 exports.ProfileModule = ProfileModule;
 exports.ProfileModule = ProfileModule = __decorate([
     (0, common_1.Module)({
+        imports: [kyc_module_1.KycModule],
         controllers: [profile_controller_1.ProfileController],
         providers: [profile_service_1.ProfileService],
         exports: [profile_service_1.ProfileService],

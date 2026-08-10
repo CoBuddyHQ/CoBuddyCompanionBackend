@@ -6,81 +6,48 @@ export declare class KycController {
     constructor(kycService: KycService);
     saveBasicDetails(c: JwtPayload, dto: BasicDetailsDto): Promise<{
         success: boolean;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
         message: string;
     }>;
     getStatus(c: JwtPayload): Promise<{
-        kycId: string;
-        overallStatus: string;
-        profileStatus: string;
-        steps: {
-            identity: {
-                status: string;
-                documentType: string;
-                submittedAt: string;
-            };
-            selfie: {
-                status: string;
-                submittedAt: string;
-            };
-            address: {
-                status: string;
-                documentType: string;
-                submittedAt: string;
-            };
-            pan: {
-                status: string;
-                maskedPan: string;
-            };
-            bank: {
-                status: string;
-                maskedAccount: string;
-                bankName: string;
-            };
-            upi: {
-                status: string;
-                maskedUpi: string;
-            };
-            emergencyContact: {
-                status: string;
-                name: string;
-            };
-            declaration: {
-                status: string;
-                agreedAt: string;
-            };
-        };
-        rejectionReason: string;
-        submittedAt: string;
-        approvedAt: string;
+        success: boolean;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
     }>;
     saveDraft(c: JwtPayload, dto: any): Promise<{
         success: boolean;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
         savedAt: string;
         stage: string;
         message: string;
     }>;
     updateGovernmentIdType(c: JwtPayload, dto: UpdateGovernmentIdTypeDto): Promise<{
         success: boolean;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
         message: string;
     }>;
     submitGovernmentId(c: JwtPayload, dto: SubmitGovernmentIdDto): Promise<{
         success: boolean;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
         message: string;
     }>;
     submitSelfie(c: JwtPayload, dto: SubmitSelfieDto): Promise<{
         success: boolean;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
         message: string;
     }>;
     saveAddress(c: JwtPayload, dto: SaveAddressDto): Promise<{
         success: boolean;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
         message: string;
     }>;
     savePan(c: JwtPayload, dto: SavePanDto): Promise<{
         success: boolean;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
         message: string;
     }>;
     saveBank(c: JwtPayload, dto: SaveBankDto): Promise<{
         success: boolean;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
         bankId: string;
         maskedAccount: string;
         bankName: string;
@@ -88,6 +55,7 @@ export declare class KycController {
     }>;
     verifyBank(c: JwtPayload, dto: VerifyBankDto): Promise<{
         success: boolean;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
         verified: boolean;
         maskedAccount: string;
         bankName: string;
@@ -95,23 +63,28 @@ export declare class KycController {
     }>;
     saveUpi(c: JwtPayload, dto: SaveUpiDto): Promise<{
         success: boolean;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
         message: string;
     }>;
     saveEmergencyContact(c: JwtPayload, dto: any): Promise<{
         success: boolean;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
         message: string;
     }>;
     saveDeclaration(c: JwtPayload, dto: SaveDeclarationDto): Promise<{
         success: boolean;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
         message: string;
     }>;
     submitKyc(c: JwtPayload): Promise<{
         success: boolean;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
         message: string;
         submittedAt: string;
     }>;
     resubmitKyc(c: JwtPayload, dto: any): Promise<{
         success: boolean;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
         message: string;
         submittedAt: string;
     }>;
