@@ -1,68 +1,17 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ProgressEngineService } from './progress-engine.service';
 import { BasicDetailsDto, SaveDeclarationDto, SubmitGovernmentIdDto, UpdateGovernmentIdTypeDto, SubmitSelfieDto, SaveAddressDto, SavePanDto, SaveBankDto, VerifyBankDto, SaveUpiDto } from './dto/kyc.dto';
 
 @Injectable()
 export class KycService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private progressEngine: ProgressEngineService) {}
 
   // ─── GET /companion/kyc/status ───────────────────────────────────────────────
   // Matches VerificationHubScreen — returns full KYC status
   async getKycStatus(companionId: string) {
-    let kyc = await this.prisma.companionKYC.findUnique({ where: { companionId } });
-    if (!kyc) {
-      kyc = await this.prisma.companionKYC.create({ data: { companionId } });
-    }
-    const companion = await this.prisma.companion.findUnique({
-      where: { id: companionId },
-      select: { verificationStatus: true, profileStatus: true },
-    });
-
-    return {
-      kycId: kyc.id,
-      overallStatus: companion?.verificationStatus?.toLowerCase() ?? 'unverified',
-      profileStatus: companion?.profileStatus?.toLowerCase() ?? 'incomplete',
-      steps: {
-        identity: {
-          status: kyc.identityDocumentUrl ? 'submitted' : 'pending',
-          documentType: kyc.identityDocumentType ?? null,
-          submittedAt: kyc.identitySubmittedAt?.toISOString() ?? null,
-        },
-        selfie: {
-          status: kyc.selfieVideoUrl ? 'submitted' : 'pending',
-          submittedAt: kyc.selfieSubmittedAt?.toISOString() ?? null,
-        },
-        address: {
-          status: kyc.addressDocumentUrl ? 'submitted' : 'pending',
-          documentType: kyc.addressDocumentType ?? null,
-          submittedAt: kyc.addressSubmittedAt?.toISOString() ?? null,
-        },
-        pan: {
-          status: kyc.maskedPan ? 'submitted' : 'pending',
-          maskedPan: kyc.maskedPan ?? null,
-        },
-        bank: {
-          status: kyc.maskedBankAccount ? 'submitted' : 'pending',
-          maskedAccount: kyc.maskedBankAccount ?? null,
-          bankName: kyc.bankName ?? null,
-        },
-        upi: {
-          status: kyc.maskedUpi ? 'submitted' : 'pending',
-          maskedUpi: kyc.maskedUpi ?? null,
-        },
-        emergencyContact: {
-          status: kyc.emergencyContactName ? 'submitted' : 'pending',
-          name: kyc.emergencyContactName ?? null,
-        },
-        declaration: {
-          status: kyc.declarationAgreedAt ? 'submitted' : 'pending',
-          agreedAt: kyc.declarationAgreedAt?.toISOString() ?? null,
-        },
-      },
-      rejectionReason: kyc.rejectionReason ?? null,
-      submittedAt: kyc.submittedAt?.toISOString() ?? null,
-      approvedAt: kyc.approvedAt?.toISOString() ?? null,
-    };
+    const onboardingStatus = await this.progressEngine.getOnboardingStatus(companionId);
+    return { success: true, onboardingStatus };
   }
 
   private async logCompletion(companionId: string, stepName: string, screenName?: string, percentage: number = 100) {
@@ -123,7 +72,7 @@ export class KycService {
     }
 
     await this.logCompletion(companionId, 'basic_details', 'BasicDetailsScreen', 10);
-    return { success: true, message: 'Basic details saved successfully' };
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Basic details saved successfully' };
   }
 
   // ─── POST /companion/application/draft ───────────────────────────────────────
@@ -139,8 +88,7 @@ export class KycService {
       update: { draftStage: dto.stage, draftData: dto.data ? JSON.stringify(dto.data) : null },
       create: { companionId, draftStage: dto.stage },
     });
-    return {
-      success: true,
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
       savedAt: new Date().toISOString(),
       stage: dto.stage,
       message: 'Progress saved. You can resume from where you left off.',
@@ -155,7 +103,7 @@ export class KycService {
       update: { identityDocumentType: dto.documentType },
       create: { companionId, identityDocumentType: dto.documentType },
     });
-    return { success: true, message: 'Government ID type saved successfully.' };
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Government ID type saved successfully.' };
   }
 
   // ─── POST /companion/kyc/government-id ───────────────────────────────────────
@@ -177,7 +125,7 @@ export class KycService {
         identitySubmittedAt: new Date(),
       },
     });
-    return { success: true, message: 'Government ID submitted for verification.' };
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Government ID submitted for verification.' };
   }
 
   // ─── POST /companion/kyc/selfie ───────────────────────────────────────────────
@@ -188,7 +136,7 @@ export class KycService {
       update: { selfieImageUrl: dto.imageUrl, selfieVideoUrl: dto.videoUrl, selfieSubmittedAt: new Date() },
       create: { companionId, selfieImageUrl: dto.imageUrl, selfieVideoUrl: dto.videoUrl, selfieSubmittedAt: new Date() },
     });
-    return { success: true, message: 'Selfie submitted for liveness verification.' };
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Selfie submitted for liveness verification.' };
   }
 
   // ─── POST /companion/kyc/address ─────────────────────────────────────────────
@@ -222,7 +170,7 @@ export class KycService {
         addressSubmittedAt: new Date(),
       },
     });
-    return { success: true, message: 'Address details saved successfully.' };
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Address details saved successfully.' };
   }
 
   // ─── POST /companion/kyc/upi ─────────────────────────────────────────────────
@@ -245,7 +193,7 @@ export class KycService {
         upiIsPrimary: dto.isPrimary ?? true,
       },
     });
-    return { success: true, message: 'UPI details saved.' };
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'UPI details saved.' };
   }
 
   // ─── POST /companion/kyc/pan ─────────────────────────────────────────────────
@@ -272,7 +220,7 @@ export class KycService {
         gstNumber: dto.hasGST ? dto.gstNumber ?? null : null,
       },
     });
-    return { success: true, message: 'PAN details saved.' };
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'PAN details saved.' };
   }
 
   // ─── POST /companion/kyc/bank ────────────────────────────────────────────────
@@ -301,8 +249,7 @@ export class KycService {
         bankVerified: false,
       },
     });
-    return {
-      success: true,
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
       bankId: `bank-${companionId.slice(-8)}`,
       maskedAccount,
       bankName: dto.bankName ?? 'Bank Account',
@@ -320,8 +267,7 @@ export class KycService {
       where: { companionId },
       data: { bankVerified: true },
     });
-    return {
-      success: true,
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
       verified: true,
       maskedAccount: kyc.maskedBankAccount,
       bankName: kyc.bankName,
@@ -346,7 +292,7 @@ export class KycService {
         emergencyContactRelationship: dto.relationship,
       },
     });
-    return { success: true, message: 'Emergency contact saved.' };
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Emergency contact saved.' };
   }
 
   // ─── POST /companion/kyc/declaration ─────────────────────────────────────────
@@ -367,7 +313,7 @@ export class KycService {
         declarationConsents: consents,
       },
     });
-    return { success: true, message: 'Declaration confirmed.' };
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Declaration confirmed.' };
   }
 
   // ─── POST /companion/kyc/submit ──────────────────────────────────────────────
@@ -434,8 +380,7 @@ export class KycService {
       data: updateData,
     });
 
-    return {
-      success: true,
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
       message: 'Your application has been submitted for review. We will notify you within 2–3 business days.',
       submittedAt: new Date().toISOString(),
     };
@@ -456,8 +401,7 @@ export class KycService {
       where: { id: companionId },
       data: { verificationStatus: 'pending_review', profileStatus: 'submitted' },
     });
-    return {
-      success: true,
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
       message: 'Documents resubmitted for review.',
       submittedAt: new Date().toISOString(),
     };

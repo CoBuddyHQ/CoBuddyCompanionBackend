@@ -66,26 +66,19 @@ export class UpdateLanguagesDto {
 export class UpdateWorkPreferenceDto {
   @ApiPropertyOptional()
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  durations?: string[];
+  durations?: any;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  days?: string[];
+  days?: any;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  timeRanges?: string[];
+  timeRanges?: any;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsString()
-  frequency?: string;
+  frequency?: any;
 }
 
 

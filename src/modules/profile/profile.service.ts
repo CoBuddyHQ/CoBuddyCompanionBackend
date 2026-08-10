@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ProgressEngineService } from '../kyc/progress-engine.service';
 import { Category } from '@prisma/client';
 import {
   UpdateBasicProfileDto,
@@ -42,7 +43,7 @@ function mapToCategoryEnum(catStr: string): Category {
 export class ProfileService {
   private readonly logger = new Logger(ProfileService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private progressEngine: ProgressEngineService) {}
 
   // ─── Update Work Preference ────────────────────────────────────────────────
   async updateWorkPreference(companionId: string, dto: UpdateWorkPreferenceDto) {
@@ -50,7 +51,7 @@ export class ProfileService {
       where: { id: companionId },
       data: { workPreferences: dto as any },
     });
-    return { success: true, message: 'Work preferences updated successfully' };
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Work preferences updated successfully' };
   }
 
   // ─── Update Communication & Activity Preferences ────────────────────────────
@@ -59,7 +60,7 @@ export class ProfileService {
       where: { id: companionId },
       data: { commActivityPrefs: dto as any },
     });
-    return { success: true, message: 'Communication & activity preferences updated successfully' };
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Communication & activity preferences updated successfully' };
   }
 
   // ─── Update Public Venue Preferences ───────────────────────────────────────
@@ -68,7 +69,7 @@ export class ProfileService {
       where: { id: companionId },
       data: { venuePreferences: dto.venuePreferences ?? [] },
     });
-    return { success: true, message: 'Venue preferences updated successfully' };
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Venue preferences updated successfully' };
   }
 
   // ─── Update Boundaries & Safety Acceptance ──────────────────────────────────
@@ -77,7 +78,7 @@ export class ProfileService {
       where: { id: companionId },
       data: { boundariesAccepted: dto.boundariesAccepted },
     });
-    return { success: true, message: 'Boundaries acceptance updated successfully' };
+    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Boundaries acceptance updated successfully' };
   }
 
   // ── GET /companion/profile ─────────────────────────────────────────────────
@@ -165,7 +166,7 @@ export class ProfileService {
       }
 
       // Return the updated profile (outside transaction for simplicity, or just success msg)
-      return { success: true, message: 'Profile setup data saved successfully in bulk.' };
+      return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Profile setup data saved successfully in bulk.' };
     });
   }
 
@@ -229,7 +230,7 @@ export class ProfileService {
       });
 
       if (existing && existing.isCompleted) {
-        return { success: true, message: 'Task already completed' };
+        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Task already completed' };
       }
 
       // 2. Upsert the task completion
@@ -278,7 +279,7 @@ export class ProfileService {
         }
       }
 
-      return { success: true, newScore };
+      return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), newScore };
     });
   }
 
@@ -488,7 +489,10 @@ export class ProfileService {
 
     const updated = await this.prisma.companion.update({
       where: { id: companionId },
-      data: { profileStatus: 'submitted' },
+      data: { 
+        profileStatus: 'published',
+        verificationStatus: 'approved'
+      },
     });
 
     // Also update KYC

@@ -31,16 +31,16 @@ let KycService = class KycService {
             profileStatus: companion?.profileStatus?.toLowerCase() ?? 'incomplete',
             steps: {
                 identity: {
-                    status: kyc.identityDocumentUrl ? 'submitted' : 'pending',
+                    status: (kyc.identityDocumentUrl || kyc.identityDocumentType || kyc.identitySubmittedAt) ? 'submitted' : 'pending',
                     documentType: kyc.identityDocumentType ?? null,
                     submittedAt: kyc.identitySubmittedAt?.toISOString() ?? null,
                 },
                 selfie: {
-                    status: kyc.selfieVideoUrl ? 'submitted' : 'pending',
+                    status: (kyc.selfieVideoUrl || kyc.selfieSubmittedAt) ? 'submitted' : 'pending',
                     submittedAt: kyc.selfieSubmittedAt?.toISOString() ?? null,
                 },
                 address: {
-                    status: kyc.addressDocumentUrl ? 'submitted' : 'pending',
+                    status: (kyc.addressDocumentUrl || kyc.addressSubmittedAt || kyc.addressLine1) ? 'submitted' : 'pending',
                     documentType: kyc.addressDocumentType ?? null,
                     submittedAt: kyc.addressSubmittedAt?.toISOString() ?? null,
                 },

@@ -47,11 +47,16 @@ function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+import { NotificationsGateway } from '../notifications/notifications.gateway';
+
 @Injectable()
 export class RequestSimulatorService {
   private readonly logger = new Logger(RequestSimulatorService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsGateway: NotificationsGateway,
+  ) {}
 
   // ── Every 2 minutes: create a new pending request for each companion ────────
   @Cron('*/2 * * * *')
@@ -79,7 +84,7 @@ export class RequestSimulatorService {
       const estimatedEarning = Math.round((durationMin / 60) * rand([400, 500, 600, 700, 800]));
 
       for (const companion of companions) {
-        await this.prisma.bookingRequest.create({
+        const req = await this.prisma.bookingRequest.create({
           data: {
             companionId: companion.id,
             customerId: `sim_cust_${Date.now()}`,
@@ -102,6 +107,7 @@ export class RequestSimulatorService {
             expiresAt: new Date(now.getTime() + 15 * 60000), // expires in 15 min
           },
         });
+        this.notificationsGateway.emitNewBookingRequest(companion.id, req);
         this.logger.log(`✅ Simulated request created for companion ${companion.id} [${category} @ ${venue.name}]`);
       }
     } catch (err: any) {
