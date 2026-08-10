@@ -117,11 +117,35 @@ export class UploadsController {
   }
 
   /**
+   * POST /companion/uploads/kyc/pan
+   */
+  @Post('kyc/pan')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('document', { storage: upload }))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload PAN card document' })
+  async uploadKycPan(@CurrentCompanion() c: JwtPayload, @UploadedFile() file: Express.Multer.File) {
+    return this.uploadsService.uploadFile(c.sub, file, 'kyc_identity');
+  }
+
+  /**
+   * POST /companion/uploads/kyc/bank
+   */
+  @Post('kyc/bank')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('document', { storage: upload }))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload Bank passbook or cancelled cheque document' })
+  async uploadKycBank(@CurrentCompanion() c: JwtPayload, @UploadedFile() file: Express.Multer.File) {
+    return this.uploadsService.uploadFile(c.sub, file, 'kyc_address');
+  }
+
+  /**
    * POST /companion/uploads/evidence — Endpoints.UPLOADS.EVIDENCE
    */
   @Post('evidence')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('file', { storage: upload }))
+  @UseInterceptors(FileInterceptor('document', { storage: upload }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload incident/dispute evidence file' })
   async uploadEvidence(@CurrentCompanion() c: JwtPayload, @UploadedFile() file: Express.Multer.File) {

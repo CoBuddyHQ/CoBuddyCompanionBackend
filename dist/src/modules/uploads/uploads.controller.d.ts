@@ -68,6 +68,18 @@ export declare class UploadsController {
         size: number;
         mimeType: string;
     }>;
+    uploadKycPan(c: JwtPayload, file: Express.Multer.File): Promise<{
+        url: string;
+        key: string;
+        size: number;
+        mimeType: string;
+    }>;
+    uploadKycBank(c: JwtPayload, file: Express.Multer.File): Promise<{
+        url: string;
+        key: string;
+        size: number;
+        mimeType: string;
+    }>;
     uploadEvidence(c: JwtPayload, file: Express.Multer.File): Promise<{
         url: string;
         key: string;

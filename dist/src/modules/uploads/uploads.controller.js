@@ -51,6 +51,12 @@ let UploadsController = class UploadsController {
     async uploadKycPolice(c, file) {
         return this.uploadsService.uploadFile(c.sub, file, 'kyc_police');
     }
+    async uploadKycPan(c, file) {
+        return this.uploadsService.uploadFile(c.sub, file, 'kyc_identity');
+    }
+    async uploadKycBank(c, file) {
+        return this.uploadsService.uploadFile(c.sub, file, 'kyc_address');
+    }
     async uploadEvidence(c, file) {
         return this.uploadsService.uploadFile(c.sub, file, 'evidence');
     }
@@ -140,9 +146,33 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], UploadsController.prototype, "uploadKycPolice", null);
 __decorate([
+    (0, common_1.Post)('kyc/pan'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('document', { storage: upload })),
+    (0, swagger_1.ApiConsumes)('multipart/form-data'),
+    (0, swagger_1.ApiOperation)({ summary: 'Upload PAN card document' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], UploadsController.prototype, "uploadKycPan", null);
+__decorate([
+    (0, common_1.Post)('kyc/bank'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('document', { storage: upload })),
+    (0, swagger_1.ApiConsumes)('multipart/form-data'),
+    (0, swagger_1.ApiOperation)({ summary: 'Upload Bank passbook or cancelled cheque document' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], UploadsController.prototype, "uploadKycBank", null);
+__decorate([
     (0, common_1.Post)('evidence'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', { storage: upload })),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('document', { storage: upload })),
     (0, swagger_1.ApiConsumes)('multipart/form-data'),
     (0, swagger_1.ApiOperation)({ summary: 'Upload incident/dispute evidence file' }),
     __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
