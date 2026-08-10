@@ -16,9 +16,11 @@ const VENUES = [
 const CATEGORIES: Category[] = [
   'cafe_conversation',
   'city_walk',
-  'event_companion',
-  'shopping_buddy',
-  'cultural_guide',
+  'art_culture',
+  'food_experience',
+  'events',
+  'movies',
+  'wellness_walk',
 ] as Category[];
 
 const CUSTOMERS = [

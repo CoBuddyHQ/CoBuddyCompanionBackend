@@ -446,6 +446,8 @@ export class ProfileService {
     return this.getProfile(companionId);
   }
 
+
+
   // ── PUT /companion/profile/photos/reorder ─────────────────────────────────
 
   async reorderPhotos(companionId: string, dto: ReorderPhotosDto) {
