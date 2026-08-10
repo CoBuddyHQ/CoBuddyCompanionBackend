@@ -4,18 +4,33 @@ import { PrismaService } from '../../prisma/prisma.service';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
+import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 
 @Injectable()
 export class UploadsService {
   private readonly logger = new Logger(UploadsService.name);
+  private isCloudinaryConfigured = false;
 
   constructor(
     private prisma: PrismaService,
     private config: ConfigService,
-  ) {}
+  ) {
+    const cloudName = this.config.get('CLOUDINARY_CLOUD_NAME');
+    const apiKey = this.config.get('CLOUDINARY_API_KEY');
+    const apiSecret = this.config.get('CLOUDINARY_API_SECRET');
+    if (cloudName && apiKey && apiSecret && apiSecret !== 'YOUR_API_SECRET') {
+      cloudinary.config({
+        cloud_name: cloudName,
+        api_key: apiKey,
+        api_secret: apiSecret,
+      });
+      this.isCloudinaryConfigured = true;
+      this.logger.log(`Cloudinary configured for ${cloudName}`);
+    }
+  }
 
   /**
-   * Handles file upload. In production: uploads to S3 and returns CDN URL.
+   * Handles file upload. In production: uploads to S3 or Cloudinary and returns CDN URL.
    * In development: saves to local /uploads directory and returns local URL.
    */
   async uploadFile(
@@ -37,14 +52,18 @@ export class UploadsService {
 
     const ext = path.extname(file.originalname).toLowerCase();
     const fileKey = `companions/${companionId}/${category}/${crypto.randomBytes(16).toString('hex')}${ext}`;
-
+    
     let url: string;
+    let finalKey = fileKey;
 
-    if (this.config.get('AWS_ACCESS_KEY_ID') && this.config.get('AWS_SECRET_ACCESS_KEY')) {
-      // Production: upload to S3
+    if (this.isCloudinaryConfigured) {
+      const publicId = `cobuddy/companions/${companionId}/${category}/${crypto.randomBytes(16).toString('hex')}`;
+      const uploadResult = await this.uploadToCloudinary(file, publicId);
+      url = uploadResult.secure_url;
+      finalKey = uploadResult.public_id;
+    } else if (this.config.get('AWS_ACCESS_KEY_ID') && this.config.get('AWS_SECRET_ACCESS_KEY')) {
       url = await this.uploadToS3(file, fileKey);
     } else {
-      // Development: save locally
       url = await this.saveLocally(file, fileKey);
     }
 
@@ -53,7 +72,7 @@ export class UploadsService {
       data: {
         companionId,
         url,
-        key: fileKey,
+        key: finalKey,
         category,
         originalName: file.originalname,
         mimeType: file.mimetype,
@@ -61,11 +80,11 @@ export class UploadsService {
       },
     });
 
-    this.logger.log(`File uploaded: ${fileKey} (${category}) — ${file.size} bytes`);
+    this.logger.log(`File uploaded: ${finalKey} (${category}) — ${file.size} bytes`);
 
     return {
       url,
-      key: fileKey,
+      key: finalKey,
       size: file.size,
       mimeType: file.mimetype,
     };
@@ -92,6 +111,19 @@ export class UploadsService {
       where: { id: photoId, companionId },
     });
     return { message: 'Photo deleted' };
+  }
+
+  private async uploadToCloudinary(file: Express.Multer.File, publicId: string): Promise<UploadApiResponse> {
+    return new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { public_id: publicId, resource_type: 'auto' },
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result!);
+        },
+      );
+      uploadStream.end(file.buffer);
+    });
   }
 
   private async uploadToS3(file: Express.Multer.File, key: string): Promise<string> {

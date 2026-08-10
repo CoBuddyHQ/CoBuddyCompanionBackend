@@ -49,10 +49,17 @@ export class KycService {
     if (dto.displayName) companionData.displayName = dto.displayName;
 
     if (Object.keys(companionData).length > 0) {
-      await this.prisma.companion.update({
-        where: { id: companionId },
-        data: companionData,
-      });
+      try {
+        await this.prisma.companion.update({
+          where: { id: companionId },
+          data: companionData,
+        });
+      } catch (error: any) {
+        if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+          throw new import('@nestjs/common').ConflictException('This email is already registered to another account.');
+        }
+        throw error;
+      }
     }
 
     // 2. Update KYC record (legal names)
