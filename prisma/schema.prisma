@@ -64,6 +64,7 @@ enum RequestStatus {
   declined
   expired
   counter_proposed
+  cancelled
 }
 
 enum TransactionType {
@@ -643,6 +644,7 @@ model TrustedContact {
   maskedPhone        String
   relationship       String
   isEmergencyContact Boolean   @default(false)
+  shareLocation      Boolean   @default(false)
   deletedAt          DateTime?
   createdAt          DateTime  @default(now())
 
