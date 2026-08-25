@@ -145,12 +145,16 @@ export class ProfileService {
         });
 
         if (dto.categories.length > 0) {
+          const uniqueCategories = Array.from(
+            new Set(dto.categories.map((c: any) => mapToCategoryEnum(c)))
+          );
           // Insert new categories
           await tx.companionCategory.createMany({
-            data: dto.categories.map((c: any) => ({
+            data: uniqueCategories.map((category) => ({
               companionId,
-              category: c,
+              category,
             })),
+            skipDuplicates: true,
           });
         }
       }
@@ -163,13 +167,25 @@ export class ProfileService {
         });
 
         if (dto.languages.length > 0) {
-          await tx.companionLanguage.createMany({
-            data: dto.languages.map((l: any) => ({
-              companionId,
-              language: typeof l === 'string' ? l : l.language,
-              proficiency: typeof l === 'string' ? 'conversational' : (l.proficiency || 'conversational'),
-            })),
-          });
+          const seenLang = new Set<string>();
+          const langData: any[] = [];
+          for (const l of dto.languages) {
+            const langStr = typeof l === 'string' ? l.trim() : ((l as any).language?.trim() || '');
+            if (langStr && !seenLang.has(langStr.toLowerCase())) {
+              seenLang.add(langStr.toLowerCase());
+              langData.push({
+                companionId,
+                language: langStr,
+                proficiency: typeof l === 'string' ? 'conversational' : ((l as any).proficiency || 'conversational'),
+              });
+            }
+          }
+          if (langData.length > 0) {
+            await tx.companionLanguage.createMany({
+              data: langData,
+              skipDuplicates: true,
+            });
+          }
         }
       }
 
@@ -328,12 +344,17 @@ export class ProfileService {
   async updateCategories(companionId: string, dto: UpdateCategoriesDto) {
     if (!dto.categories?.length) throw new BadRequestException('At least one category required');
 
+    const uniqueCategories = Array.from(
+      new Set(dto.categories.map(cat => mapToCategoryEnum(cat)))
+    );
+
     await this.prisma.companionCategory.deleteMany({ where: { companionId } });
     await this.prisma.companionCategory.createMany({
-      data: dto.categories.map(cat => ({
+      data: uniqueCategories.map(category => ({
         companionId,
-        category: mapToCategoryEnum(cat),
+        category,
       })),
+      skipDuplicates: true,
     });
 
     return this.getProfile(companionId);
@@ -344,14 +365,27 @@ export class ProfileService {
   async updateLanguages(companionId: string, dto: UpdateLanguagesDto) {
     if (!dto.languages?.length) throw new BadRequestException('At least one language required');
 
+    const seenLang = new Set<string>();
+    const langData: any[] = [];
+    for (const l of dto.languages) {
+      const langStr = typeof l === 'string' ? l.trim() : (l as any).language?.trim() || '';
+      if (langStr && !seenLang.has(langStr.toLowerCase())) {
+        seenLang.add(langStr.toLowerCase());
+        langData.push({
+          companionId,
+          language: langStr,
+          proficiency: 'fluent',
+        });
+      }
+    }
+
     await this.prisma.companionLanguage.deleteMany({ where: { companionId } });
-    await this.prisma.companionLanguage.createMany({
-      data: dto.languages.map(l => ({
-        companionId,
-        language: l,
-        proficiency: 'fluent',
-      })),
-    });
+    if (langData.length > 0) {
+      await this.prisma.companionLanguage.createMany({
+        data: langData,
+        skipDuplicates: true,
+      });
+    }
 
     return this.getProfile(companionId);
   }
@@ -377,13 +411,15 @@ export class ProfileService {
         if (areasToUpdate.length > 0) {
           const companion = await tx.companion.findUnique({ where: { id: companionId }, select: { city: true } });
           const currentCity = dto.city ?? companion?.city ?? '';
+          const uniqueAreas = Array.from(new Set(areasToUpdate.map((a: string) => a.trim()).filter(Boolean)));
           
           await tx.companionServiceArea.createMany({
-            data: areasToUpdate.map((area: string) => ({
+            data: uniqueAreas.map((area: any) => ({
               companionId,
               area,
               city: currentCity,
             })),
+            skipDuplicates: true,
           });
         }
       }

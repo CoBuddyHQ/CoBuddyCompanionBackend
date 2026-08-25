@@ -126,11 +126,13 @@ let ProfileService = ProfileService_1 = class ProfileService {
                     where: { companionId },
                 });
                 if (dto.categories.length > 0) {
+                    const uniqueCategories = Array.from(new Set(dto.categories.map((c) => mapToCategoryEnum(c))));
                     await tx.companionCategory.createMany({
-                        data: dto.categories.map((c) => ({
+                        data: uniqueCategories.map((category) => ({
                             companionId,
-                            category: c,
+                            category,
                         })),
+                        skipDuplicates: true,
                     });
                 }
             }
@@ -139,13 +141,25 @@ let ProfileService = ProfileService_1 = class ProfileService {
                     where: { companionId },
                 });
                 if (dto.languages.length > 0) {
-                    await tx.companionLanguage.createMany({
-                        data: dto.languages.map((l) => ({
-                            companionId,
-                            language: typeof l === 'string' ? l : l.language,
-                            proficiency: typeof l === 'string' ? 'conversational' : (l.proficiency || 'conversational'),
-                        })),
-                    });
+                    const seenLang = new Set();
+                    const langData = [];
+                    for (const l of dto.languages) {
+                        const langStr = typeof l === 'string' ? l.trim() : (l.language?.trim() || '');
+                        if (langStr && !seenLang.has(langStr.toLowerCase())) {
+                            seenLang.add(langStr.toLowerCase());
+                            langData.push({
+                                companionId,
+                                language: langStr,
+                                proficiency: typeof l === 'string' ? 'conversational' : (l.proficiency || 'conversational'),
+                            });
+                        }
+                    }
+                    if (langData.length > 0) {
+                        await tx.companionLanguage.createMany({
+                            data: langData,
+                            skipDuplicates: true,
+                        });
+                    }
                 }
             }
             return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Profile setup data saved successfully in bulk.' };
@@ -275,26 +289,40 @@ let ProfileService = ProfileService_1 = class ProfileService {
     async updateCategories(companionId, dto) {
         if (!dto.categories?.length)
             throw new common_1.BadRequestException('At least one category required');
+        const uniqueCategories = Array.from(new Set(dto.categories.map(cat => mapToCategoryEnum(cat))));
         await this.prisma.companionCategory.deleteMany({ where: { companionId } });
         await this.prisma.companionCategory.createMany({
-            data: dto.categories.map(cat => ({
+            data: uniqueCategories.map(category => ({
                 companionId,
-                category: mapToCategoryEnum(cat),
+                category,
             })),
+            skipDuplicates: true,
         });
         return this.getProfile(companionId);
     }
     async updateLanguages(companionId, dto) {
         if (!dto.languages?.length)
             throw new common_1.BadRequestException('At least one language required');
+        const seenLang = new Set();
+        const langData = [];
+        for (const l of dto.languages) {
+            const langStr = typeof l === 'string' ? l.trim() : l.language?.trim() || '';
+            if (langStr && !seenLang.has(langStr.toLowerCase())) {
+                seenLang.add(langStr.toLowerCase());
+                langData.push({
+                    companionId,
+                    language: langStr,
+                    proficiency: 'fluent',
+                });
+            }
+        }
         await this.prisma.companionLanguage.deleteMany({ where: { companionId } });
-        await this.prisma.companionLanguage.createMany({
-            data: dto.languages.map(l => ({
-                companionId,
-                language: l,
-                proficiency: 'fluent',
-            })),
-        });
+        if (langData.length > 0) {
+            await this.prisma.companionLanguage.createMany({
+                data: langData,
+                skipDuplicates: true,
+            });
+        }
         return this.getProfile(companionId);
     }
     async updateServiceAreas(companionId, dto) {
@@ -316,12 +344,14 @@ let ProfileService = ProfileService_1 = class ProfileService {
                 if (areasToUpdate.length > 0) {
                     const companion = await tx.companion.findUnique({ where: { id: companionId }, select: { city: true } });
                     const currentCity = dto.city ?? companion?.city ?? '';
+                    const uniqueAreas = Array.from(new Set(areasToUpdate.map((a) => a.trim()).filter(Boolean)));
                     await tx.companionServiceArea.createMany({
-                        data: areasToUpdate.map((area) => ({
+                        data: uniqueAreas.map((area) => ({
                             companionId,
                             area,
                             city: currentCity,
                         })),
+                        skipDuplicates: true,
                     });
                 }
             }
