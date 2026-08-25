@@ -3,3 +3,7 @@ dist
 .env
 *.log
 coverage
+backups/
+*.sql
+*.sql.gz
+
