@@ -32,6 +32,7 @@ const settings_module_1 = require("./modules/settings/settings.module");
 const payments_module_1 = require("./modules/payments/payments.module");
 const serve_static_1 = require("@nestjs/serve-static");
 const path_1 = require("path");
+const app_controller_1 = require("./app.controller");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -64,6 +65,7 @@ exports.AppModule = AppModule = __decorate([
             settings_module_1.SettingsModule,
             payments_module_1.PaymentsModule,
         ],
+        controllers: [app_controller_1.AppController],
         providers: [
             {
                 provide: core_1.APP_GUARD,
