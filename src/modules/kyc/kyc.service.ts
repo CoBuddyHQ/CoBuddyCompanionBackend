@@ -38,7 +38,16 @@ export class KycService {
   async saveBasicDetails(companionId: string, dto: BasicDetailsDto) {
     // 1. Update core Companion record (email, dob, gender, display name)
     const companionData: any = {};
-    if (dto.email && dto.email.trim().length > 0) companionData.email = dto.email.trim();
+    if (dto.email && dto.email.trim().length > 0) {
+      const cleanEmail = dto.email.trim().toLowerCase();
+      const existingEmailOwner = await this.prisma.companion.findUnique({
+        where: { email: cleanEmail },
+      });
+      if (existingEmailOwner && existingEmailOwner.id !== companionId) {
+        throw new ConflictException('This email is already registered to another account.');
+      }
+      companionData.email = cleanEmail;
+    }
     if (dto.dateOfBirth) {
       const parsedDate = new Date(dto.dateOfBirth);
       if (!isNaN(parsedDate.getTime())) {
@@ -55,7 +64,10 @@ export class KycService {
           data: companionData,
         });
       } catch (error: any) {
-        if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+        if (
+          error.code === 'P2002' ||
+          (typeof error.message === 'string' && error.message.includes('email'))
+        ) {
           throw new ConflictException('This email is already registered to another account.');
         }
         throw error;
@@ -413,9 +425,34 @@ export class KycService {
       where: { id: companionId },
       data: { verificationStatus: 'pending_review', profileStatus: 'submitted' },
     });
-    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
+    return {
+      success: true,
+      onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
       message: 'Documents resubmitted for review.',
       submittedAt: new Date().toISOString(),
+    };
+  }
+
+  // ─── POST /companion/onboarding/terms/accept ──────────────────────────────
+  async acceptTerms(companionId: string) {
+    const updated = await this.prisma.companion.update({
+      where: { id: companionId },
+      data: {
+        termsAccepted: true,
+        termsAcceptedAt: new Date(),
+        boundariesAccepted: true,
+      },
+    });
+
+    const onboardingStatus = await this.progressEngine.getOnboardingStatus(companionId);
+
+    return {
+      success: true,
+      message: 'Terms and safety agreement accepted successfully.',
+      termsAccepted: true,
+      termsAcceptedAt: updated.termsAcceptedAt?.toISOString() || new Date().toISOString(),
+      onboardingStatus,
+      nextStep: onboardingStatus.currentStep || 'eligibility',
     };
   }
 }

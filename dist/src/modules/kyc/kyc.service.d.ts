@@ -99,4 +99,12 @@ export declare class KycService {
         message: string;
         submittedAt: string;
     }>;
+    acceptTerms(companionId: string): Promise<{
+        success: boolean;
+        message: string;
+        termsAccepted: boolean;
+        termsAcceptedAt: string;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
+        nextStep: string;
+    }>;
 }

@@ -88,4 +88,28 @@ export declare class KycController {
         message: string;
         submittedAt: string;
     }>;
+    acceptTerms(c: JwtPayload): Promise<{
+        success: boolean;
+        message: string;
+        termsAccepted: boolean;
+        termsAcceptedAt: string;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
+        nextStep: string;
+    }>;
+    acceptTermsAlias(c: JwtPayload): Promise<{
+        success: boolean;
+        message: string;
+        termsAccepted: boolean;
+        termsAcceptedAt: string;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
+        nextStep: string;
+    }>;
+    acceptTermsProfileAlias(c: JwtPayload): Promise<{
+        success: boolean;
+        message: string;
+        termsAccepted: boolean;
+        termsAcceptedAt: string;
+        onboardingStatus: import("./progress-engine.service").OnboardingStatus;
+        nextStep: string;
+    }>;
 }

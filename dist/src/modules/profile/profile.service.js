@@ -290,13 +290,17 @@ let ProfileService = ProfileService_1 = class ProfileService {
         if (!dto.categories?.length)
             throw new common_1.BadRequestException('At least one category required');
         const uniqueCategories = Array.from(new Set(dto.categories.map(cat => mapToCategoryEnum(cat))));
-        await this.prisma.companionCategory.deleteMany({ where: { companionId } });
-        await this.prisma.companionCategory.createMany({
-            data: uniqueCategories.map(category => ({
-                companionId,
-                category,
-            })),
-            skipDuplicates: true,
+        await this.prisma.$transaction(async (tx) => {
+            await tx.companionCategory.deleteMany({ where: { companionId } });
+            if (uniqueCategories.length > 0) {
+                await tx.companionCategory.createMany({
+                    data: uniqueCategories.map(category => ({
+                        companionId,
+                        category,
+                    })),
+                    skipDuplicates: true,
+                });
+            }
         });
         return this.getProfile(companionId);
     }
@@ -316,13 +320,15 @@ let ProfileService = ProfileService_1 = class ProfileService {
                 });
             }
         }
-        await this.prisma.companionLanguage.deleteMany({ where: { companionId } });
-        if (langData.length > 0) {
-            await this.prisma.companionLanguage.createMany({
-                data: langData,
-                skipDuplicates: true,
-            });
-        }
+        await this.prisma.$transaction(async (tx) => {
+            await tx.companionLanguage.deleteMany({ where: { companionId } });
+            if (langData.length > 0) {
+                await tx.companionLanguage.createMany({
+                    data: langData,
+                    skipDuplicates: true,
+                });
+            }
+        });
         return this.getProfile(companionId);
     }
     async updateServiceAreas(companionId, dto) {

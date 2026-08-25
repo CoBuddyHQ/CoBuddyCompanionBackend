@@ -148,6 +148,8 @@ model Companion {
   commActivityPrefs  Json?
   venuePreferences   String[]           @default([])
   boundariesAccepted Boolean            @default(false)
+  termsAccepted      Boolean            @default(false)
+  termsAcceptedAt    DateTime?
   photoUrl           String?
   hourlyRate         Decimal?           @db.Decimal(10, 2)
   sessionDuration    Int                @default(90) // 60, 90, 120

@@ -133,4 +133,28 @@ export class KycController {
   resubmitKyc(@CurrentCompanion() c: JwtPayload, @Body() dto: any) {
     return this.kycService.resubmitKyc(c.sub, dto);
   }
+
+  /** POST /companion/onboarding/terms/accept — TermsConsentScreen */
+  @Post('companion/onboarding/terms/accept')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Record terms and safety consent acceptance — TermsConsentScreen' })
+  acceptTerms(@CurrentCompanion() c: JwtPayload) {
+    return this.kycService.acceptTerms(c.sub);
+  }
+
+  /** POST /companion/onboarding/terms-consent — Alias for terms acceptance */
+  @Post('companion/onboarding/terms-consent')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Record terms and safety consent acceptance alias' })
+  acceptTermsAlias(@CurrentCompanion() c: JwtPayload) {
+    return this.kycService.acceptTerms(c.sub);
+  }
+
+  /** POST /companion/profile/terms/accept — Profile alias for terms acceptance */
+  @Post('companion/profile/terms/accept')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Record terms and safety consent acceptance alias' })
+  acceptTermsProfileAlias(@CurrentCompanion() c: JwtPayload) {
+    return this.kycService.acceptTerms(c.sub);
+  }
 }

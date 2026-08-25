@@ -68,6 +68,15 @@ let KycController = class KycController {
     resubmitKyc(c, dto) {
         return this.kycService.resubmitKyc(c.sub, dto);
     }
+    acceptTerms(c) {
+        return this.kycService.acceptTerms(c.sub);
+    }
+    acceptTermsAlias(c) {
+        return this.kycService.acceptTerms(c.sub);
+    }
+    acceptTermsProfileAlias(c) {
+        return this.kycService.acceptTerms(c.sub);
+    }
 };
 exports.KycController = KycController;
 __decorate([
@@ -217,6 +226,33 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], KycController.prototype, "resubmitKyc", null);
+__decorate([
+    (0, common_1.Post)('companion/onboarding/terms/accept'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Record terms and safety consent acceptance — TermsConsentScreen' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], KycController.prototype, "acceptTerms", null);
+__decorate([
+    (0, common_1.Post)('companion/onboarding/terms-consent'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Record terms and safety consent acceptance alias' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], KycController.prototype, "acceptTermsAlias", null);
+__decorate([
+    (0, common_1.Post)('companion/profile/terms/accept'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Record terms and safety consent acceptance alias' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], KycController.prototype, "acceptTermsProfileAlias", null);
 exports.KycController = KycController = __decorate([
     (0, swagger_1.ApiTags)('KYC'),
     (0, swagger_1.ApiBearerAuth)('companion-jwt'),

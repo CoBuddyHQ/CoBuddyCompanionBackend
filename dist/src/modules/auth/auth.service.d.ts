@@ -17,7 +17,9 @@ export declare class AuthService {
         isNewCompanion: boolean;
         companionId: string;
         phone: string;
-        profileStatus: import(".prisma/client").$Enums.ProfileStatus;
+        profileStatus: string;
+        termsAccepted: boolean;
+        termsAcceptedAt: string;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         accountStatus: import(".prisma/client").$Enums.AccountStatus;
         hasPIN: boolean;

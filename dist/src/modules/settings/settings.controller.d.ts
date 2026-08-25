@@ -20,6 +20,7 @@ export declare class SettingsController {
         success: boolean;
         settings: {
             id: string;
+            termsAccepted: boolean;
             createdAt: Date;
             updatedAt: Date;
             companionId: string;
@@ -28,7 +29,6 @@ export declare class SettingsController {
             showAge: boolean;
             allowPromo: boolean;
             showInSearch: boolean;
-            termsAccepted: boolean;
             safetyRulesAccepted: boolean;
             locationEnabled: boolean;
             notificationsEnabled: boolean;
@@ -46,6 +46,7 @@ export declare class SettingsController {
         success: boolean;
         settings: {
             id: string;
+            termsAccepted: boolean;
             createdAt: Date;
             updatedAt: Date;
             companionId: string;
@@ -54,7 +55,6 @@ export declare class SettingsController {
             showAge: boolean;
             allowPromo: boolean;
             showInSearch: boolean;
-            termsAccepted: boolean;
             safetyRulesAccepted: boolean;
             locationEnabled: boolean;
             notificationsEnabled: boolean;
@@ -68,6 +68,7 @@ export declare class SettingsController {
         success: boolean;
         settings: {
             id: string;
+            termsAccepted: boolean;
             createdAt: Date;
             updatedAt: Date;
             companionId: string;
@@ -76,7 +77,6 @@ export declare class SettingsController {
             showAge: boolean;
             allowPromo: boolean;
             showInSearch: boolean;
-            termsAccepted: boolean;
             safetyRulesAccepted: boolean;
             locationEnabled: boolean;
             notificationsEnabled: boolean;

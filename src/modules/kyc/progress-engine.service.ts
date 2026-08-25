@@ -16,6 +16,8 @@ export interface OnboardingStatus {
   applicationStatus: string;
   lastUpdated: string;
   hasStarted: boolean;   // true when completedModules.length > 0
+  termsAccepted: boolean;
+  termsAcceptedAt?: string | null;
 }
 
 @Injectable()
@@ -129,6 +131,8 @@ export class ProgressEngineService {
       applicationStatus: companion?.profileStatus || 'pending',
       lastUpdated: new Date().toISOString(),
       hasStarted: completedModules.length > 0,
+      termsAccepted: companion?.termsAccepted ?? false,
+      termsAcceptedAt: companion?.termsAcceptedAt?.toISOString() ?? null,
     };
   }
 }
