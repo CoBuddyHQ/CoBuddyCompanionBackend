@@ -189,51 +189,54 @@ let RequestsService = RequestsService_1 = class RequestsService {
     }
     async acceptRequest(companionId, requestId) {
         const req = await this.findPendingOrThrow(companionId, requestId);
-        const updated = await this.prisma.bookingRequest.update({
-            where: { id: requestId },
-            data: { status: 'accepted', respondedAt: new Date() },
-        });
         const sessionPassCode = this.generatePassCode(req.customerInitials);
-        const session = await this.prisma.session.create({
-            data: {
-                companionId,
-                customerId: req.customerId,
-                requestId,
-                status: 'upcoming',
-                category: req.category,
-                customerInitials: req.customerInitials,
-                customerTrustScore: req.customerTrustScore,
-                customerVerified: req.customerVerified,
-                customerSessionCount: req.customerSessionCount,
-                customerSafetyConsent: req.customerSafetyConsent,
-                customerIdentityVerified: req.customerIdentityVerified,
-                venueId: req.venueId,
-                venueName: req.venueName,
-                venueArea: req.venueArea,
-                venueCity: req.venueCity,
-                venueType: req.venueType,
-                venueMeetingPoint: req.venueMeetingPoint,
-                venueLandmark: req.venueLandmark,
-                isVenueApproved: req.isVenueApproved,
-                scheduledStart: req.proposedStart,
-                scheduledEnd: req.proposedEnd,
-                durationMinutes: req.durationMinutes,
-                language: req.language,
-                baseEarning: req.estimatedEarning,
-                bonusEarning: 0,
-                estimatedTotal: req.estimatedEarning,
-                sessionPassCode,
-            },
-        });
-        const notif = await this.prisma.notification.create({
-            data: {
-                companionId,
-                type: 'request',
-                title: 'Booking Accepted ✓',
-                body: `You accepted the booking from ${req.customerInitials} at ${req.venueName}. Session created with pass code: ${sessionPassCode}`,
-                data: JSON.stringify({ sessionId: session.id, requestId }),
-                isRead: false,
-            },
+        const { updated, session, notif } = await this.prisma.$transaction(async (tx) => {
+            const updatedReq = await tx.bookingRequest.update({
+                where: { id: requestId },
+                data: { status: 'accepted', respondedAt: new Date() },
+            });
+            const newSession = await tx.session.create({
+                data: {
+                    companionId,
+                    customerId: req.customerId,
+                    requestId,
+                    status: 'upcoming',
+                    category: req.category,
+                    customerInitials: req.customerInitials,
+                    customerTrustScore: req.customerTrustScore,
+                    customerVerified: req.customerVerified,
+                    customerSessionCount: req.customerSessionCount,
+                    customerSafetyConsent: req.customerSafetyConsent,
+                    customerIdentityVerified: req.customerIdentityVerified,
+                    venueId: req.venueId,
+                    venueName: req.venueName,
+                    venueArea: req.venueArea,
+                    venueCity: req.venueCity,
+                    venueType: req.venueType,
+                    venueMeetingPoint: req.venueMeetingPoint,
+                    venueLandmark: req.venueLandmark,
+                    isVenueApproved: req.isVenueApproved,
+                    scheduledStart: req.proposedStart,
+                    scheduledEnd: req.proposedEnd,
+                    durationMinutes: req.durationMinutes,
+                    language: req.language,
+                    baseEarning: req.estimatedEarning,
+                    bonusEarning: 0,
+                    estimatedTotal: req.estimatedEarning,
+                    sessionPassCode,
+                },
+            });
+            const dbNotif = await tx.notification.create({
+                data: {
+                    companionId,
+                    type: 'request',
+                    title: 'Booking Accepted ✓',
+                    body: `You accepted the booking from ${req.customerInitials} at ${req.venueName}. Session created with pass code: ${sessionPassCode}`,
+                    data: JSON.stringify({ sessionId: newSession.id, requestId }),
+                    isRead: false,
+                },
+            });
+            return { updated: updatedReq, session: newSession, notif: dbNotif };
         });
         this.notificationsGateway.emitNotification(companionId, {
             notificationId: notif.id,

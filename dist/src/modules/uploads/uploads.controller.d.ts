@@ -30,6 +30,16 @@ export declare class UploadsController {
             isOnline: any;
             photoUrl: any;
             joinedAt: string;
+            interestTags: any;
+            interests: any;
+            email: any;
+            gender: any;
+            dateOfBirth: string;
+            boundariesAccepted: any;
+            termsAccepted: any;
+            workPreference: any;
+            commActivity: any;
+            venuePreferences: any;
             onboardingStatus: import("../kyc/progress-engine.service").OnboardingStatus;
             completedModules: string[];
             pendingModules: string[];

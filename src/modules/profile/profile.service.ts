@@ -16,6 +16,7 @@ import {
   UpdatePhotosDto,
   UpdateWorkPreferenceDto,
   UpdateCommActivityDto,
+  UpdateInterestsDto,
   UpdateVenuesDto,
   UpdateBoundariesDto,
 } from './dto/profile.dto';
@@ -61,14 +62,33 @@ export class ProfileService {
   // ─── Update Communication & Activity Preferences ────────────────────────────
   async updateCommActivity(companionId: string, dto: UpdateCommActivityDto) {
     const dataToUpdate: any = { commActivityPrefs: dto as any };
-    if (Array.isArray((dto as any).interests)) {
-      dataToUpdate.interestTags = (dto as any).interests;
+    const tags = dto.interests || dto.interestTags;
+    if (Array.isArray(tags)) {
+      dataToUpdate.interestTags = tags;
     }
     await this.prisma.companion.update({
       where: { id: companionId },
       data: dataToUpdate,
     });
-    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Communication & activity preferences updated successfully' };
+    return {
+      success: true,
+      onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
+      message: 'Communication & activity preferences updated successfully'
+    };
+  }
+
+  // ─── Update Interests ──────────────────────────────────────────────────────
+  async updateInterests(companionId: string, dto: UpdateInterestsDto) {
+    const tags = dto.interests || dto.interestTags || [];
+    await this.prisma.companion.update({
+      where: { id: companionId },
+      data: { interestTags: tags },
+    });
+    return {
+      success: true,
+      onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
+      message: 'Interests updated successfully'
+    };
   }
 
   // ─── Update Public Venue Preferences ───────────────────────────────────────
@@ -601,6 +621,16 @@ export class ProfileService {
       isOnline: companion.isOnline ?? false,
       photoUrl: companion.photoUrl ?? null,
       joinedAt: companion.createdAt ? new Date(companion.createdAt).toISOString() : new Date().toISOString(),
+      interestTags: companion.interestTags ?? [],
+      interests: companion.interestTags ?? [],
+      email: companion.email ?? '',
+      gender: companion.gender ?? '',
+      dateOfBirth: companion.dateOfBirth ? new Date(companion.dateOfBirth).toISOString() : null,
+      boundariesAccepted: companion.boundariesAccepted ?? false,
+      termsAccepted: companion.termsAccepted ?? false,
+      workPreference: companion.workPreferences ?? null,
+      commActivity: companion.commActivityPrefs ?? null,
+      venuePreferences: companion.venuePreferences ?? [],
 
       // ── Single Source of Truth Completion & Status ────────────────────────
       onboardingStatus,

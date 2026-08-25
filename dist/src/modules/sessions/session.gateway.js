@@ -18,8 +18,10 @@ const websockets_1 = require("@nestjs/websockets");
 const socket_io_1 = require("socket.io");
 const common_1 = require("@nestjs/common");
 const ws_jwt_guard_1 = require("../../common/guards/ws-jwt.guard");
+const prisma_service_1 = require("../../prisma/prisma.service");
 let SessionGateway = SessionGateway_1 = class SessionGateway {
-    constructor() {
+    constructor(prisma) {
+        this.prisma = prisma;
         this.logger = new common_1.Logger(SessionGateway_1.name);
         this.connectedClients = new Map();
     }
@@ -34,6 +36,13 @@ let SessionGateway = SessionGateway_1 = class SessionGateway {
         const companion = client.data.companion;
         if (!companion)
             throw new websockets_1.WsException('Unauthorized');
+        const session = await this.prisma.session.findFirst({
+            where: { id: payload.sessionId, companionId: companion.sub },
+        });
+        if (!session) {
+            this.logger.warn(`Unauthorized join attempt for session ${payload.sessionId} by companion ${companion.sub}`);
+            throw new websockets_1.WsException('Unauthorized: session not found or does not belong to you');
+        }
         const room = `session_${payload.sessionId}`;
         client.join(room);
         this.connectedClients.set(client.id, client);
@@ -120,6 +129,7 @@ exports.SessionGateway = SessionGateway = SessionGateway_1 = __decorate([
         namespace: '/sessions',
         cors: { origin: '*' },
     }),
-    (0, common_1.UseGuards)(ws_jwt_guard_1.WsJwtGuard)
+    (0, common_1.UseGuards)(ws_jwt_guard_1.WsJwtGuard),
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], SessionGateway);
 //# sourceMappingURL=session.gateway.js.map

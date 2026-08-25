@@ -113,6 +113,14 @@ export class UpdatePricingDto {
 }
 
 export class UpdateCommActivityDto {
+  @ApiPropertyOptional({ isArray: true })
+  @IsOptional() @IsArray() @IsString({ each: true })
+  interests?: string[];
+
+  @ApiPropertyOptional({ isArray: true })
+  @IsOptional() @IsArray() @IsString({ each: true })
+  interestTags?: string[];
+
   @ApiPropertyOptional()
   @IsOptional() @IsString()
   commStyle?: string;
@@ -128,6 +136,16 @@ export class UpdateCommActivityDto {
   @ApiPropertyOptional()
   @IsOptional() @IsString()
   accessibilityNote?: string;
+}
+
+export class UpdateInterestsDto {
+  @ApiPropertyOptional({ isArray: true })
+  @IsOptional() @IsArray() @IsString({ each: true })
+  interests?: string[];
+
+  @ApiPropertyOptional({ isArray: true })
+  @IsOptional() @IsArray() @IsString({ each: true })
+  interestTags?: string[];
 }
 
 export class UpdateVenuesDto {

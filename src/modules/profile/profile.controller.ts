@@ -11,7 +11,7 @@ import {
   UpdateLanguagesDto, UpdateServiceAreasDto, UpdatePricingDto,
   ToggleAvailabilityDto, ReorderPhotosDto, ProfileSetupBulkDto,
   UpdatePhotoDto, UpdatePhotosDto, UpdateWorkPreferenceDto,
-  UpdateCommActivityDto, UpdateVenuesDto, UpdateBoundariesDto,
+  UpdateCommActivityDto, UpdateInterestsDto, UpdateVenuesDto, UpdateBoundariesDto,
 } from './dto/profile.dto';
 
 @ApiTags('Profile')
@@ -20,6 +20,21 @@ import {
 @Controller('companion/profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
+
+  /** PUT /api/v1/companion/profile/interests */
+  @Put('interests')
+  @ApiOperation({ summary: 'Update companion interest tags' })
+  updateInterests(@CurrentCompanion() c: JwtPayload, @Body() dto: UpdateInterestsDto) {
+    return this.profileService.updateInterests(c.sub, dto);
+  }
+
+  /** POST /api/v1/companion/profile/interests */
+  @Post('interests')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update companion interest tags (POST alias)' })
+  updateInterestsPost(@CurrentCompanion() c: JwtPayload, @Body() dto: UpdateInterestsDto) {
+    return this.profileService.updateInterests(c.sub, dto);
+  }
 
   /** PUT /api/v1/companion/profile/photo — Endpoints.PROFILE.UPDATE_PHOTO */
   @Put('photo')

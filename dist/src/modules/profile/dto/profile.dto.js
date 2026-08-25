@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ToggleAvailabilityDto = exports.ReorderPhotosDto = exports.UpdatePhotosDto = exports.UpdatePhotoDto = exports.UpdateBoundariesDto = exports.UpdateVenuesDto = exports.UpdateCommActivityDto = exports.UpdatePricingDto = exports.UpdateServiceAreasDto = exports.UpdateWorkPreferenceDto = exports.UpdateLanguagesDto = exports.UpdateCategoriesDto = exports.UpdateBioDto = exports.UpdateBasicProfileDto = exports.ProfileSetupBulkDto = void 0;
+exports.ToggleAvailabilityDto = exports.ReorderPhotosDto = exports.UpdatePhotosDto = exports.UpdatePhotoDto = exports.UpdateBoundariesDto = exports.UpdateVenuesDto = exports.UpdateInterestsDto = exports.UpdateCommActivityDto = exports.UpdatePricingDto = exports.UpdateServiceAreasDto = exports.UpdateWorkPreferenceDto = exports.UpdateLanguagesDto = exports.UpdateCategoriesDto = exports.UpdateBioDto = exports.UpdateBasicProfileDto = exports.ProfileSetupBulkDto = void 0;
 const class_validator_1 = require("class-validator");
 const swagger_1 = require("@nestjs/swagger");
 const class_transformer_1 = require("class-transformer");
@@ -181,6 +181,20 @@ class UpdateCommActivityDto {
 }
 exports.UpdateCommActivityDto = UpdateCommActivityDto;
 __decorate([
+    (0, swagger_1.ApiPropertyOptional)({ isArray: true }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], UpdateCommActivityDto.prototype, "interests", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ isArray: true }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], UpdateCommActivityDto.prototype, "interestTags", void 0);
+__decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
@@ -204,6 +218,23 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdateCommActivityDto.prototype, "accessibilityNote", void 0);
+class UpdateInterestsDto {
+}
+exports.UpdateInterestsDto = UpdateInterestsDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ isArray: true }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], UpdateInterestsDto.prototype, "interests", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ isArray: true }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], UpdateInterestsDto.prototype, "interestTags", void 0);
 class UpdateVenuesDto {
 }
 exports.UpdateVenuesDto = UpdateVenuesDto;

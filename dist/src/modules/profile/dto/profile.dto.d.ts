@@ -37,10 +37,16 @@ export declare class UpdatePricingDto {
     sessionDuration?: number;
 }
 export declare class UpdateCommActivityDto {
+    interests?: string[];
+    interestTags?: string[];
     commStyle?: string;
     activityPace?: string;
     groupPreference?: string;
     accessibilityNote?: string;
+}
+export declare class UpdateInterestsDto {
+    interests?: string[];
+    interestTags?: string[];
 }
 export declare class UpdateVenuesDto {
     venuePreferences?: string[];

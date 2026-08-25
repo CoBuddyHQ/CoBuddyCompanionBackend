@@ -23,6 +23,12 @@ let ProfileController = class ProfileController {
     constructor(profileService) {
         this.profileService = profileService;
     }
+    updateInterests(c, dto) {
+        return this.profileService.updateInterests(c.sub, dto);
+    }
+    updateInterestsPost(c, dto) {
+        return this.profileService.updateInterests(c.sub, dto);
+    }
     updatePhoto(c, dto) {
         return this.profileService.updatePhoto(c.sub, dto);
     }
@@ -85,6 +91,25 @@ let ProfileController = class ProfileController {
     }
 };
 exports.ProfileController = ProfileController;
+__decorate([
+    (0, common_1.Put)('interests'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update companion interest tags' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, profile_dto_1.UpdateInterestsDto]),
+    __metadata("design:returntype", void 0)
+], ProfileController.prototype, "updateInterests", null);
+__decorate([
+    (0, common_1.Post)('interests'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Update companion interest tags (POST alias)' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, profile_dto_1.UpdateInterestsDto]),
+    __metadata("design:returntype", void 0)
+], ProfileController.prototype, "updateInterestsPost", null);
 __decorate([
     (0, common_1.Put)('photo'),
     (0, swagger_1.ApiOperation)({ summary: 'Update primary profile photo' }),

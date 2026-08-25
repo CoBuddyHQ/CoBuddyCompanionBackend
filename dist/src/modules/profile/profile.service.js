@@ -63,14 +63,31 @@ let ProfileService = ProfileService_1 = class ProfileService {
     }
     async updateCommActivity(companionId, dto) {
         const dataToUpdate = { commActivityPrefs: dto };
-        if (Array.isArray(dto.interests)) {
-            dataToUpdate.interestTags = dto.interests;
+        const tags = dto.interests || dto.interestTags;
+        if (Array.isArray(tags)) {
+            dataToUpdate.interestTags = tags;
         }
         await this.prisma.companion.update({
             where: { id: companionId },
             data: dataToUpdate,
         });
-        return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId), message: 'Communication & activity preferences updated successfully' };
+        return {
+            success: true,
+            onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
+            message: 'Communication & activity preferences updated successfully'
+        };
+    }
+    async updateInterests(companionId, dto) {
+        const tags = dto.interests || dto.interestTags || [];
+        await this.prisma.companion.update({
+            where: { id: companionId },
+            data: { interestTags: tags },
+        });
+        return {
+            success: true,
+            onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
+            message: 'Interests updated successfully'
+        };
     }
     async updateVenues(companionId, dto) {
         await this.prisma.companion.update({
@@ -505,6 +522,16 @@ let ProfileService = ProfileService_1 = class ProfileService {
             isOnline: companion.isOnline ?? false,
             photoUrl: companion.photoUrl ?? null,
             joinedAt: companion.createdAt ? new Date(companion.createdAt).toISOString() : new Date().toISOString(),
+            interestTags: companion.interestTags ?? [],
+            interests: companion.interestTags ?? [],
+            email: companion.email ?? '',
+            gender: companion.gender ?? '',
+            dateOfBirth: companion.dateOfBirth ? new Date(companion.dateOfBirth).toISOString() : null,
+            boundariesAccepted: companion.boundariesAccepted ?? false,
+            termsAccepted: companion.termsAccepted ?? false,
+            workPreference: companion.workPreferences ?? null,
+            commActivity: companion.commActivityPrefs ?? null,
+            venuePreferences: companion.venuePreferences ?? [],
             onboardingStatus,
             completedModules: onboardingStatus.completedModules,
             pendingModules: onboardingStatus.pendingModules,

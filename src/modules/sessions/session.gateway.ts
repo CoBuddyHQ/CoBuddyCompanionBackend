@@ -11,6 +11,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { UseGuards, Logger } from '@nestjs/common';
 import { WsJwtGuard } from '../../common/guards/ws-jwt.guard';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @WebSocketGateway({
   namespace: '/sessions',
@@ -23,6 +24,8 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
   private readonly logger = new Logger(SessionGateway.name);
   private readonly connectedClients = new Map<string, Socket>();
+
+  constructor(private prisma: PrismaService) {}
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected to SessionGateway: ${client.id}`);
@@ -40,6 +43,15 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
   ) {
     const companion = client.data.companion;
     if (!companion) throw new WsException('Unauthorized');
+
+    // Verify session ownership
+    const session = await this.prisma.session.findFirst({
+      where: { id: payload.sessionId, companionId: companion.sub },
+    });
+    if (!session) {
+      this.logger.warn(`Unauthorized join attempt for session ${payload.sessionId} by companion ${companion.sub}`);
+      throw new WsException('Unauthorized: session not found or does not belong to you');
+    }
 
     const room = `session_${payload.sessionId}`;
     client.join(room);
