@@ -164,5 +164,13 @@ export declare class EarningsController {
         language: string;
         status: string;
     }>;
+    downloadStatement(c: JwtPayload): Promise<{
+        companionId: string;
+        email: string;
+        transactionCount: number;
+        totalEarned: number;
+        generatedAt: string;
+        message: string;
+    }>;
 }
 export {};

@@ -67,6 +67,9 @@ let EarningsController = class EarningsController {
     getInvoiceDetail(c, invoiceId) {
         return this.earningsService.getInvoiceDetail(c.sub, invoiceId);
     }
+    downloadStatement(c) {
+        return this.earningsService.downloadStatement(c.sub);
+    }
 };
 exports.EarningsController = EarningsController;
 __decorate([
@@ -179,6 +182,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], EarningsController.prototype, "getInvoiceDetail", null);
+__decorate([
+    (0, common_1.Get)('statement'),
+    (0, swagger_1.ApiOperation)({ summary: 'Download earnings statement — triggers email with PDF' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], EarningsController.prototype, "downloadStatement", null);
 exports.EarningsController = EarningsController = __decorate([
     (0, swagger_1.ApiTags)('Earnings'),
     (0, swagger_1.ApiBearerAuth)('companion-jwt'),

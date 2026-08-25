@@ -126,4 +126,11 @@ export class EarningsController {
   getInvoiceDetail(@CurrentCompanion() c: JwtPayload, @Param('invoiceId') invoiceId: string) {
     return this.earningsService.getInvoiceDetail(c.sub, invoiceId);
   }
+
+  /** GET /companion/earnings/statement — Download earnings statement */
+  @Get('statement')
+  @ApiOperation({ summary: 'Download earnings statement — triggers email with PDF' })
+  downloadStatement(@CurrentCompanion() c: JwtPayload) {
+    return this.earningsService.downloadStatement(c.sub);
+  }
 }
