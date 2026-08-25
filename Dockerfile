@@ -24,6 +24,9 @@ COPY prisma ./prisma/
 COPY tsconfig*.json ./
 COPY nest-cli.json ./
 
+# Copy Prisma config file for Prisma 7
+COPY prisma.config.ts ./
+
 # Copy application source code
 COPY src ./src
 
