@@ -29,11 +29,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-cobuddy}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-development-secret-password-2026}
     ports:
-      - "5432:5432"       # Companion uses standard 5432 port
+      - "5432:5432" # Companion uses standard 5432 port
     volumes:
       - cobuddy_companion_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cobuddy} -d ${POSTGRES_DB:-cobuddy_companion_db}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cobuddy} -d ${POSTGRES_DB:-cobuddy_companion_db}" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -47,12 +47,12 @@ services:
     container_name: cobuddy_companion_redis
     restart: unless-stopped
     ports:
-      - "6379:6379"       # Companion uses standard 6379 port
+      - "6379:6379" # Companion uses standard 6379 port
     volumes:
       - cobuddy_companion_redis_data:/data
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -105,7 +105,7 @@ services:
         condition: service_healthy
 
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:4001/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); });\""]
+      test: [ "CMD-SHELL", "node -e \"require('http').get('http://localhost:4001/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); });\"" ]
       interval: 10s
       timeout: 5s
       retries: 5
