@@ -120,6 +120,14 @@ export class SessionsController {
     return this.sessionsService.getSessionPass(c.sub, sessionId);
   }
 
+  /** POST /companion/sessions/:sessionId/pre-arrival — Companion is on the way */
+  @Post(':sessionId/pre-arrival')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Mark companion is on the way — transitions upcoming → pre_arrival' })
+  markPreArrival(@CurrentCompanion() c: JwtPayload, @Param('sessionId') sessionId: string) {
+    return this.sessionsService.markPreArrival(c.sub, sessionId);
+  }
+
   /** POST /companion/sessions/:sessionId/checkin — Endpoints.SESSIONS.CHECK_IN */
   @Post(':sessionId/checkin')
   @HttpCode(HttpStatus.OK)
@@ -127,6 +135,7 @@ export class SessionsController {
   checkIn(@CurrentCompanion() c: JwtPayload, @Param('sessionId') sessionId: string) {
     return this.sessionsService.checkIn(c.sub, sessionId);
   }
+
 
   /** POST /companion/sessions/:sessionId/verify-customer — Endpoints.SESSIONS.VERIFY_CUSTOMER */
   @Post(':sessionId/verify-customer')

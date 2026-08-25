@@ -13,14 +13,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SessionsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const notifications_gateway_1 = require("../notifications/notifications.gateway");
+const VALID_TRANSITIONS = {
+    upcoming: ['pre_arrival', 'cancelled', 'no_show'],
+    pre_arrival: ['checked_in', 'cancelled', 'no_show'],
+    checked_in: ['active', 'cancelled'],
+    active: ['extending', 'completed', 'disputed'],
+    extending: ['active', 'completed'],
+    completed: [],
+    cancelled: [],
+    no_show: [],
+    disputed: [],
+};
 let SessionsService = SessionsService_1 = class SessionsService {
-    constructor(prisma) {
+    constructor(prisma, notificationsGateway) {
         this.prisma = prisma;
+        this.notificationsGateway = notificationsGateway;
         this.logger = new common_1.Logger(SessionsService_1.name);
     }
     async getUpcoming(companionId) {
-        let count = await this.prisma.session.count({ where: { companionId } });
-        if (count === 0) {
+        const realCount = await this.prisma.session.count({
+            where: {
+                companionId,
+                NOT: { customerId: { startsWith: 'cust_seed_' } },
+            },
+        });
+        const totalCount = await this.prisma.session.count({ where: { companionId } });
+        if (totalCount === 0) {
             const now = new Date();
             await this.prisma.session.createMany({
                 data: [
@@ -126,38 +145,53 @@ let SessionsService = SessionsService_1 = class SessionsService {
             category: session.category.toLowerCase(),
         };
     }
+    async markPreArrival(companionId, sessionId) {
+        const session = await this.findSessionOrThrow(companionId, sessionId);
+        this.guardTransition(session.status, 'pre_arrival');
+        const updated = await this.prisma.session.update({
+            where: { id: sessionId },
+            data: { status: 'pre_arrival' },
+        });
+        this.logger.log(`Session ${sessionId} → pre_arrival`);
+        return this.toSessionResponse(updated);
+    }
     async checkIn(companionId, sessionId) {
         const session = await this.findSessionOrThrow(companionId, sessionId);
-        if (!['upcoming', 'pre_arrival'].includes(session.status)) {
-            throw new common_1.BadRequestException(`Cannot check in from status: ${session.status}`);
-        }
+        this.guardTransition(session.status, 'checked_in');
         const updated = await this.prisma.session.update({
             where: { id: sessionId },
             data: { status: 'checked_in', checkInTime: new Date() },
         });
         this.logger.log(`Companion ${companionId} checked in to session ${sessionId}`);
+        await this.createNotification(companionId, 'session', 'Checked In at Venue', `You checked in at ${session.venueName}. Greet your customer!`, { sessionId });
         return this.toSessionResponse(updated);
     }
     async verifyCustomer(companionId, sessionId, passCode) {
         const session = await this.findSessionOrThrow(companionId, sessionId);
+        this.guardTransition(session.status, 'active');
         const isBypass = passCode === '0000';
         const match = isBypass || session.sessionPassCode === passCode;
         if (!match)
             throw new common_1.BadRequestException('Invalid session pass code');
         const updated = await this.prisma.session.update({
             where: { id: sessionId },
-            data: { status: 'active', checkInTime: session.checkInTime ?? new Date() },
+            data: {
+                status: 'active',
+                checkInTime: session.checkInTime ?? new Date(),
+            },
         });
+        await this.createNotification(companionId, 'session', 'Session Started! 🎉', `Your session with ${session.customerInitials} is now active. Have a great time!`, { sessionId });
         return { ...this.toSessionResponse(updated), verified: true };
     }
     async verifyBySelfie(companionId, sessionId, selfieUrl) {
         const session = await this.findSessionOrThrow(companionId, sessionId);
+        this.guardTransition(session.status, 'active');
         const updated = await this.prisma.session.update({
             where: { id: sessionId },
             data: {
                 status: 'active',
                 checkInTime: session.checkInTime ?? new Date(),
-                notes: session.notes ? `${session.notes}\nVerified via venue selfie.` : 'Verified via venue selfie.'
+                notes: session.notes ? `${session.notes}\nVerified via venue selfie.` : 'Verified via venue selfie.',
             },
         });
         return { ...this.toSessionResponse(updated), verified: true, method: 'selfie' };
@@ -168,10 +202,12 @@ let SessionsService = SessionsService_1 = class SessionsService {
             throw new common_1.BadRequestException('Can only extend active sessions');
         if (extraMinutes < 30 || extraMinutes > 180)
             throw new common_1.BadRequestException('Extension must be 30–180 minutes');
+        this.guardTransition(session.status, 'extending');
         await this.prisma.session.update({
             where: { id: sessionId },
             data: { status: 'extending' },
         });
+        await this.createNotification(companionId, 'session', 'Extension Requested', `You requested a ${extraMinutes}-minute extension. Waiting for customer approval.`, { sessionId, extraMinutes });
         return {
             sessionId,
             extraMinutes,
@@ -182,37 +218,53 @@ let SessionsService = SessionsService_1 = class SessionsService {
     async confirmExtension(companionId, sessionId, extraMinutes) {
         const session = await this.findSessionOrThrow(companionId, sessionId);
         const newEnd = new Date(session.scheduledEnd.getTime() + extraMinutes * 60 * 1000);
+        const extensionEarning = this.calcExtensionEarning(session, extraMinutes);
         const updated = await this.prisma.session.update({
             where: { id: sessionId },
             data: {
                 scheduledEnd: newEnd,
                 durationMinutes: session.durationMinutes + extraMinutes,
                 status: 'active',
-                bonusEarning: { increment: this.calcExtensionEarning(session, extraMinutes) },
+                bonusEarning: { increment: extensionEarning },
+                estimatedTotal: { increment: extensionEarning },
             },
         });
+        await this.prisma.earningsTransaction.create({
+            data: {
+                companionId,
+                sessionId,
+                type: 'extension_earning',
+                status: 'pending_review',
+                amount: extensionEarning,
+                customerInitials: session.customerInitials,
+                description: `Extension +${extraMinutes}min — ${session.venueName}`,
+                payoutEligibleAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+            },
+        });
+        await this.createNotification(companionId, 'session', `Extension Confirmed ✓ (+${extraMinutes} min)`, `Your session has been extended. New end time updated. +₹${extensionEarning} added to earnings.`, { sessionId });
         return this.toSessionResponse(updated);
     }
     async endEarly(companionId, sessionId, reason) {
         const session = await this.findSessionOrThrow(companionId, sessionId);
         if (session.status !== 'active')
             throw new common_1.BadRequestException('No active session');
+        const confirmed = Number(session.estimatedTotal);
         const updated = await this.prisma.session.update({
             where: { id: sessionId },
             data: {
                 status: 'completed',
                 checkOutTime: new Date(),
                 completedAt: new Date(),
+                confirmedEarning: confirmed,
                 notes: reason ? `Early end: ${reason}` : 'Session ended early by companion',
             },
         });
+        await this._finalizeEarnings(companionId, sessionId, confirmed, session);
         return this.toSessionResponse(updated);
     }
     async cancelSession(companionId, sessionId, reason, details) {
         const session = await this.findSessionOrThrow(companionId, sessionId);
-        if (!['upcoming', 'pre_arrival'].includes(session.status)) {
-            throw new common_1.BadRequestException('Can only cancel upcoming sessions');
-        }
+        this.guardTransition(session.status, 'cancelled');
         const cancelReasonFull = details ? `${reason}: ${details}` : reason;
         const updated = await this.prisma.session.update({
             where: { id: sessionId },
@@ -222,6 +274,7 @@ let SessionsService = SessionsService_1 = class SessionsService {
                 cancelledBy: 'companion',
             },
         });
+        await this.createNotification(companionId, 'session', 'Session Cancelled', `Your session with ${session.customerInitials} has been cancelled. Reason: ${reason}`, { sessionId });
         this.logger.log(`Session ${sessionId} cancelled by companion ${companionId}`);
         return this.toSessionResponse(updated);
     }
@@ -238,10 +291,12 @@ let SessionsService = SessionsService_1 = class SessionsService {
     }
     async reportNoShow(companionId, sessionId) {
         const session = await this.findSessionOrThrow(companionId, sessionId);
+        this.guardTransition(session.status, 'no_show');
         const updated = await this.prisma.session.update({
             where: { id: sessionId },
             data: { status: 'no_show', noShowAt: new Date() },
         });
+        await this.createNotification(companionId, 'session', 'Customer No-Show Reported', `No-show reported for your session at ${session.venueName}. Our team will review within 24h.`, { sessionId });
         return this.toSessionResponse(updated);
     }
     async completeSession(companionId, sessionId) {
@@ -259,23 +314,7 @@ let SessionsService = SessionsService_1 = class SessionsService {
                 confirmedEarning: confirmed,
             },
         });
-        await this.prisma.earningsTransaction.create({
-            data: {
-                companionId,
-                sessionId,
-                type: 'session_earning',
-                status: 'pending_review',
-                amount: confirmed,
-                customerInitials: session.customerInitials,
-                description: `Session: ${session.category.replace('_', ' ')} — ${session.venueName}`,
-                payoutEligibleAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
-            },
-        });
-        await this.prisma.companion.update({
-            where: { id: companionId },
-            data: { totalSessions: { increment: 1 } },
-        });
-        this.logger.log(`Session ${sessionId} completed. Earning: ₹${confirmed}`);
+        await this._finalizeEarnings(companionId, sessionId, confirmed, session);
         return this.toSessionResponse(updated);
     }
     async saveNotes(companionId, sessionId, notes, mood, tags) {
@@ -296,7 +335,7 @@ let SessionsService = SessionsService_1 = class SessionsService {
         if (rating < 1 || rating > 5)
             throw new common_1.BadRequestException('Rating must be 1–5');
         await this.findSessionOrThrow(companionId, sessionId);
-        const updated = await this.prisma.session.update({
+        await this.prisma.session.update({
             where: { id: sessionId },
             data: { customerRating: rating, customerFeedback: feedback },
         });
@@ -325,8 +364,14 @@ let SessionsService = SessionsService_1 = class SessionsService {
         return { success: true, lat, lng, timestamp: new Date().toISOString() };
     }
     async stopLocationSharing(companionId, sessionId) {
-        const session = await this.findSessionOrThrow(companionId, sessionId);
+        await this.findSessionOrThrow(companionId, sessionId);
         return { success: true, message: 'Location sharing stopped early' };
+    }
+    guardTransition(current, next) {
+        const allowed = VALID_TRANSITIONS[current] ?? [];
+        if (!allowed.includes(next)) {
+            throw new common_1.BadRequestException(`Invalid transition: ${current} → ${next}. Allowed: ${allowed.join(', ') || 'none'}`);
+        }
     }
     async findSessionOrThrow(companionId, sessionId) {
         const session = await this.prisma.session.findFirst({
@@ -337,8 +382,58 @@ let SessionsService = SessionsService_1 = class SessionsService {
         return session;
     }
     calcExtensionEarning(session, extraMinutes) {
-        const ratePerMinute = Number(session.baseEarning) / session.durationMinutes;
+        const ratePerMinute = Number(session.baseEarning) / Math.max(session.durationMinutes, 1);
         return Math.round(ratePerMinute * extraMinutes);
+    }
+    async createNotification(companionId, type, title, body, data) {
+        try {
+            const notif = await this.prisma.notification.create({
+                data: {
+                    companionId,
+                    type: type,
+                    title,
+                    body,
+                    data: data ? JSON.stringify(data) : undefined,
+                    isRead: false,
+                },
+            });
+            this.notificationsGateway.emitNotification(companionId, {
+                notificationId: notif.id,
+                type,
+                title,
+                body,
+                data,
+                createdAt: notif.createdAt.toISOString(),
+            });
+        }
+        catch (err) {
+            this.logger.warn(`Failed to create notification for ${companionId}: ${err.message}`);
+        }
+    }
+    async _finalizeEarnings(companionId, sessionId, confirmed, session) {
+        const existingTx = await this.prisma.earningsTransaction.findFirst({
+            where: { sessionId, type: 'session_earning' },
+        });
+        if (existingTx)
+            return;
+        await this.prisma.earningsTransaction.create({
+            data: {
+                companionId,
+                sessionId,
+                type: 'session_earning',
+                status: 'pending_review',
+                amount: confirmed,
+                customerInitials: session.customerInitials,
+                description: `Session: ${session.category.replace(/_/g, ' ')} — ${session.venueName}`,
+                payoutEligibleAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+            },
+        });
+        await this.prisma.companion.update({
+            where: { id: companionId },
+            data: { totalSessions: { increment: 1 } },
+        });
+        await this.createNotification(companionId, 'payout', `Session Completed — ₹${confirmed} Earned 🎉`, `Your earnings of ₹${confirmed} are now in 48h review. They'll be payout-eligible soon.`, { sessionId });
+        this.logger.log(`Session ${sessionId} finalized. Earning: ₹${confirmed}`);
     }
     toSessionResponse(session) {
         return {
@@ -375,6 +470,10 @@ let SessionsService = SessionsService_1 = class SessionsService {
             confirmedEarning: session.confirmedEarning ? Number(session.confirmedEarning) : null,
             checkInTime: session.checkInTime?.toISOString() ?? null,
             checkOutTime: session.checkOutTime?.toISOString() ?? null,
+            completedAt: session.completedAt?.toISOString() ?? null,
+            cancelReason: session.cancelReason ?? null,
+            cancelledBy: session.cancelledBy ?? null,
+            noShowAt: session.noShowAt?.toISOString() ?? null,
             sessionPassCode: session.sessionPassCode ?? null,
             safetyTimerActive: session.safetyTimerActive,
             notes: session.notes ?? null,
@@ -385,6 +484,7 @@ let SessionsService = SessionsService_1 = class SessionsService {
 exports.SessionsService = SessionsService;
 exports.SessionsService = SessionsService = SessionsService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        notifications_gateway_1.NotificationsGateway])
 ], SessionsService);
 //# sourceMappingURL=sessions.service.js.map

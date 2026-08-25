@@ -3,6 +3,7 @@ export declare class SafetyService {
     private prisma;
     private readonly logger;
     constructor(prisma: PrismaService);
+    expireSafetyTimers(): Promise<void>;
     triggerSOS(companionId: string, sessionId?: string, lat?: number, lng?: number): Promise<{
         sosId: string;
         status: string;

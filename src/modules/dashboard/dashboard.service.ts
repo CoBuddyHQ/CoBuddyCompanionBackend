@@ -1,13 +1,24 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
+// Simple in-memory TTL cache (companionId → { data, expiresAt })
+const dashboardCache = new Map<string, { data: any; expiresAt: number }>();
+const CACHE_TTL_MS = 30_000; // 30 seconds
+
 @Injectable()
 export class DashboardService {
   constructor(private prisma: PrismaService) {}
 
   async getDashboardData(companionId: string) {
+    // Return cached result if still fresh
+    const cached = dashboardCache.get(companionId);
+    if (cached && Date.now() < cached.expiresAt) {
+      return cached.data;
+    }
+
     const companion = await this.prisma.companion.findUnique({ where: { id: companionId } });
     if (!companion) throw new NotFoundException('Companion not found');
+
 
     // Auto-seed demo data for companions with empty dashboard
     await this.ensureDemoData(companionId);
@@ -65,7 +76,7 @@ export class DashboardService {
     const pendingEarnings = pendingTxs.reduce((sum, t) => sum + Math.max(0, Number(t.amount)), 0);
     const thisWeekEarnings = weekPayouts.reduce((sum, t) => sum + Math.max(0, Number(t.amount)), 0);
 
-    return {
+    const result = {
       companion: {
         companionId: companion.id,
         displayName: companion.displayName ?? '',
@@ -89,6 +100,10 @@ export class DashboardService {
       upcomingSessions: upcomingSessions.map(s => this.toSessionPreview(s)),
       recentRequests: pendingRequests.slice(0, 3).map(r => this.toRequestPreview(r)),
     };
+
+    // Store in cache for 30 seconds
+    dashboardCache.set(companionId, { data: result, expiresAt: Date.now() + CACHE_TTL_MS });
+    return result;
   }
 
   private async ensureDemoData(companionId: string) {

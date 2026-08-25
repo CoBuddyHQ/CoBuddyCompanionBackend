@@ -1,10 +1,25 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class SafetyService {
   private readonly logger = new Logger(SafetyService.name);
   constructor(private prisma: PrismaService) {}
+
+  // ── CRON: Auto-expire safety timers every minute ──────────────────────────
+  @Cron(CronExpression.EVERY_MINUTE)
+  async expireSafetyTimers() {
+    const result = await this.prisma.safetyTimer.updateMany({
+      where: { status: 'active', expiresAt: { lte: new Date() } },
+      data: { status: 'expired' },
+    });
+    if (result.count > 0) {
+      this.logger.warn(`⏰ ${result.count} safety timer(s) expired — companion NOT checked in!`);
+      // TODO: send SOS alert to trusted contacts for expired timers
+    }
+  }
+
 
   // ── POST /companion/safety/sos/trigger ────────────────────────────────────
   async triggerSOS(companionId: string, sessionId?: string, lat?: number, lng?: number) {

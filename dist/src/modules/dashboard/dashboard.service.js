@@ -12,11 +12,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DashboardService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const dashboardCache = new Map();
+const CACHE_TTL_MS = 30_000;
 let DashboardService = class DashboardService {
     constructor(prisma) {
         this.prisma = prisma;
     }
     async getDashboardData(companionId) {
+        const cached = dashboardCache.get(companionId);
+        if (cached && Date.now() < cached.expiresAt) {
+            return cached.data;
+        }
         const companion = await this.prisma.companion.findUnique({ where: { id: companionId } });
         if (!companion)
             throw new common_1.NotFoundException('Companion not found');
@@ -70,7 +76,7 @@ let DashboardService = class DashboardService {
         const todayEarnings = todayTxs.reduce((sum, t) => sum + Math.max(0, Number(t.amount)), 0);
         const pendingEarnings = pendingTxs.reduce((sum, t) => sum + Math.max(0, Number(t.amount)), 0);
         const thisWeekEarnings = weekPayouts.reduce((sum, t) => sum + Math.max(0, Number(t.amount)), 0);
-        return {
+        const result = {
             companion: {
                 companionId: companion.id,
                 displayName: companion.displayName ?? '',
@@ -94,6 +100,8 @@ let DashboardService = class DashboardService {
             upcomingSessions: upcomingSessions.map(s => this.toSessionPreview(s)),
             recentRequests: pendingRequests.slice(0, 3).map(r => this.toRequestPreview(r)),
         };
+        dashboardCache.set(companionId, { data: result, expiresAt: Date.now() + CACHE_TTL_MS });
+        return result;
     }
     async ensureDemoData(companionId) {
         const [reqCount, sessCount, txCount, notifCount] = await Promise.all([

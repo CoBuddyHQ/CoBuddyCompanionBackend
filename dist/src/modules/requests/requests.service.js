@@ -13,9 +13,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RequestsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const notifications_gateway_1 = require("../notifications/notifications.gateway");
 let RequestsService = RequestsService_1 = class RequestsService {
-    constructor(prisma) {
+    constructor(prisma, notificationsGateway) {
         this.prisma = prisma;
+        this.notificationsGateway = notificationsGateway;
         this.logger = new common_1.Logger(RequestsService_1.name);
     }
     toRequestResponse(r) {
@@ -55,8 +57,11 @@ let RequestsService = RequestsService_1 = class RequestsService {
         };
     }
     async getRequests(companionId, status, categories, minEarning, sortBy, page = 1, limit = 20) {
-        let totalCount = await this.prisma.bookingRequest.count({ where: { companionId } });
-        if (totalCount === 0) {
+        const realCount = await this.prisma.bookingRequest.count({
+            where: { companionId, NOT: { customerId: { startsWith: 'cust_seed_' } } },
+        });
+        const totalCount = await this.prisma.bookingRequest.count({ where: { companionId } });
+        if (totalCount === 0 && realCount === 0) {
             const now = new Date();
             await this.prisma.bookingRequest.createMany({
                 data: [
@@ -220,6 +225,23 @@ let RequestsService = RequestsService_1 = class RequestsService {
                 sessionPassCode,
             },
         });
+        const notif = await this.prisma.notification.create({
+            data: {
+                companionId,
+                type: 'request',
+                title: 'Booking Accepted ✓',
+                body: `You accepted the booking from ${req.customerInitials} at ${req.venueName}. Session created with pass code: ${sessionPassCode}`,
+                data: JSON.stringify({ sessionId: session.id, requestId }),
+                isRead: false,
+            },
+        });
+        this.notificationsGateway.emitNotification(companionId, {
+            notificationId: notif.id,
+            type: 'request',
+            title: notif.title,
+            body: notif.body,
+            data: { sessionId: session.id, requestId },
+        });
         this.logger.log(`Request ${requestId} accepted → Session ${session.id} created`);
         return {
             request: this.toRequestResponse(updated),
@@ -232,6 +254,22 @@ let RequestsService = RequestsService_1 = class RequestsService {
         const updated = await this.prisma.bookingRequest.update({
             where: { id: requestId },
             data: { status: 'declined', declineReason: reason, respondedAt: new Date() },
+        });
+        const notif = await this.prisma.notification.create({
+            data: {
+                companionId,
+                type: 'request',
+                title: 'Booking Declined',
+                body: `You declined the booking from ${req.customerInitials} at ${req.venueName}. Reason: ${reason}`,
+                data: JSON.stringify({ requestId }),
+                isRead: false,
+            },
+        });
+        this.notificationsGateway.emitNotification(companionId, {
+            notificationId: notif.id,
+            type: 'request',
+            title: notif.title,
+            body: notif.body,
         });
         return {
             request: this.toRequestResponse(updated),
@@ -256,7 +294,7 @@ let RequestsService = RequestsService_1 = class RequestsService {
     }
     async findPendingOrThrow(companionId, requestId) {
         const req = await this.prisma.bookingRequest.findFirst({
-            where: { id: requestId, companionId, status: 'pending' },
+            where: { id: requestId, companionId, status: { in: ['pending', 'counter_proposed'] } },
         });
         if (!req)
             throw new common_1.NotFoundException('Pending booking request not found');
@@ -272,6 +310,7 @@ let RequestsService = RequestsService_1 = class RequestsService {
 exports.RequestsService = RequestsService;
 exports.RequestsService = RequestsService = RequestsService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        notifications_gateway_1.NotificationsGateway])
 ], RequestsService);
 //# sourceMappingURL=requests.service.js.map

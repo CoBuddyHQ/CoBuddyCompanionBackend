@@ -1,8 +1,10 @@
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 export declare class RequestsService {
     private prisma;
+    private notificationsGateway;
     private readonly logger;
-    constructor(prisma: PrismaService);
+    constructor(prisma: PrismaService, notificationsGateway: NotificationsGateway);
     private toRequestResponse;
     getRequests(companionId: string, status?: string, categories?: string, minEarning?: number, sortBy?: string, page?: number, limit?: number): Promise<{
         requests: {

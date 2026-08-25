@@ -1,36 +1,38 @@
-# Multi-stage production Dockerfile for CoBuddy Companion Backend
+# =========================================================
+# CoBuddy Companion Backend — Development Dockerfile
+# Node version is PINNED to avoid version mismatch issues
+# across different machines/laptops.
+# =========================================================
+FROM node:20-alpine
 
-# Stage 1: Build
-FROM node:20-alpine AS builder
+# Install essential OS dependencies (for Prisma binary targets)
+RUN apk add --no-cache openssl libc6-compat
+
+# Set working directory
 WORKDIR /app
 
-# Install dependencies
-COPY package*.json ./
-COPY prisma ./prisma/
+# Copy dependency lockfiles FIRST (Docker layer cache optimization)
+COPY package.json package-lock.json ./
+
+# npm ci uses package-lock.json exactly — guarantees same versions everywhere
 RUN npm ci
 
-# Copy source code and build NestJS
-COPY . .
-RUN npx prisma generate
-RUN npm run build
-
-# Stage 2: Production Execution
-FROM node:20-alpine AS runner
-WORKDIR /app
-
-ENV NODE_ENV=production
-
-# Copy build artifacts & dependencies from builder
-COPY package*.json ./
+# Copy Prisma schema (needed for prisma generate at runtime)
 COPY prisma ./prisma/
-RUN npm ci --only=production
 
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+# Copy NestJS config files
+COPY tsconfig*.json ./
+COPY nest-cli.json ./
 
+# Copy application source code
+COPY src ./src
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
 
+# Expose backend port
 EXPOSE 4001
 
-CMD ["node", "dist/src/main.js"]
+# Use entrypoint: generates Prisma client, runs migrations, starts dev server
+CMD ["sh", "docker-entrypoint.sh"]

@@ -113,6 +113,9 @@ let SessionsController = class SessionsController {
     getPass(c, sessionId) {
         return this.sessionsService.getSessionPass(c.sub, sessionId);
     }
+    markPreArrival(c, sessionId) {
+        return this.sessionsService.markPreArrival(c.sub, sessionId);
+    }
     checkIn(c, sessionId) {
         return this.sessionsService.checkIn(c.sub, sessionId);
     }
@@ -204,6 +207,16 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], SessionsController.prototype, "getPass", null);
+__decorate([
+    (0, common_1.Post)(':sessionId/pre-arrival'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Mark companion is on the way — transitions upcoming → pre_arrival' }),
+    __param(0, (0, current_companion_decorator_1.CurrentCompanion)()),
+    __param(1, (0, common_1.Param)('sessionId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], SessionsController.prototype, "markPreArrival", null);
 __decorate([
     (0, common_1.Post)(':sessionId/checkin'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),

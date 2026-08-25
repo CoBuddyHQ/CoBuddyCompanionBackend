@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 @Injectable()
 export class RequestsService {
   private readonly logger = new Logger(RequestsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsGateway: NotificationsGateway,
+  ) {}
 
   // Returns BookingRequest interface from store.types.ts
   private toRequestResponse(r: any) {
@@ -55,8 +59,12 @@ export class RequestsService {
     page = 1,
     limit = 20
   ) {
-    let totalCount = await this.prisma.bookingRequest.count({ where: { companionId } });
-    if (totalCount === 0) {
+    // Seed only if NO real (non-demo) requests exist
+    const realCount = await this.prisma.bookingRequest.count({
+      where: { companionId, NOT: { customerId: { startsWith: 'cust_seed_' } } },
+    });
+    const totalCount = await this.prisma.bookingRequest.count({ where: { companionId } });
+    if (totalCount === 0 && realCount === 0) {
       const now = new Date();
       await this.prisma.bookingRequest.createMany({
         data: [
@@ -242,6 +250,25 @@ export class RequestsService {
       },
     });
 
+    // Create DB notification for accepted request
+    const notif = await this.prisma.notification.create({
+      data: {
+        companionId,
+        type: 'request',
+        title: 'Booking Accepted ✓',
+        body: `You accepted the booking from ${req.customerInitials} at ${req.venueName}. Session created with pass code: ${sessionPassCode}`,
+        data: JSON.stringify({ sessionId: session.id, requestId }),
+        isRead: false,
+      },
+    });
+    this.notificationsGateway.emitNotification(companionId, {
+      notificationId: notif.id,
+      type: 'request',
+      title: notif.title,
+      body: notif.body,
+      data: { sessionId: session.id, requestId },
+    });
+
     this.logger.log(`Request ${requestId} accepted → Session ${session.id} created`);
     return {
       request: this.toRequestResponse(updated),
@@ -257,6 +284,25 @@ export class RequestsService {
       where: { id: requestId },
       data: { status: 'declined', declineReason: reason, respondedAt: new Date() },
     });
+
+    // Create DB notification for declined request
+    const notif = await this.prisma.notification.create({
+      data: {
+        companionId,
+        type: 'request',
+        title: 'Booking Declined',
+        body: `You declined the booking from ${req.customerInitials} at ${req.venueName}. Reason: ${reason}`,
+        data: JSON.stringify({ requestId }),
+        isRead: false,
+      },
+    });
+    this.notificationsGateway.emitNotification(companionId, {
+      notificationId: notif.id,
+      type: 'request',
+      title: notif.title,
+      body: notif.body,
+    });
+
     return {
       request: this.toRequestResponse(updated),
       message: 'Booking declined.',
@@ -282,8 +328,9 @@ export class RequestsService {
   }
 
   private async findPendingOrThrow(companionId: string, requestId: string) {
+    // Accept pending OR counter_proposed (companion can still accept their own counter)
     const req = await this.prisma.bookingRequest.findFirst({
-      where: { id: requestId, companionId, status: 'pending' },
+      where: { id: requestId, companionId, status: { in: ['pending', 'counter_proposed'] } },
     });
     if (!req) throw new NotFoundException('Pending booking request not found');
     if (new Date() > req.expiresAt) throw new BadRequestException('This request has expired');

@@ -1,8 +1,10 @@
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 export declare class SessionsService {
     private prisma;
+    private notificationsGateway;
     private readonly logger;
-    constructor(prisma: PrismaService);
+    constructor(prisma: PrismaService, notificationsGateway: NotificationsGateway);
     getUpcoming(companionId: string): Promise<{
         sessionId: any;
         status: any;
@@ -37,6 +39,10 @@ export declare class SessionsService {
         confirmedEarning: number;
         checkInTime: any;
         checkOutTime: any;
+        completedAt: any;
+        cancelReason: any;
+        cancelledBy: any;
+        noShowAt: any;
         sessionPassCode: any;
         safetyTimerActive: any;
         notes: any;
@@ -77,6 +83,10 @@ export declare class SessionsService {
             confirmedEarning: number;
             checkInTime: any;
             checkOutTime: any;
+            completedAt: any;
+            cancelReason: any;
+            cancelledBy: any;
+            noShowAt: any;
             sessionPassCode: any;
             safetyTimerActive: any;
             notes: any;
@@ -121,6 +131,10 @@ export declare class SessionsService {
         confirmedEarning: number;
         checkInTime: any;
         checkOutTime: any;
+        completedAt: any;
+        cancelReason: any;
+        cancelledBy: any;
+        noShowAt: any;
         sessionPassCode: any;
         safetyTimerActive: any;
         notes: any;
@@ -136,6 +150,49 @@ export declare class SessionsService {
         scheduledStart: string;
         customerInitials: string;
         category: string;
+    }>;
+    markPreArrival(companionId: string, sessionId: string): Promise<{
+        sessionId: any;
+        status: any;
+        category: any;
+        customer: {
+            customerId: any;
+            displayInitials: any;
+            trustScore: any;
+            isVerified: any;
+            totalSessionsWithCompanion: any;
+            sessionCountOverall: any;
+            safetyConsent: any;
+            identityVerified: any;
+        };
+        venue: {
+            venueId: any;
+            name: any;
+            area: any;
+            city: any;
+            isApproved: any;
+            venueType: any;
+            meetingPoint: any;
+            landmark: any;
+        };
+        scheduledStart: any;
+        scheduledEnd: any;
+        durationMinutes: any;
+        language: any;
+        baseEarning: number;
+        bonusEarning: number;
+        estimatedTotal: number;
+        confirmedEarning: number;
+        checkInTime: any;
+        checkOutTime: any;
+        completedAt: any;
+        cancelReason: any;
+        cancelledBy: any;
+        noShowAt: any;
+        sessionPassCode: any;
+        safetyTimerActive: any;
+        notes: any;
+        createdAt: any;
     }>;
     checkIn(companionId: string, sessionId: string): Promise<{
         sessionId: any;
@@ -171,6 +228,10 @@ export declare class SessionsService {
         confirmedEarning: number;
         checkInTime: any;
         checkOutTime: any;
+        completedAt: any;
+        cancelReason: any;
+        cancelledBy: any;
+        noShowAt: any;
         sessionPassCode: any;
         safetyTimerActive: any;
         notes: any;
@@ -211,6 +272,10 @@ export declare class SessionsService {
         confirmedEarning: number;
         checkInTime: any;
         checkOutTime: any;
+        completedAt: any;
+        cancelReason: any;
+        cancelledBy: any;
+        noShowAt: any;
         sessionPassCode: any;
         safetyTimerActive: any;
         notes: any;
@@ -252,6 +317,10 @@ export declare class SessionsService {
         confirmedEarning: number;
         checkInTime: any;
         checkOutTime: any;
+        completedAt: any;
+        cancelReason: any;
+        cancelledBy: any;
+        noShowAt: any;
         sessionPassCode: any;
         safetyTimerActive: any;
         notes: any;
@@ -297,6 +366,10 @@ export declare class SessionsService {
         confirmedEarning: number;
         checkInTime: any;
         checkOutTime: any;
+        completedAt: any;
+        cancelReason: any;
+        cancelledBy: any;
+        noShowAt: any;
         sessionPassCode: any;
         safetyTimerActive: any;
         notes: any;
@@ -336,6 +409,10 @@ export declare class SessionsService {
         confirmedEarning: number;
         checkInTime: any;
         checkOutTime: any;
+        completedAt: any;
+        cancelReason: any;
+        cancelledBy: any;
+        noShowAt: any;
         sessionPassCode: any;
         safetyTimerActive: any;
         notes: any;
@@ -375,6 +452,10 @@ export declare class SessionsService {
         confirmedEarning: number;
         checkInTime: any;
         checkOutTime: any;
+        completedAt: any;
+        cancelReason: any;
+        cancelledBy: any;
+        noShowAt: any;
         sessionPassCode: any;
         safetyTimerActive: any;
         notes: any;
@@ -422,6 +503,10 @@ export declare class SessionsService {
         confirmedEarning: number;
         checkInTime: any;
         checkOutTime: any;
+        completedAt: any;
+        cancelReason: any;
+        cancelledBy: any;
+        noShowAt: any;
         sessionPassCode: any;
         safetyTimerActive: any;
         notes: any;
@@ -461,6 +546,10 @@ export declare class SessionsService {
         confirmedEarning: number;
         checkInTime: any;
         checkOutTime: any;
+        completedAt: any;
+        cancelReason: any;
+        cancelledBy: any;
+        noShowAt: any;
         sessionPassCode: any;
         safetyTimerActive: any;
         notes: any;
@@ -500,6 +589,10 @@ export declare class SessionsService {
         confirmedEarning: number;
         checkInTime: any;
         checkOutTime: any;
+        completedAt: any;
+        cancelReason: any;
+        cancelledBy: any;
+        noShowAt: any;
         sessionPassCode: any;
         safetyTimerActive: any;
         notes: any;
@@ -530,8 +623,11 @@ export declare class SessionsService {
         success: boolean;
         message: string;
     }>;
+    private guardTransition;
     private findSessionOrThrow;
     private calcExtensionEarning;
+    private createNotification;
+    private _finalizeEarnings;
     toSessionResponse(session: any): {
         sessionId: any;
         status: any;
@@ -566,6 +662,10 @@ export declare class SessionsService {
         confirmedEarning: number;
         checkInTime: any;
         checkOutTime: any;
+        completedAt: any;
+        cancelReason: any;
+        cancelledBy: any;
+        noShowAt: any;
         sessionPassCode: any;
         safetyTimerActive: any;
         notes: any;
