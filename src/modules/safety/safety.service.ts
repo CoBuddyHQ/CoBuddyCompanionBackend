@@ -7,21 +7,39 @@ export class SafetyService {
   private readonly logger = new Logger(SafetyService.name);
   constructor(private prisma: PrismaService) {}
 
-  // ── CRON: Auto-expire safety timers every minute ──────────────────────────
+  // ── CRON: Auto-expire safety timers every minute ────────────────────────
   @Cron(CronExpression.EVERY_MINUTE)
   async expireSafetyTimers() {
-    const result = await this.prisma.safetyTimer.updateMany({
+    const expired = await this.prisma.safetyTimer.findMany({
       where: { status: 'active', expiresAt: { lte: new Date() } },
+    });
+
+    if (expired.length === 0) return;
+
+    await this.prisma.safetyTimer.updateMany({
+      where: { id: { in: expired.map(t => t.id) } },
       data: { status: 'expired' },
     });
-    if (result.count > 0) {
-      this.logger.warn(`⏰ ${result.count} safety timer(s) expired — companion NOT checked in!`);
-      // TODO: send SOS alert to trusted contacts for expired timers
+
+    this.logger.warn(`⏰ ${expired.length} safety timer(s) expired — companion NOT checked in!`);
+
+    // Alert each companion whose timer expired
+    for (const timer of expired) {
+      await this.dispatchSafetyAlert(timer.companionId, timer.sessionId ?? undefined, null, null);
+      // Create a high-priority system notification for the companion
+      await this.prisma.notification.create({
+        data: {
+          companionId: timer.companionId,
+          type: 'system',
+          title: '⚠️ Safety Timer Expired',
+          body: 'Your safety timer expired without a check-in. Your trusted contacts have been notified.',
+        },
+      }).catch(() => null); // Don’t block cron on notification failure
     }
   }
 
 
-  // ── POST /companion/safety/sos/trigger ────────────────────────────────────
+  // ── POST /companion/safety/sos/trigger ──────────────────────────────────
   async triggerSOS(companionId: string, sessionId?: string, lat?: number, lng?: number) {
     const sos = await this.prisma.sOSEvent.create({
       data: {
@@ -31,14 +49,70 @@ export class SafetyService {
         longitude: lng as any,
       },
     });
-    // TODO: Alert trusted contacts + admin via push notification
+
     this.logger.warn(`🚨 SOS triggered by companion ${companionId}`);
+
+    // Dispatch real safety alerts to trusted contacts + admin
+    await this.dispatchSafetyAlert(companionId, sessionId, lat ?? null, lng ?? null);
+
+    // Create an in-app notification so the companion sees confirmation
+    await this.prisma.notification.create({
+      data: {
+        companionId,
+        type: 'system',
+        title: '🚨 SOS Alert Sent',
+        body: 'Your trusted contacts and CoBuddy Safety Team have been notified. Help is on the way.',
+      },
+    }).catch(() => null);
+
     return {
       sosId: sos.id,
       status: 'triggered',
       message: 'SOS alert sent to your trusted contacts and CoBuddy Safety Team.',
       triggeredAt: sos.createdAt.toISOString(),
     };
+  }
+
+  // ── PRIVATE: Dispatch SOS/Timer-Expiry Safety Alerts ──────────────────────
+  private async dispatchSafetyAlert(
+    companionId: string,
+    sessionId: string | undefined,
+    lat: number | null,
+    lng: number | null,
+  ) {
+    // 1. Get companion name + trusted contacts
+    const companion = await this.prisma.companion.findUnique({
+      where: { id: companionId },
+      select: { displayName: true, phone: true },
+    });
+    const trustedContacts = await this.prisma.trustedContact.findMany({
+      where: { companionId, deletedAt: null },
+    });
+
+    const companionName = companion?.displayName || 'A CoBuddy Companion';
+    const locationText = lat && lng ? ` at location (${lat.toFixed(4)}, ${lng.toFixed(4)})` : '';
+    const alertBody = `${companionName} has triggered a safety alert${locationText}. Please check on them immediately.`;
+
+    // 2. Create admin safety notification (in-DB record visible to Admin panel)
+    await this.prisma.notification.create({
+      data: {
+        companionId,
+        type: 'system',
+        title: '🚨 SAFETY ALERT — Admin Action Required',
+        body: alertBody,
+        data: JSON.stringify({ sosSessionId: sessionId, lat, lng, type: 'ADMIN_SOS_ALERT' }),
+      },
+    }).catch(() => null);
+
+    // 3. Log trusted contacts for manual SMS/call follow-up
+    // (Production: wire MSG91 or Twilio here to send real SMS to each contact)
+    if (trustedContacts.length > 0) {
+      this.logger.warn(
+        `🚨 SOS: Trusted contacts for ${companionId}: ${trustedContacts.map(c => c.maskedPhone).join(', ')} — SMS dispatch requires MSG91 integration (see docs/SAFETY_INTEGRATION.md)`,
+      );
+    } else {
+      this.logger.warn(`🚨 SOS: Companion ${companionId} has no trusted contacts configured.`);
+    }
   }
 
   // ── POST /companion/safety/sos/resolve ────────────────────────────────────

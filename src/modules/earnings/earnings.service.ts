@@ -14,7 +14,9 @@ export class EarningsService {
 
   async getSummary(companionId: string) {
     let txCount = await this.prisma.earningsTransaction.count({ where: { companionId } });
-    if (txCount === 0) {
+    // DEMO-SEED GUARD: Only auto-seed in development when ENABLE_DEMO_SEEDING=true
+    const enableDemoSeeding = process.env.ENABLE_DEMO_SEEDING === 'true' && process.env.NODE_ENV !== 'production';
+    if (txCount === 0 && enableDemoSeeding) {
       await this.prisma.earningsTransaction.createMany({
         data: [
           {

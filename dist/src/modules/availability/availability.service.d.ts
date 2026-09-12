@@ -94,18 +94,7 @@ export declare class AvailabilityService {
             repeat: boolean;
         }[];
     }>;
-    removeOverride(companionId: string, id: string): Promise<{
-        id: string;
-        createdAt: Date;
-        companionId: string;
-        startDate: string;
-        endDate: string;
-        reason: string;
-        note: string | null;
-        fullDay: boolean;
-        startTime: string | null;
-        endTime: string | null;
-    }>;
+    removeOverride(companionId: string, id: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
     addSlot(companionId: string, dto: any): Promise<{
         id: string;
         createdAt: Date;

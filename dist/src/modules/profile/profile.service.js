@@ -483,7 +483,7 @@ let ProfileService = ProfileService_1 = class ProfileService {
             where: { id: companionId },
             data: {
                 profileStatus: 'published',
-                verificationStatus: 'approved'
+                verificationStatus: 'pending_review',
             },
         });
         await this.prisma.companionKYC.upsert({

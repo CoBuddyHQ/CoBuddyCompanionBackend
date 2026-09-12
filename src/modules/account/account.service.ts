@@ -34,6 +34,13 @@ export class AccountService {
       phone: companion.phone,
       settings: {
         notificationPrefs: settings.notificationPrefs,
+        // CONTRACT FIX: Return privacySettings in the shape the frontend PrivacySettings interface expects
+        privacySettings: {
+          showAge:      settings.showAge ?? true,
+          allowPromo:   settings.allowPromo ?? false,
+          showInSearch: settings.showInSearch ?? true,
+        },
+        // Legacy aliases preserved for backwards compat with older frontend builds
         privacyVisibility: settings.showInSearch ? 'public' : 'private',
         privacyDataSharing: settings.allowPromo,
         language: settings.language,
@@ -56,15 +63,40 @@ export class AccountService {
     return { success: true, prefs: updated.notificationPrefs, message: 'Notification preferences updated.' };
   }
 
-  // ─── PUT /companion/account/privacy ────────────────────────────────────────
-  async updatePrivacy(companionId: string, dto: { visibility: string; dataSharing: boolean }) {
-    const showInSearch = dto.visibility !== 'private';
+  // ─── PUT /companion/account/privacy ───────────────────────────────────────
+  // CONTRACT FIX: Accept {showAge, allowPromo, showInSearch} from frontend PrivacySettings interface.
+  // Also accept legacy {visibility, dataSharing} shape for backwards compat.
+  async updatePrivacy(companionId: string, dto: {
+    // Native frontend shape (PrivacySettings interface)
+    showAge?: boolean;
+    allowPromo?: boolean;
+    showInSearch?: boolean;
+    // Legacy aliased shape
+    visibility?: string;
+    dataSharing?: boolean;
+  }) {
+    const showInSearch = dto.showInSearch ?? (dto.visibility !== 'private' ? true : undefined);
+    const allowPromo   = dto.allowPromo   ?? dto.dataSharing;
+    const showAge      = dto.showAge;
+
+    const updateData: any = {};
+    if (showInSearch !== undefined) updateData.showInSearch = showInSearch;
+    if (allowPromo   !== undefined) updateData.allowPromo   = allowPromo;
+    if (showAge      !== undefined) updateData.showAge      = showAge;
+
     const updated = await this.prisma.companionSettings.upsert({
       where: { companionId },
-      update: { showInSearch, allowPromo: dto.dataSharing },
-      create: { companionId, showInSearch, allowPromo: dto.dataSharing },
+      update: updateData,
+      create: { companionId, ...updateData },
     });
-    return { success: true, visibility: updated.showInSearch ? 'public' : 'private', dataSharing: updated.allowPromo };
+    return {
+      success: true,
+      privacySettings: {
+        showAge:      updated.showAge ?? true,
+        allowPromo:   updated.allowPromo ?? false,
+        showInSearch: updated.showInSearch ?? true,
+      },
+    };
   }
 
   // ─── PUT /companion/account/language ───────────────────────────────────────

@@ -36,6 +36,12 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
         if (companion.accountStatus === 'deleted') {
             throw new common_1.UnauthorizedException('Account deleted');
         }
+        if (companion.accountStatus === 'suspended') {
+            throw new common_1.UnauthorizedException('Account suspended. Please contact support.');
+        }
+        if (companion.accountStatus === 'deactivated') {
+            throw new common_1.UnauthorizedException('Account deactivated. Please contact support to reactivate.');
+        }
         return {
             sub: companion.id,
             phone: companion.phone,

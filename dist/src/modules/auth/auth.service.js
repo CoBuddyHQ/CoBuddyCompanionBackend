@@ -90,7 +90,8 @@ let AuthService = AuthService_1 = class AuthService {
         if (session.attempts >= maxAttempts)
             throw new common_1.BadRequestException('Too many attempts. Request a new OTP.');
         const devBypass = this.config.get('OTP_DEV_BYPASS') || '123456';
-        const isBypass = dto.otp === '123456' || dto.otp === devBypass;
+        const isDevEnv = this.config.get('NODE_ENV') === 'development' || this.config.get('NODE_ENV') === 'test';
+        const isBypass = isDevEnv && (dto.otp === devBypass);
         const valid = isBypass || (await bcrypt.compare(dto.otp, session.otp));
         if (!valid) {
             await this.prisma.oTPSession.update({

@@ -574,13 +574,15 @@ export class ProfileService {
 
     const updated = await this.prisma.companion.update({
       where: { id: companionId },
-      data: { 
+      data: {
         profileStatus: 'published',
-        verificationStatus: 'approved'
+        // SECURITY FIX: Do NOT auto-approve — Admin team must review documents before approving.
+        // verificationStatus stays as-is (pending_review) until Admin sets 'approved' via the Admin panel.
+        verificationStatus: 'pending_review',
       },
     });
 
-    // Also update KYC
+    // Also update KYC — mark submitted (not approved)
     await this.prisma.companionKYC.upsert({
       where: { companionId },
       update: { submittedAt: new Date() },

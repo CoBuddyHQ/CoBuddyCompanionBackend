@@ -64,7 +64,9 @@ export class RequestsService {
       where: { companionId, NOT: { customerId: { startsWith: 'cust_seed_' } } },
     });
     const totalCount = await this.prisma.bookingRequest.count({ where: { companionId } });
-    if (totalCount === 0 && realCount === 0) {
+    // DEMO-SEED GUARD: Only auto-seed in development when ENABLE_DEMO_SEEDING=true
+    const enableDemoSeeding = process.env.ENABLE_DEMO_SEEDING === 'true' && process.env.NODE_ENV !== 'production';
+    if (totalCount === 0 && realCount === 0 && enableDemoSeeding) {
       const now = new Date();
       await this.prisma.bookingRequest.createMany({
         data: [

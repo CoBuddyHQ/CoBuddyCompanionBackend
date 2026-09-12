@@ -48,7 +48,8 @@ let NotificationsService = class NotificationsService {
     }
     async getNotifications(companionId, page = 1, limit = 20) {
         let count = await this.prisma.notification.count({ where: { companionId } });
-        if (count === 0) {
+        const enableDemoSeeding = process.env.ENABLE_DEMO_SEEDING === 'true' && process.env.NODE_ENV !== 'production';
+        if (count === 0 && enableDemoSeeding) {
             const now = new Date();
             await this.prisma.notification.createMany({
                 data: [
@@ -131,7 +132,10 @@ let NotificationsService = class NotificationsService {
     }
     async getAnnouncements(companionId) {
         const announcements = await this.prisma.notification.findMany({
-            where: { type: 'system', isRead: false },
+            where: {
+                companionId,
+                type: 'system',
+            },
             orderBy: { createdAt: 'desc' },
             take: 10,
         });

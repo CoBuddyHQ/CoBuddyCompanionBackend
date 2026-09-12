@@ -77,7 +77,10 @@ export class AuthService {
     if (session.attempts >= maxAttempts) throw new BadRequestException('Too many attempts. Request a new OTP.');
 
     const devBypass = this.config.get<string>('OTP_DEV_BYPASS') || '123456';
-    const isBypass = dto.otp === '123456' || dto.otp === devBypass;
+    // SECURITY FIX: dev bypass is ONLY allowed when NODE_ENV is explicitly 'development' or 'test'.
+    // It must NEVER be active in production regardless of what OTP_DEV_BYPASS is set to.
+    const isDevEnv = this.config.get<string>('NODE_ENV') === 'development' || this.config.get<string>('NODE_ENV') === 'test';
+    const isBypass = isDevEnv && (dto.otp === devBypass);
 
     const valid = isBypass || (await bcrypt.compare(dto.otp, session.otp));
     if (!valid) {

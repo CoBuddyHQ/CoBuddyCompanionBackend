@@ -26,7 +26,9 @@ let DashboardService = class DashboardService {
         const companion = await this.prisma.companion.findUnique({ where: { id: companionId } });
         if (!companion)
             throw new common_1.NotFoundException('Companion not found');
-        await this.ensureDemoData(companionId);
+        if (process.env.ENABLE_DEMO_SEEDING === 'true' && process.env.NODE_ENV !== 'production') {
+            await this.ensureDemoData(companionId);
+        }
         const [activeSessions, upcomingSessions, pendingRequests, unreadNotifs] = await Promise.all([
             this.prisma.session.findMany({ where: { companionId, status: 'active' }, take: 1 }),
             this.prisma.session.findMany({

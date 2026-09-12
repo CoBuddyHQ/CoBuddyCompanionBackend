@@ -39,7 +39,9 @@ export class NotificationsService {
 
   async getNotifications(companionId: string, page = 1, limit = 20) {
     let count = await this.prisma.notification.count({ where: { companionId } });
-    if (count === 0) {
+    // DEMO-SEED GUARD: Only auto-seed in development when ENABLE_DEMO_SEEDING=true
+    const enableDemoSeeding = process.env.ENABLE_DEMO_SEEDING === 'true' && process.env.NODE_ENV !== 'production';
+    if (count === 0 && enableDemoSeeding) {
       const now = new Date();
       await this.prisma.notification.createMany({
         data: [
@@ -129,9 +131,14 @@ export class NotificationsService {
 
   // ─── Missing Endpoint from Audit ───────────────────────────────────────────
   async getAnnouncements(companionId: string) {
-    // Return system-wide announcements
+    // SECURITY FIX: Filter by companionId to prevent cross-companion data leakage.
+    // Only return system announcements specifically addressed to this companion
+    // or truly global (companionId IS this companion).
     const announcements = await this.prisma.notification.findMany({
-      where: { type: 'system', isRead: false }, // Simplification for mock
+      where: {
+        companionId,          // MUST be scoped to this companion
+        type: 'system',
+      },
       orderBy: { createdAt: 'desc' },
       take: 10,
     });

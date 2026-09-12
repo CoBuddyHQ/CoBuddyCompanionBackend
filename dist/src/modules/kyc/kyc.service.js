@@ -342,7 +342,7 @@ let KycService = class KycService {
                     await this.prisma.companionServiceArea.createMany({
                         data: draft.broadAreas.map((area) => ({
                             companionId,
-                            areaName: area,
+                            area,
                         })),
                     });
                 }
@@ -351,7 +351,7 @@ let KycService = class KycService {
                     await this.prisma.companionCategory.createMany({
                         data: draft.experienceCategories.map((cat) => ({
                             companionId,
-                            categoryName: cat,
+                            category: cat,
                         })),
                     });
                 }

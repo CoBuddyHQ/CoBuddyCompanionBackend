@@ -73,7 +73,30 @@ export class PaymentsService {
     companionId: string;
     notes?: Record<string, string>;
   }) {
-    const amountPaisa = Math.round(params.amountINR * 100); // Razorpay takes paise
+    // ── SECURITY FIX: Validate amount server-side — never trust client-supplied amount ──
+    // Fetch the authoritative booking amount from DB to prevent fraud via client-side tampering.
+    const bookingRequest = await this.prisma.bookingRequest.findUnique({
+      where: { id: params.requestId },
+      select: { estimatedEarning: true, companionId: true },
+    });
+    if (!bookingRequest) {
+      throw new BadRequestException(`BookingRequest ${params.requestId} not found`);
+    }
+    if (bookingRequest.companionId !== params.companionId) {
+      throw new BadRequestException('You are not authorized to create a payment for this booking request');
+    }
+    const serverAmountINR = Number(bookingRequest.estimatedEarning);
+    // Allow ±1 INR rounding tolerance
+    if (Math.abs(serverAmountINR - params.amountINR) > 1) {
+      this.logger.warn(
+        `Payment amount mismatch for request ${params.requestId}: client sent ₹${params.amountINR}, server expects ₹${serverAmountINR}`,
+      );
+      throw new BadRequestException(
+        `Payment amount mismatch. Expected ₹${serverAmountINR}, received ₹${params.amountINR}`,
+      );
+    }
+    // Always use server-computed amount for the Razorpay order
+    const amountPaisa = Math.round(serverAmountINR * 100); // Razorpay takes paise
 
     try {
       const { data } = await axios.post(
@@ -91,7 +114,7 @@ export class PaymentsService {
         { headers: { ...this.razorpayAuth, 'Content-Type': 'application/json' } },
       );
 
-      this.logger.log(`Razorpay order created: ${data.id} for ₹${params.amountINR}`);
+      this.logger.log(`Razorpay order created: ${data.id} for ₹${serverAmountINR}`);
 
       // Persist order reference so webhook can match it
       await this.prisma.razorpayOrder.create({
@@ -116,6 +139,7 @@ export class PaymentsService {
       throw new InternalServerErrorException('Payment order creation failed');
     }
   }
+
 
   // ─────────────────────────────────────────────────────────────────────────
   // 2. VERIFY PAYMENT — called after customer completes payment in SDK

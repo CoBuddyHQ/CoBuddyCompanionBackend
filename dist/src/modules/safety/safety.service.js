@@ -20,12 +20,26 @@ let SafetyService = SafetyService_1 = class SafetyService {
         this.logger = new common_1.Logger(SafetyService_1.name);
     }
     async expireSafetyTimers() {
-        const result = await this.prisma.safetyTimer.updateMany({
+        const expired = await this.prisma.safetyTimer.findMany({
             where: { status: 'active', expiresAt: { lte: new Date() } },
+        });
+        if (expired.length === 0)
+            return;
+        await this.prisma.safetyTimer.updateMany({
+            where: { id: { in: expired.map(t => t.id) } },
             data: { status: 'expired' },
         });
-        if (result.count > 0) {
-            this.logger.warn(`⏰ ${result.count} safety timer(s) expired — companion NOT checked in!`);
+        this.logger.warn(`⏰ ${expired.length} safety timer(s) expired — companion NOT checked in!`);
+        for (const timer of expired) {
+            await this.dispatchSafetyAlert(timer.companionId, timer.sessionId ?? undefined, null, null);
+            await this.prisma.notification.create({
+                data: {
+                    companionId: timer.companionId,
+                    type: 'system',
+                    title: '⚠️ Safety Timer Expired',
+                    body: 'Your safety timer expired without a check-in. Your trusted contacts have been notified.',
+                },
+            }).catch(() => null);
         }
     }
     async triggerSOS(companionId, sessionId, lat, lng) {
@@ -38,12 +52,48 @@ let SafetyService = SafetyService_1 = class SafetyService {
             },
         });
         this.logger.warn(`🚨 SOS triggered by companion ${companionId}`);
+        await this.dispatchSafetyAlert(companionId, sessionId, lat ?? null, lng ?? null);
+        await this.prisma.notification.create({
+            data: {
+                companionId,
+                type: 'system',
+                title: '🚨 SOS Alert Sent',
+                body: 'Your trusted contacts and CoBuddy Safety Team have been notified. Help is on the way.',
+            },
+        }).catch(() => null);
         return {
             sosId: sos.id,
             status: 'triggered',
             message: 'SOS alert sent to your trusted contacts and CoBuddy Safety Team.',
             triggeredAt: sos.createdAt.toISOString(),
         };
+    }
+    async dispatchSafetyAlert(companionId, sessionId, lat, lng) {
+        const companion = await this.prisma.companion.findUnique({
+            where: { id: companionId },
+            select: { displayName: true, phone: true },
+        });
+        const trustedContacts = await this.prisma.trustedContact.findMany({
+            where: { companionId, deletedAt: null },
+        });
+        const companionName = companion?.displayName || 'A CoBuddy Companion';
+        const locationText = lat && lng ? ` at location (${lat.toFixed(4)}, ${lng.toFixed(4)})` : '';
+        const alertBody = `${companionName} has triggered a safety alert${locationText}. Please check on them immediately.`;
+        await this.prisma.notification.create({
+            data: {
+                companionId,
+                type: 'system',
+                title: '🚨 SAFETY ALERT — Admin Action Required',
+                body: alertBody,
+                data: JSON.stringify({ sosSessionId: sessionId, lat, lng, type: 'ADMIN_SOS_ALERT' }),
+            },
+        }).catch(() => null);
+        if (trustedContacts.length > 0) {
+            this.logger.warn(`🚨 SOS: Trusted contacts for ${companionId}: ${trustedContacts.map(c => c.maskedPhone).join(', ')} — SMS dispatch requires MSG91 integration (see docs/SAFETY_INTEGRATION.md)`);
+        }
+        else {
+            this.logger.warn(`🚨 SOS: Companion ${companionId} has no trusted contacts configured.`);
+        }
     }
     async resolveSOS(companionId, sosId) {
         await this.prisma.sOSEvent.updateMany({

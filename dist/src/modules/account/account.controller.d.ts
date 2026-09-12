@@ -11,6 +11,11 @@ export declare class AccountController {
         phone: string;
         settings: {
             notificationPrefs: import("@prisma/client/runtime/client").JsonValue;
+            privacySettings: {
+                showAge: boolean;
+                allowPromo: boolean;
+                showInSearch: boolean;
+            };
             privacyVisibility: string;
             privacyDataSharing: boolean;
             language: string;
@@ -31,8 +36,11 @@ export declare class AccountController {
         dataSharing: boolean;
     }): Promise<{
         success: boolean;
-        visibility: string;
-        dataSharing: boolean;
+        privacySettings: {
+            showAge: boolean;
+            allowPromo: boolean;
+            showInSearch: boolean;
+        };
     }>;
     updateLanguage(c: JwtPayload, dto: {
         language: string;

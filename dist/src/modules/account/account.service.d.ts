@@ -11,6 +11,11 @@ export declare class AccountService {
         phone: string;
         settings: {
             notificationPrefs: import("@prisma/client/runtime/client").JsonValue;
+            privacySettings: {
+                showAge: boolean;
+                allowPromo: boolean;
+                showInSearch: boolean;
+            };
             privacyVisibility: string;
             privacyDataSharing: boolean;
             language: string;
@@ -27,12 +32,18 @@ export declare class AccountService {
         message: string;
     }>;
     updatePrivacy(companionId: string, dto: {
-        visibility: string;
-        dataSharing: boolean;
+        showAge?: boolean;
+        allowPromo?: boolean;
+        showInSearch?: boolean;
+        visibility?: string;
+        dataSharing?: boolean;
     }): Promise<{
         success: boolean;
-        visibility: string;
-        dataSharing: boolean;
+        privacySettings: {
+            showAge: boolean;
+            allowPromo: boolean;
+            showInSearch: boolean;
+        };
     }>;
     updateLanguage(companionId: string, dto: {
         language: string;

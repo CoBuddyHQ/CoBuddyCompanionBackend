@@ -43,6 +43,11 @@ let AccountService = class AccountService {
             phone: companion.phone,
             settings: {
                 notificationPrefs: settings.notificationPrefs,
+                privacySettings: {
+                    showAge: settings.showAge ?? true,
+                    allowPromo: settings.allowPromo ?? false,
+                    showInSearch: settings.showInSearch ?? true,
+                },
                 privacyVisibility: settings.showInSearch ? 'public' : 'private',
                 privacyDataSharing: settings.allowPromo,
                 language: settings.language,
@@ -63,13 +68,29 @@ let AccountService = class AccountService {
         return { success: true, prefs: updated.notificationPrefs, message: 'Notification preferences updated.' };
     }
     async updatePrivacy(companionId, dto) {
-        const showInSearch = dto.visibility !== 'private';
+        const showInSearch = dto.showInSearch ?? (dto.visibility !== 'private' ? true : undefined);
+        const allowPromo = dto.allowPromo ?? dto.dataSharing;
+        const showAge = dto.showAge;
+        const updateData = {};
+        if (showInSearch !== undefined)
+            updateData.showInSearch = showInSearch;
+        if (allowPromo !== undefined)
+            updateData.allowPromo = allowPromo;
+        if (showAge !== undefined)
+            updateData.showAge = showAge;
         const updated = await this.prisma.companionSettings.upsert({
             where: { companionId },
-            update: { showInSearch, allowPromo: dto.dataSharing },
-            create: { companionId, showInSearch, allowPromo: dto.dataSharing },
+            update: updateData,
+            create: { companionId, ...updateData },
         });
-        return { success: true, visibility: updated.showInSearch ? 'public' : 'private', dataSharing: updated.allowPromo };
+        return {
+            success: true,
+            privacySettings: {
+                showAge: updated.showAge ?? true,
+                allowPromo: updated.allowPromo ?? false,
+                showInSearch: updated.showInSearch ?? true,
+            },
+        };
     }
     async updateLanguage(companionId, dto) {
         const updated = await this.prisma.companionSettings.upsert({

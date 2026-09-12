@@ -95,18 +95,7 @@ export declare class AvailabilityController {
             repeat: boolean;
         }[];
     }>;
-    removeOverride(c: JwtPayload, id: string): Promise<{
-        id: string;
-        createdAt: Date;
-        companionId: string;
-        startDate: string;
-        endDate: string;
-        reason: string;
-        note: string | null;
-        fullDay: boolean;
-        startTime: string | null;
-        endTime: string | null;
-    }>;
+    removeOverride(c: JwtPayload, id: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
     addSlot(c: JwtPayload, dto: any): Promise<{
         id: string;
         createdAt: Date;

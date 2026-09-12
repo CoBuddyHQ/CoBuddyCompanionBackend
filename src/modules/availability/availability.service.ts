@@ -141,7 +141,8 @@ export class AvailabilityService {
 
   // ── DELETE /companion/availability/overrides/:id ──────────────────────────────
   async removeOverride(companionId: string, id: string) {
-    return this.prisma.dateOverride.delete({ where: { id } });
+    // IDOR FIX: Scope deletion to this companion's records only
+    return this.prisma.dateOverride.deleteMany({ where: { id, companionId } });
   }
 
   // ── POST /companion/availability/slots — Endpoints.AVAILABILITY.SLOT_ADD ────────
@@ -161,7 +162,7 @@ export class AvailabilityService {
     }
 
     const existing = await this.prisma.customSlot.findFirst({
-      where: { id }
+      where: { id, companionId }  // IDOR FIX: always scope by companionId
     });
 
     if (!existing) {
@@ -187,7 +188,8 @@ export class AvailabilityService {
   // ── DELETE /companion/availability/slots/:id ────────────────────────────────────
   async removeSlot(companionId: string, id: string) {
     try {
-      await this.prisma.customSlot.delete({ where: { id } });
+      // IDOR FIX: Scope deletion to this companion's records only (deleteMany ignores if not found)
+      await this.prisma.customSlot.deleteMany({ where: { id, companionId } });
     } catch (e) {
       // Ignore if record already deleted
     }

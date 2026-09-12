@@ -34,7 +34,22 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         this.logger = new common_1.Logger(PaymentsService_1.name);
     }
     async createOrder(params) {
-        const amountPaisa = Math.round(params.amountINR * 100);
+        const bookingRequest = await this.prisma.bookingRequest.findUnique({
+            where: { id: params.requestId },
+            select: { estimatedEarning: true, companionId: true },
+        });
+        if (!bookingRequest) {
+            throw new common_1.BadRequestException(`BookingRequest ${params.requestId} not found`);
+        }
+        if (bookingRequest.companionId !== params.companionId) {
+            throw new common_1.BadRequestException('You are not authorized to create a payment for this booking request');
+        }
+        const serverAmountINR = Number(bookingRequest.estimatedEarning);
+        if (Math.abs(serverAmountINR - params.amountINR) > 1) {
+            this.logger.warn(`Payment amount mismatch for request ${params.requestId}: client sent ₹${params.amountINR}, server expects ₹${serverAmountINR}`);
+            throw new common_1.BadRequestException(`Payment amount mismatch. Expected ₹${serverAmountINR}, received ₹${params.amountINR}`);
+        }
+        const amountPaisa = Math.round(serverAmountINR * 100);
         try {
             const { data } = await axios_1.default.post(`${RAZORPAY_BASE}/orders`, {
                 amount: amountPaisa,
@@ -46,7 +61,7 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
                     ...(params.notes ?? {}),
                 },
             }, { headers: { ...this.razorpayAuth, 'Content-Type': 'application/json' } });
-            this.logger.log(`Razorpay order created: ${data.id} for ₹${params.amountINR}`);
+            this.logger.log(`Razorpay order created: ${data.id} for ₹${serverAmountINR}`);
             await this.prisma.razorpayOrder.create({
                 data: {
                     razorpayOrderId: data.id,

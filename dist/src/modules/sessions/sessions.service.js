@@ -39,7 +39,8 @@ let SessionsService = SessionsService_1 = class SessionsService {
             },
         });
         const totalCount = await this.prisma.session.count({ where: { companionId } });
-        if (totalCount === 0) {
+        const enableDemoSeeding = process.env.ENABLE_DEMO_SEEDING === 'true' && process.env.NODE_ENV !== 'production';
+        if (totalCount === 0 && enableDemoSeeding) {
             const now = new Date();
             await this.prisma.session.createMany({
                 data: [

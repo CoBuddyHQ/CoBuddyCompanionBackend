@@ -132,7 +132,7 @@ let AvailabilityService = class AvailabilityService {
         return this.getAvailability(companionId);
     }
     async removeOverride(companionId, id) {
-        return this.prisma.dateOverride.delete({ where: { id } });
+        return this.prisma.dateOverride.deleteMany({ where: { id, companionId } });
     }
     async addSlot(companionId, dto) {
         return this.prisma.customSlot.create({
@@ -147,7 +147,7 @@ let AvailabilityService = class AvailabilityService {
             return this.getAvailability(companionId);
         }
         const existing = await this.prisma.customSlot.findFirst({
-            where: { id }
+            where: { id, companionId }
         });
         if (!existing) {
             await this.prisma.customSlot.create({
@@ -170,7 +170,7 @@ let AvailabilityService = class AvailabilityService {
     }
     async removeSlot(companionId, id) {
         try {
-            await this.prisma.customSlot.delete({ where: { id } });
+            await this.prisma.customSlot.deleteMany({ where: { id, companionId } });
         }
         catch (e) {
         }

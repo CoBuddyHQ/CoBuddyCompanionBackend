@@ -380,7 +380,7 @@ export class KycService {
           await this.prisma.companionServiceArea.createMany({
             data: draft.broadAreas.map((area: string) => ({
               companionId,
-              areaName: area,
+              area,           // FIX: Prisma schema field is 'area', not 'areaName'
             })),
           });
         }
@@ -390,7 +390,7 @@ export class KycService {
           await this.prisma.companionCategory.createMany({
             data: draft.experienceCategories.map((cat: string) => ({
               companionId,
-              categoryName: cat,
+              category: cat,  // FIX: Prisma schema field is 'category', not 'categoryName'
             })),
           });
         }

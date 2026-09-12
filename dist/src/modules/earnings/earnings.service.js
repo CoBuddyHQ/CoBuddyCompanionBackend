@@ -22,7 +22,8 @@ let EarningsService = EarningsService_1 = class EarningsService {
     }
     async getSummary(companionId) {
         let txCount = await this.prisma.earningsTransaction.count({ where: { companionId } });
-        if (txCount === 0) {
+        const enableDemoSeeding = process.env.ENABLE_DEMO_SEEDING === 'true' && process.env.NODE_ENV !== 'production';
+        if (txCount === 0 && enableDemoSeeding) {
             await this.prisma.earningsTransaction.createMany({
                 data: [
                     {

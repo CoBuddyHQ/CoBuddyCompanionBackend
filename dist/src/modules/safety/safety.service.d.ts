@@ -10,6 +10,7 @@ export declare class SafetyService {
         message: string;
         triggeredAt: string;
     }>;
+    private dispatchSafetyAlert;
     resolveSOS(companionId: string, sosId: string): Promise<{
         message: string;
     }>;

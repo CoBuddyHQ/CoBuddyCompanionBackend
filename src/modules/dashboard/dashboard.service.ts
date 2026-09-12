@@ -20,8 +20,10 @@ export class DashboardService {
     if (!companion) throw new NotFoundException('Companion not found');
 
 
-    // Auto-seed demo data for companions with empty dashboard
-    await this.ensureDemoData(companionId);
+    // DEMO-SEED GUARD: Only auto-seed in development when ENABLE_DEMO_SEEDING=true
+    if (process.env.ENABLE_DEMO_SEEDING === 'true' && process.env.NODE_ENV !== 'production') {
+      await this.ensureDemoData(companionId);
+    }
 
     const [activeSessions, upcomingSessions, pendingRequests, unreadNotifs] = await Promise.all([
       this.prisma.session.findMany({ where: { companionId, status: 'active' }, take: 1 }),

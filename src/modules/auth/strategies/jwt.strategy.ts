@@ -33,8 +33,15 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'companion-jwt') {
     if (!companion || companion.deletedAt) {
       throw new UnauthorizedException('Companion not found or deleted');
     }
+    // SECURITY FIX: Block suspended/deactivated accounts — they must not be able to use a valid JWT.
     if (companion.accountStatus === 'deleted') {
       throw new UnauthorizedException('Account deleted');
+    }
+    if (companion.accountStatus === 'suspended') {
+      throw new UnauthorizedException('Account suspended. Please contact support.');
+    }
+    if (companion.accountStatus === 'deactivated') {
+      throw new UnauthorizedException('Account deactivated. Please contact support to reactivate.');
     }
     return {
       sub: companion.id,
