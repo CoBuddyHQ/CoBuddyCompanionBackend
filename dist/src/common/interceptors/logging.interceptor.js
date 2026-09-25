@@ -14,11 +14,39 @@ let LoggingInterceptor = class LoggingInterceptor {
         this.logger = new common_1.Logger('HTTP');
     }
     intercept(context, next) {
-        const req = context.switchToHttp().getRequest();
-        const { method, url } = req;
+        const ctx = context.switchToHttp();
+        const req = ctx.getRequest();
+        const res = ctx.getResponse();
+        const { method, url, body, query, ip } = req;
         const now = Date.now();
-        return next.handle().pipe((0, operators_1.tap)(() => {
-            this.logger.log(`${method} ${url} — ${Date.now() - now}ms`);
+        const sanitize = (obj) => {
+            if (!obj || typeof obj !== 'object')
+                return obj;
+            const copy = { ...obj };
+            ['password', 'pass', 'pin', 'token', 'secret'].forEach(key => {
+                if (key in copy)
+                    copy[key] = '***MASKED***';
+            });
+            return copy;
+        };
+        const sanitizedBody = sanitize(body);
+        const bodyStr = Object.keys(sanitizedBody || {}).length ? ` | Body: ${JSON.stringify(sanitizedBody)}` : '';
+        const queryStr = Object.keys(query || {}).length ? ` | Query: ${JSON.stringify(query)}` : '';
+        this.logger.log(`➡️  [REQ] ${method} ${url} (IP: ${ip || 'local'})${queryStr}${bodyStr}`);
+        return next.handle().pipe((0, operators_1.tap)(data => {
+            const duration = Date.now() - now;
+            const statusCode = res.statusCode || 200;
+            let respStr = '';
+            if (data) {
+                try {
+                    const raw = typeof data === 'string' ? data : JSON.stringify(data);
+                    respStr = ` | Res: ${raw.length > 300 ? raw.substring(0, 300) + '...[truncated]' : raw}`;
+                }
+                catch {
+                    respStr = ' | Res: [Unserializable Payload]';
+                }
+            }
+            this.logger.log(`⬅️  [RES] ${method} ${url} ${statusCode} — ${duration}ms${respStr}`);
         }));
     }
 };

@@ -16,6 +16,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+    const { method, url, body, query, ip } = request;
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
@@ -41,6 +42,36 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.error(`Unhandled: ${exception.message}`, exception.stack);
     }
 
+    // Sanitize sensitive fields (password, pass, pin, token, secret)
+    const sanitize = (obj: any) => {
+      if (!obj || typeof obj !== 'object') return obj;
+      const copy = { ...obj };
+      ['password', 'pass', 'pin', 'token', 'secret', 'otp'].forEach(key => {
+        if (key in copy && typeof copy[key] === 'string') {
+          copy[key] = '***MASKED***';
+        }
+      });
+      return copy;
+    };
+
+    const sanitizedBody = sanitize(body);
+    const bodyStr = Object.keys(sanitizedBody || {}).length ? ` | Body: ${JSON.stringify(sanitizedBody)}` : '';
+    const queryStr = Object.keys(query || {}).length ? ` | Query: ${JSON.stringify(query)}` : '';
+
+    if (status >= 500) {
+      this.logger.error(
+        `❌ [HTTP ERROR ${status}] ${method} ${url} (IP: ${ip || 'local'})${queryStr}${bodyStr} → ${message}`,
+      );
+    } else {
+      this.logger.warn(
+        `⚠️ [HTTP WARN ${status}] ${method} ${url} (IP: ${ip || 'local'})${queryStr}${bodyStr} → ${message}`,
+      );
+    }
+
+    if (response.headersSent) {
+      return;
+    }
+
     response.status(status).json({
       success: false,
       statusCode: status,
@@ -49,6 +80,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request.url,
     });
+
   }
 
   private statusToError(status: number): string {
