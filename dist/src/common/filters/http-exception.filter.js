@@ -63,6 +63,9 @@ let HttpExceptionFilter = HttpExceptionFilter_1 = class HttpExceptionFilter {
         else {
             this.logger.warn(`⚠️ [HTTP WARN ${status}] ${method} ${url} (IP: ${ip || 'local'})${queryStr}${bodyStr} → ${message}`);
         }
+        if (response.headersSent) {
+            return;
+        }
         response.status(status).json({
             success: false,
             statusCode: status,
