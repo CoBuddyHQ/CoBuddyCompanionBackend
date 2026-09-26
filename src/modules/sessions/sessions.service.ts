@@ -4,11 +4,11 @@ import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 // ── Valid session status transition map ─────────────────────────────────────
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  upcoming:    ['pre_arrival', 'cancelled', 'no_show'],
-  pre_arrival: ['checked_in', 'cancelled', 'no_show'],
-  checked_in:  ['active', 'cancelled'],
+  upcoming:    ['pre_arrival', 'cancelled', 'no_show', 'checked_in', 'active', 'completed'],
+  pre_arrival: ['checked_in', 'cancelled', 'no_show', 'active', 'completed'],
+  checked_in:  ['active', 'cancelled', 'extending', 'completed'],
   active:      ['extending', 'completed', 'disputed'],
-  extending:   ['active', 'completed'],
+  extending:   ['active', 'completed', 'disputed'],
   completed:   [],
   cancelled:   [],
   no_show:     [],
@@ -228,7 +228,9 @@ export class SessionsService {
   // ── POST /companion/sessions/:sessionId/extend/request ───────────────────
   async requestExtension(companionId: string, sessionId: string, extraMinutes: number) {
     const session = await this.findSessionOrThrow(companionId, sessionId);
-    if (session.status !== 'active') throw new BadRequestException('Can only extend active sessions');
+    if (!['active', 'checked_in', 'extending'].includes(session.status)) {
+      throw new BadRequestException('Can only extend active sessions');
+    }
     if (extraMinutes < 30 || extraMinutes > 180) throw new BadRequestException('Extension must be 30–180 minutes');
 
     this.guardTransition(session.status, 'extending');
@@ -376,7 +378,7 @@ export class SessionsService {
   // ── POST /companion/sessions/:sessionId/complete ──────────────────────────
   async completeSession(companionId: string, sessionId: string) {
     const session = await this.findSessionOrThrow(companionId, sessionId);
-    const validStatuses = ['upcoming', 'checked_in', 'active'];
+    const validStatuses = ['upcoming', 'checked_in', 'active', 'extending'];
     if (!validStatuses.includes(session.status)) throw new BadRequestException('Session is not active');
 
     const confirmed = Number(session.estimatedTotal);
