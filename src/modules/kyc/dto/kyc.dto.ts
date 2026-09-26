@@ -34,30 +34,42 @@ export class BasicDetailsDto {
 export class SaveDeclarationDto {
   @ApiPropertyOptional({ example: true })
   @IsOptional()
+  @IsBoolean()
   accurateInfo?: boolean;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
+  @IsBoolean()
   publicVenueOnly?: boolean;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
+  @IsBoolean()
   professionalConduct?: boolean;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
+  @IsBoolean()
   noPrivateContact?: boolean;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
+  @IsBoolean()
   safetyPolicy?: boolean;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
+  @IsBoolean()
   noMisrepresentation?: boolean;
 
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  eligibilityConfirmed?: boolean;
+
   @ApiPropertyOptional({ example: '2023-01-01T00:00:00Z' })
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   agreedAt?: string;
 }
 

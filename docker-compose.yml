@@ -93,6 +93,8 @@ services:
       - ./src:/app/src
       - ./prisma:/app/prisma
       - ./prisma.config.ts:/app/prisma.config.ts
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./tsconfig.build.json:/app/tsconfig.build.json
       # Persist uploaded files
       - ./uploads:/app/uploads
       # Prevent host node_modules from overwriting container's
