@@ -5,7 +5,6 @@ Production-grade, enterprise-ready NestJS backend service powering the **CoBuddy
 Built with **NestJS 11**, **TypeScript**, **Prisma 7**, **PostgreSQL**, **Redis**, **Socket.IO**, **Firebase Admin (FCM)**, **Multer (Local Disk / AWS S3)**, **BullMQ**, **JWT Authentication**, and **Swagger API Documentation**.
 
 ---
-
 ## 📋 Table of Contents
 
 - [✨ Features](#-features)
