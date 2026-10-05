@@ -118,6 +118,11 @@ export class UpdatePricingDto {
   @IsOptional() @IsNumber() @Min(30) @Max(300)
   @Type(() => Number)
   sessionDuration?: number;
+
+  @ApiPropertyOptional({ example: [90], isArray: true })
+  @IsOptional()
+  @IsArray()
+  sessionDurations?: number[];
 }
 
 export class UpdateCommActivityDto {

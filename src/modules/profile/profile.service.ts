@@ -459,7 +459,11 @@ export class ProfileService {
   async updatePricing(companionId: string, dto: UpdatePricingDto) {
     const data: any = {};
     if (dto.hourlyRate !== undefined) data.hourlyRate = dto.hourlyRate;
-    if (dto.sessionDuration !== undefined) data.sessionDuration = dto.sessionDuration;
+    if (dto.sessionDuration !== undefined) {
+      data.sessionDuration = dto.sessionDuration;
+    } else if (dto.sessionDurations && dto.sessionDurations.length > 0) {
+      data.sessionDuration = Number(dto.sessionDurations[0]);
+    }
 
     const companion = await this.prisma.companion.update({
       where: { id: companionId },
@@ -612,6 +616,7 @@ export class ProfileService {
       bio: companion.bio ?? '',
       hourlyRate: companion.hourlyRate ? Number(companion.hourlyRate) : 0,
       sessionDuration: companion.sessionDuration ?? 90,
+      sessionDurations: [companion.sessionDuration ?? 90],
       profileStatus: companion.profileStatus ? String(companion.profileStatus).toLowerCase() : 'draft',
       verificationStatus: companion.verificationStatus ? String(companion.verificationStatus).toLowerCase() : 'not_started',
       trustScore: companion.trustScore ?? 0,
