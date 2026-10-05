@@ -83,6 +83,10 @@ export class UpdateWorkPreferenceDto {
   @ApiPropertyOptional()
   @IsOptional()
   frequency?: any;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  venuePreferences?: any;
 }
 
 

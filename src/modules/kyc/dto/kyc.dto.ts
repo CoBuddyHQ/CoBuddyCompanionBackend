@@ -40,7 +40,17 @@ export class SaveDeclarationDto {
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @IsBoolean()
+  accurate_info?: boolean;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
   publicVenueOnly?: boolean;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  public_venue_only?: boolean;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
@@ -50,7 +60,17 @@ export class SaveDeclarationDto {
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @IsBoolean()
+  professional_conduct?: boolean;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
   noPrivateContact?: boolean;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  no_private_contact?: boolean;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
@@ -60,7 +80,17 @@ export class SaveDeclarationDto {
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @IsBoolean()
+  safety_policy?: boolean;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
   noMisrepresentation?: boolean;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  no_misrepresentation?: boolean;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
