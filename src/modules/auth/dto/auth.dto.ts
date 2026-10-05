@@ -48,6 +48,11 @@ export class SetPinDto {
   @IsNumberString()
   @Length(4, 6)
   pin: string;
+
+  @ApiPropertyOptional({ example: '1234' })
+  @IsOptional()
+  @IsString()
+  confirmPin?: string;
 }
 
 export class VerifyPinDto {
