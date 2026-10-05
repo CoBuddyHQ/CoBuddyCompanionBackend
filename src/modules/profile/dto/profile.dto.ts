@@ -61,6 +61,10 @@ export class UpdateLanguagesDto {
   @ApiPropertyOptional({ isArray: true, example: ['Hindi', 'English'] })
   @IsOptional() @IsArray() @IsString({ each: true })
   languages?: string[];
+
+  @ApiPropertyOptional({ example: 'Hindi' })
+  @IsOptional() @IsString()
+  primaryLanguage?: string;
 }
 
 export class UpdateWorkPreferenceDto {
