@@ -169,6 +169,14 @@ export class SaveAddressDto {
   @ApiPropertyOptional({ example: 'https://bucket.s3.amazonaws.com/proof.jpg' })
   @IsOptional() @IsString()
   addressDocumentUrl?: string;
+
+  @ApiPropertyOptional({ example: 'Utility bill' })
+  @IsOptional() @IsString()
+  documentType?: string;
+
+  @ApiPropertyOptional({ example: 'https://bucket.s3.amazonaws.com/proof.jpg' })
+  @IsOptional() @IsString()
+  proofUrl?: string;
 }
 
 export class SavePanDto {

@@ -109,7 +109,7 @@ export class ProgressEngineService {
 
     // Find the first pending module to set as resume step
     const firstPendingId = this.MODULES.find(m => pendingModules.includes(m.id))?.id || null;
-    const resumeModuleDef = this.MODULES.find(m => m.id === firstPendingId) || { route: 'CPN_051_VerificationHub' };
+    const resumeModuleDef = this.MODULES.find(m => m.id === firstPendingId) || { route: 'CPN_048_ApplicationReviewInfo' };
 
     const currentStep = firstPendingId || 'completed';
     // Find next step after current

@@ -176,8 +176,8 @@ export class KycService {
         addressPinCode: dto.pinCode,
         addressType: dto.addressType,
         addressIdMatch: dto.idMatch,
-        addressDocumentType: dto.addressDocumentType,
-        addressDocumentUrl: dto.addressDocumentUrl,
+        addressDocumentType: dto.addressDocumentType || dto.documentType,
+        addressDocumentUrl: dto.addressDocumentUrl || dto.proofUrl,
         addressSubmittedAt: new Date(),
       },
       create: {
@@ -189,8 +189,8 @@ export class KycService {
         addressPinCode: dto.pinCode,
         addressType: dto.addressType,
         addressIdMatch: dto.idMatch,
-        addressDocumentType: dto.addressDocumentType,
-        addressDocumentUrl: dto.addressDocumentUrl,
+        addressDocumentType: dto.addressDocumentType || dto.documentType,
+        addressDocumentUrl: dto.addressDocumentUrl || dto.proofUrl,
         addressSubmittedAt: new Date(),
       },
     });
