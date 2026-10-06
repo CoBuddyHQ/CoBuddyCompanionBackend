@@ -29,20 +29,20 @@ export class ProgressEngineService {
     { id: 'eligibility', route: 'CPN_022_EligibilityConfirmation' },
     { id: 'basic_details', route: 'CPN_023_BasicDetails' },
     { id: 'bio', route: 'CPN_024_BioIntroduction' },
-    { id: 'declaration', route: 'CPN_025_BackgroundDeclaration' },
-    { id: 'categories', route: 'CPN_026_ExperienceCategories' },
     { id: 'interests', route: 'CPN_027_InterestsPersonality' },
+    { id: 'categories', route: 'CPN_026_ExperienceCategories' },
+    { id: 'languages', route: 'CPN_034_LanguagesSelection' },
+    { id: 'photo', route: 'CPN_035_ProfilePhotoUpload' },
+    { id: 'declaration', route: 'CPN_025_BackgroundDeclaration' },
     { id: 'work_preference', route: 'CPN_028_WorkPreference' },
     { id: 'service_area', route: 'CPN_029_CityServiceArea' },
     { id: 'service_style', route: 'CPN_030_ServiceStylePreferences' },
     { id: 'public_venue', route: 'CPN_031_PublicVenuePreference' },
     { id: 'boundaries', route: 'CPN_032_BoundariesSafety' },
-    { id: 'pricing', route: 'CPN_033_CompanionPricing' },
-    { id: 'languages', route: 'CPN_034_LanguagesSelection' },
-    { id: 'photo', route: 'CPN_035_ProfilePhotoUpload' },
     { id: 'government_id', route: 'CPN_036_GovernmentIDType' },
     { id: 'selfie', route: 'CPN_038_SelfieCapture' },
     { id: 'address', route: 'CPN_040_AddressVerification' },
+    { id: 'pricing', route: 'CPN_033_CompanionPricing' },
     { id: 'pan', route: 'CPN_041_PANTaxDetails' },
     { id: 'bank', route: 'CPN_042_AddBankAccount' },
     { id: 'upi', route: 'CPN_044_UPIDetails' },
@@ -76,45 +76,95 @@ export class ProgressEngineService {
       else pendingModules.push(id);
     };
 
-    checkModule('eligibility', !!(kyc.declarationAgreedAt));
+    const consents = (kyc.declarationConsents as any) || {};
+
+    // 1. Eligibility confirmation
+    const isEligible = !!(consents.eligibilityConfirmed || companion?.termsAccepted || companion?.boundariesAccepted);
+    checkModule('eligibility', isEligible);
+
+    // 2. Basic details
     checkModule('basic_details', !!(companion?.dateOfBirth && companion?.gender && companion?.displayName));
-    checkModule('bio', !!(companion?.bio && companion.bio.length > 0));
-    checkModule('declaration', !!(kyc.declarationAgreedAt));
-    checkModule('categories', !!(companion?.categories && companion.categories.length > 0));
+
+    // 3. Bio introduction
+    checkModule('bio', !!(companion?.bio && companion.bio.trim().length >= 50));
+
+    // 4. Interests & personality
     checkModule('interests', !!(companion?.interestTags && companion.interestTags.length > 0));
-    
-    // Check if workPreferences JSON is not null and has keys
+
+    // 5. Experience categories
+    checkModule('categories', !!(companion?.categories && companion.categories.length > 0));
+
+    // 6. Spoken languages
+    checkModule('languages', !!(companion?.languages && companion.languages.length > 0));
+
+    // 7. Profile photo
+    checkModule('photo', !!(companion?.photoUrl));
+
+    // 8. Background declaration
+    const isDeclarationDone = !!(kyc.declarationAgreedAt && (consents.noCriminalRecord !== undefined || consents.accurate_info !== undefined || Object.keys(consents).length >= 4));
+    checkModule('declaration', isDeclarationDone);
+
+    // 9. Work preferences
     const hasWorkPrefs = companion?.workPreferences && Object.keys(companion.workPreferences).length > 0;
     checkModule('work_preference', !!hasWorkPrefs);
-    
+
+    // 10. Service areas
     checkModule('service_area', !!(companion?.serviceAreas && companion.serviceAreas.length > 0));
-    
+
+    // 11. Communication & style preferences
     const hasCommPrefs = companion?.commActivityPrefs && Object.keys(companion.commActivityPrefs).length > 0;
     checkModule('service_style', !!hasCommPrefs);
-    
-    checkModule('public_venue', !!(companion?.venuePreferences && companion.venuePreferences.length > 0));
-    checkModule('boundaries', !!(companion?.boundariesAccepted));
-    checkModule('pricing', !!(companion?.hourlyRate));
-    checkModule('languages', !!(companion?.languages && companion.languages.length > 0));
-    checkModule('photo', !!(companion?.photoUrl));
-    
-    checkModule('government_id', !!(kyc.identityDocumentUrl || kyc.identitySubmittedAt));
-    checkModule('selfie', !!(kyc.selfieVideoUrl || kyc.selfieSubmittedAt));
-    checkModule('address', !!(kyc.addressDocumentUrl || kyc.addressSubmittedAt || kyc.addressLine1));
-    checkModule('pan', !!(kyc.maskedPan));
-    checkModule('bank', !!(kyc.maskedBankAccount));
-    checkModule('upi', !!(kyc.maskedUpi));
 
-    const profileCompletion = Math.round((completedModules.length / this.MODULES.length) * 100);
+    // 12. Public venue preferences
+    checkModule('public_venue', !!(companion?.venuePreferences && companion.venuePreferences.length > 0));
+
+    // 13. Boundaries & safety rules
+    checkModule('boundaries', !!(companion?.boundariesAccepted));
+
+    // 14. Government ID (Aadhaar / Passport / etc.)
+    checkModule('government_id', !!(kyc.identityDocumentUrl || kyc.identitySubmittedAt));
+
+    // 15. Selfie & liveness
+    checkModule('selfie', !!((kyc.selfieImageUrl || kyc.selfieSubmittedAt) && kyc.selfieVideoUrl));
+
+    // 16. Residential address
+    checkModule('address', !!(kyc.addressDocumentUrl || kyc.addressSubmittedAt || (kyc.addressLine1 && kyc.addressCity)));
+
+    // 17. Companion pricing
+    checkModule('pricing', !!(companion?.hourlyRate && Number(companion.hourlyRate) > 0));
+
+    // 18. PAN Tax details
+    checkModule('pan', !!(kyc.maskedPan));
+
+    // 19. Bank account verification
+    checkModule('bank', !!(kyc.maskedBankAccount && kyc.bankVerified));
+
+    // 20. UPI (optional, never blocks progress)
+    checkModule('upi', true);
+
+    const mandatoryModulesCount = this.MODULES.filter(m => m.id !== 'upi').length;
+    const completedMandatoryCount = completedModules.filter(m => m !== 'upi').length;
+    const profileCompletion = Math.min(100, Math.round((completedMandatoryCount / mandatoryModulesCount) * 100));
 
     // Find the first pending module to set as resume step
     const firstPendingId = this.MODULES.find(m => pendingModules.includes(m.id))?.id || null;
     const resumeModuleDef = this.MODULES.find(m => m.id === firstPendingId) || { route: 'CPN_048_ApplicationReviewInfo' };
 
+    let resumeRoute = resumeModuleDef.route;
+    if (firstPendingId === 'government_id' && kyc.identityDocumentType && !kyc.identityDocumentUrl) {
+      resumeRoute = 'CPN_037_GovernmentIDUpload';
+    } else if (firstPendingId === 'selfie' && (kyc.selfieImageUrl || kyc.selfieSubmittedAt) && !kyc.selfieVideoUrl) {
+      resumeRoute = 'CPN_039_LivenessDetection';
+    } else if (firstPendingId === 'bank' && kyc.maskedBankAccount && !kyc.bankVerified) {
+      resumeRoute = 'CPN_043_BankAccountVerification';
+    }
+
     const currentStep = firstPendingId || 'completed';
-    // Find next step after current
     const currIdx = this.MODULES.findIndex(m => m.id === currentStep);
     const nextStep = (currIdx >= 0 && currIdx < this.MODULES.length - 1) ? this.MODULES[currIdx + 1].id : 'done';
+
+    const actualProfileStatus = companion?.profileStatus || 'draft';
+    const isSubmitted = actualProfileStatus === 'submitted' || actualProfileStatus === 'under_review';
 
     return {
       profile: companion,
@@ -124,11 +174,11 @@ export class ProgressEngineService {
       currentStep,
       nextStep,
       profileCompletion,
-      resumeScreen: resumeModuleDef.route,
-      resumeRoute: resumeModuleDef.route,
-      draftStatus: companion?.profileStatus || 'draft',
+      resumeScreen: resumeRoute,
+      resumeRoute: resumeRoute,
+      draftStatus: actualProfileStatus,
       verificationStatus: companion?.verificationStatus || 'not_started',
-      applicationStatus: companion?.profileStatus || 'pending',
+      applicationStatus: isSubmitted ? actualProfileStatus : 'draft',
       lastUpdated: new Date().toISOString(),
       hasStarted: completedModules.length > 0,
       termsAccepted: companion?.termsAccepted ?? false,
