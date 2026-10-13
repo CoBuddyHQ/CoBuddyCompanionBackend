@@ -12,7 +12,44 @@ import helmet from 'helmet';
 
 const logger = new Logger('Bootstrap');
 
+function validateEnvironment(): void {
+  const isProd = process.env.NODE_ENV === 'production';
+  const missing: string[] = [];
+
+  if (!process.env.DATABASE_URL) {
+    missing.push('DATABASE_URL');
+  }
+  if (!process.env.JWT_SECRET) {
+    missing.push('JWT_SECRET');
+  }
+
+  if (missing.length > 0) {
+    logger.error(`❌ Startup blocked: Missing required environment variable(s): ${missing.join(', ')}`);
+    process.exit(1);
+  }
+
+  if (isProd) {
+    const insecure: string[] = [];
+    if (
+      process.env.JWT_SECRET === 'default-secret' ||
+      process.env.JWT_SECRET === 'cobuddy-companion-jwt-secret-change-in-production'
+    ) {
+      insecure.push('JWT_SECRET');
+    }
+    if (process.env.JWT_REFRESH_SECRET === 'cobuddy-companion-refresh-secret-change-in-production') {
+      insecure.push('JWT_REFRESH_SECRET');
+    }
+    if (insecure.length > 0) {
+      logger.error(
+        `❌ Startup blocked: Insecure placeholder secret(s) detected in production: ${insecure.join(', ')}. Please configure strong secrets.`,
+      );
+      process.exit(1);
+    }
+  }
+}
+
 async function bootstrap() {
+  validateEnvironment();
   const isProd = process.env.NODE_ENV === 'production';
 
   const app = await NestFactory.create(AppModule, {
