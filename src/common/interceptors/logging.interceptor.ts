@@ -19,11 +19,11 @@ export class LoggingInterceptor implements NestInterceptor {
     const { method, url, body, query, ip } = req;
     const now = Date.now();
 
-    // Sanitize sensitive fields (password, pin, token) for log safety
+    // Sanitize sensitive fields (password, pin, token, otp) for log safety
     const sanitize = (obj: any) => {
       if (!obj || typeof obj !== 'object') return obj;
       const copy = { ...obj };
-      ['password', 'pass', 'pin', 'token', 'secret'].forEach(key => {
+      ['password', 'pass', 'pin', 'token', 'secret', 'otp', 'authorization'].forEach(key => {
         if (key in copy) copy[key] = '***MASKED***';
       });
       return copy;

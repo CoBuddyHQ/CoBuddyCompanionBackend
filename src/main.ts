@@ -53,7 +53,9 @@ async function bootstrap() {
   const isProd = process.env.NODE_ENV === 'production';
 
   const app = await NestFactory.create(AppModule, {
-    logger: isProd ? ['error', 'warn'] : ['error', 'warn', 'log', 'debug'],
+    logger: isProd
+      ? ['error', 'warn', 'log']
+      : ['error', 'warn', 'log', 'debug'],
     rawBody: true,
   });
 
