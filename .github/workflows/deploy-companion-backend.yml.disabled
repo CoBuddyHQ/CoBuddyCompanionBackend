@@ -77,7 +77,6 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy?sslmode=require' }}
 
       - name: Azure OIDC Login
-        if: ${{ secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' }}
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -85,7 +84,6 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to Azure App Service
-        if: ${{ secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' }}
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ secrets.AZURE_COMPANION_APP_NAME || 'cobuddy-companion-api-avinash' }}
