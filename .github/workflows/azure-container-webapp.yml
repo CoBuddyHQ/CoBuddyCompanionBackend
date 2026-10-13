@@ -27,7 +27,7 @@
 name: Build and deploy a container to an Azure Web App
 
 env:
-  AZURE_WEBAPP_NAME: ${{ secrets.AZURE_WEBAPP_NAME || 'your-app-name' }}  # set AZURE_WEBAPP_NAME secret to the name of your Azure Web App
+  AZURE_WEBAPP_NAME: ${{ secrets.AZURE_WEBAPP_NAME || 'cobuddy-companion-api-avinash' }}  # Azure App Service Web App name
 
 on:
   push:
@@ -80,8 +80,8 @@ jobs:
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
-        if: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE != '' && env.AZURE_WEBAPP_NAME != 'your-app-name' }}
-        uses: azure/webapps-deploy@v2
+        if: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE != '' }}
+        uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
