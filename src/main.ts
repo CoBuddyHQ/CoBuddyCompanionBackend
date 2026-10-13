@@ -99,7 +99,8 @@ async function bootstrap() {
   app.useGlobalInterceptors(new LoggingInterceptor(), new ResponseInterceptor());
 
   // ── SWAGGER — only in non-production ─────────────────────────────────────
-  if (!isProd) {
+  const enableSwagger = !isProd || process.env.ENABLE_SWAGGER === 'true';
+  if (enableSwagger) {
     const config = new DocumentBuilder()
       .setTitle('CoBuddy Companion API')
       .setDescription(
@@ -131,9 +132,9 @@ async function bootstrap() {
     SwaggerModule.setup('api/docs', app, document, {
       swaggerOptions: { persistAuthorization: true },
     });
-    logger.log('📚 Swagger OpenAPI Docs: enabled (dev only)');
+    logger.log('📚 Swagger OpenAPI Docs: enabled (/api/docs)');
   } else {
-    logger.log('🔒 Swagger disabled in production');
+    logger.log('🔒 Swagger disabled');
   }
 
   // ── DB HEALTH PROBE ───────────────────────────────────────────────────────

@@ -7,4 +7,6 @@ backups/
 *.sql
 *.sql.gz
 !prisma/migrations/**/*.sql
+azure-env*.json
+
 
