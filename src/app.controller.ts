@@ -1,12 +1,24 @@
 import { Controller, Get, HttpStatus, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 
-@Controller('health')
+@Controller()
 export class AppController {
   constructor(private readonly prisma: PrismaService) {}
 
-  
   @Get()
+  getRoot() {
+    return {
+      service: 'CoBuddy Companion Backend API',
+      status: 'online',
+      version: '1.0.0',
+      docs: '/api/docs',
+      health: '/health',
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  @Get('health')
+
   async getHealth() {
     let dbStatus = 'disconnected';
     let isHealthy = false;

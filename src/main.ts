@@ -81,7 +81,10 @@ async function bootstrap() {
 
   // ── GLOBAL PREFIX ─────────────────────────────────────────────────────────
   app.setGlobalPrefix('api/v1', {
-    exclude: [{ path: 'health', method: RequestMethod.GET }],
+    exclude: [
+      { path: '', method: RequestMethod.GET },
+      { path: 'health', method: RequestMethod.GET },
+    ],
   });
 
   // ── VALIDATION PIPE ───────────────────────────────────────────────────────
