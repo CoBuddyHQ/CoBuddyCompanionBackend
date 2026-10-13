@@ -1,4 +1,3 @@
-```yaml
 name: Build and deploy CoBuddy Companion API
 
 on:
@@ -51,4 +50,3 @@ jobs:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           images: ${{ steps.image.outputs.name }}:${{ github.sha }}
-```
