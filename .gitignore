@@ -6,4 +6,5 @@ coverage
 backups/
 *.sql
 *.sql.gz
+!prisma/migrations/**/*.sql
 
