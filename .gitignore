@@ -23,4 +23,9 @@ backups/
 *.sql.gz
 !prisma/migrations/**/*.sql
 
+# Uploads & User generated content
+uploads/
+/uploads
+
+
 
