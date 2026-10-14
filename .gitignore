@@ -1,12 +1,26 @@
 node_modules
 dist
+
+# Environment variables & secrets
 .env
+.env.*
+*.env
+azure-env*.json
+env*.json
+*.pem
+*.key
+*.cert
+*.keystore
+*.jks
+
+# Logs & coverage
 *.log
 coverage
+
+# Database
 backups/
 *.sql
 *.sql.gz
 !prisma/migrations/**/*.sql
-azure-env*.json
 
 
