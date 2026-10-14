@@ -3,11 +3,13 @@ import {
   BadRequestException,
   UnauthorizedException,
   ConflictException,
+  ServiceUnavailableException,
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { isTestOtpAllowed, isTestPhoneAllowlisted } from '../../common/utils/otp-test.util';
 import * as bcrypt from 'bcrypt';
 import {
   SendOtpDto,
@@ -32,13 +34,19 @@ export class AuthService {
   // ── POST /auth/companion/otp/send ─────────────────────────────────────────
 
   async sendOtp(dto: SendOtpDto) {
-    const devBypass = this.config.get<string>('OTP_DEV_BYPASS') || '123456';
+    const isAllowlisted = isTestPhoneAllowlisted(dto.phone);
     const expiresIn = parseInt(this.config.get('OTP_EXPIRES_IN_MINUTES') || '10');
 
-    // In dev mode always use bypass OTP
-    const otp = this.config.get('NODE_ENV') === 'production'
-      ? this.generateOtp()
-      : devBypass;
+    let otp: string;
+    if (isAllowlisted) {
+      otp = '12345465';
+    } else {
+      const smsConfigured = Boolean(this.config.get('SMS_API_KEY') || this.config.get('FAST2SMS_API_KEY'));
+      if (!smsConfigured && this.config.get('NODE_ENV') === 'production') {
+        throw new ServiceUnavailableException('SMS OTP delivery provider is not configured. Please contact support.');
+      }
+      otp = this.generateOtp();
+    }
 
     // Invalidate old OTPs
     await this.prisma.oTPSession.deleteMany({ where: { phone: dto.phone } });
@@ -51,14 +59,12 @@ export class AuthService {
       },
     });
 
-    this.logger.log(`OTP sent to ${dto.phone} (dev: ${otp})`);
+    const maskedPhone = dto.phone.length > 4 ? `****${dto.phone.slice(-4)}` : '****';
+    this.logger.log(`OTP generated for ${maskedPhone}`);
 
-    // TODO: Send via SMS provider (Twilio/MSG91) in production
     return {
       message: 'OTP sent successfully',
       expiresInMinutes: expiresIn,
-      // Only expose in dev
-      ...(this.config.get('NODE_ENV') !== 'production' && { devOtp: otp }),
     };
   }
 
@@ -76,13 +82,9 @@ export class AuthService {
     if (new Date() > session.expiresAt) throw new BadRequestException('OTP has expired');
     if (session.attempts >= maxAttempts) throw new BadRequestException('Too many attempts. Request a new OTP.');
 
-    const devBypass = this.config.get<string>('OTP_DEV_BYPASS') || '123456';
-    // SECURITY FIX: dev bypass is ONLY allowed when NODE_ENV is explicitly 'development' or 'test'.
-    // It must NEVER be active in production regardless of what OTP_DEV_BYPASS is set to.
-    const isDevEnv = this.config.get<string>('NODE_ENV') === 'development' || this.config.get<string>('NODE_ENV') === 'test';
-    const isBypass = isDevEnv && (dto.otp === devBypass);
-
-    const valid = isBypass || (await bcrypt.compare(dto.otp, session.otp));
+    // Fixed test OTP 12345465 is ONLY accepted for allowlisted QA phones when enabled
+    const isAllowlistedBypass = isTestOtpAllowed(dto.phone, dto.otp);
+    const valid = isAllowlistedBypass || (await bcrypt.compare(dto.otp, session.otp));
     if (!valid) {
       await this.prisma.oTPSession.update({
         where: { id: session.id },

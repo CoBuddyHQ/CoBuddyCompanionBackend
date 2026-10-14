@@ -139,6 +139,8 @@ export class PaymentsController {
    */
   @Post('verify')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('companion-jwt')
   @ApiOperation({
     summary: 'Verify Razorpay payment signature after checkout',
     description: `
@@ -151,25 +153,36 @@ export class PaymentsController {
       Backend validates HMAC-SHA256(orderId|paymentId, keySecret) before activating booking.
     `,
   })
-  verifyPayment(@Body() dto: VerifyPaymentDto) {
-    return this.paymentsService.verifyPayment(dto);
+  verifyPayment(
+    @CurrentCompanion() c: JwtPayload,
+    @Body() dto: VerifyPaymentDto,
+  ) {
+    return this.paymentsService.verifyPayment({
+      ...dto,
+      companionId: c.sub,
+    });
   }
 
   /**
    * GET /payments/status/:orderId
-   * Frontend can poll this to check if payment was captured (e.g., if webhook is delayed).
+   * Authenticated companion can poll this to check if payment was captured.
    */
   @Get('status/:orderId')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('companion-jwt')
   @ApiOperation({ summary: 'Get payment status by Razorpay orderId' })
-  getStatus(@Param('orderId') orderId: string) {
-    return this.paymentsService.getPaymentStatus(orderId);
+  getStatus(
+    @CurrentCompanion() c: JwtPayload,
+    @Param('orderId') orderId: string,
+  ) {
+    return this.paymentsService.getPaymentStatus(orderId, c.sub);
   }
 
   /**
    * POST /payments/refund
    * Platform-initiated refund for cancellations.
-   * Only callable by authenticated companions (or admin — add role guard for admin-only).
+   * Only callable by authenticated companions for their owned sessions.
    */
   @Post('refund')
   @HttpCode(HttpStatus.OK)
@@ -179,7 +192,13 @@ export class PaymentsController {
     summary: 'Initiate refund for cancelled booking',
     description: 'Partial or full refund via Razorpay. Platform fee is non-refundable.',
   })
-  initiateRefund(@Body() dto: RefundDto) {
-    return this.paymentsService.initiateRefund(dto);
+  initiateRefund(
+    @CurrentCompanion() c: JwtPayload,
+    @Body() dto: RefundDto,
+  ) {
+    return this.paymentsService.initiateRefund({
+      ...dto,
+      companionId: c.sub,
+    });
   }
 }

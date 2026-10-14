@@ -19,19 +19,29 @@ export class LoggingInterceptor implements NestInterceptor {
     const { method, url, body, query, ip } = req;
     const now = Date.now();
 
-    // Sanitize sensitive fields (password, pin, token, otp) for log safety
-    const sanitize = (obj: any) => {
+    const isProd = process.env.NODE_ENV === 'production';
+
+    // Sanitize sensitive fields (password, pin, token, otp, bank details) for log safety
+    const sanitize = (obj: any): any => {
       if (!obj || typeof obj !== 'object') return obj;
-      const copy = { ...obj };
-      ['password', 'pass', 'pin', 'token', 'secret', 'otp', 'authorization'].forEach(key => {
-        if (key in copy) copy[key] = '***MASKED***';
-      });
+      if (Array.isArray(obj)) return obj.map(sanitize);
+      const copy: Record<string, any> = {};
+      const sensitivePatterns = /password|pass|pin|token|secret|otp|authorization|accountnumber|ifsc|aadhaar|pan|cvv/i;
+      for (const [key, value] of Object.entries(obj)) {
+        if (sensitivePatterns.test(key)) {
+          copy[key] = '***MASKED***';
+        } else if (value && typeof value === 'object') {
+          copy[key] = sanitize(value);
+        } else {
+          copy[key] = value;
+        }
+      }
       return copy;
     };
 
     const sanitizedBody = sanitize(body);
-    const bodyStr = Object.keys(sanitizedBody || {}).length ? ` | Body: ${JSON.stringify(sanitizedBody)}` : '';
-    const queryStr = Object.keys(query || {}).length ? ` | Query: ${JSON.stringify(query)}` : '';
+    const bodyStr = !isProd && Object.keys(sanitizedBody || {}).length ? ` | Body: ${JSON.stringify(sanitizedBody)}` : '';
+    const queryStr = Object.keys(query || {}).length ? ` | Query: ${JSON.stringify(sanitize(query))}` : '';
 
     this.logger.log(`➡️  [REQ] ${method} ${url} (IP: ${ip || 'local'})${queryStr}${bodyStr}`);
 
@@ -40,10 +50,10 @@ export class LoggingInterceptor implements NestInterceptor {
         const duration = Date.now() - now;
         const statusCode = res.statusCode || 200;
         let respStr = '';
-        if (data) {
+        if (!isProd && data) {
           try {
-            const raw = typeof data === 'string' ? data : JSON.stringify(data);
-            respStr = ` | Res: ${raw.length > 300 ? raw.substring(0, 300) + '...[truncated]' : raw}`;
+            const raw = typeof data === 'string' ? data : JSON.stringify(sanitize(data));
+            respStr = ` | Res: ${raw.length > 200 ? raw.substring(0, 200) + '...[truncated]' : raw}`;
           } catch {
             respStr = ' | Res: [Unserializable Payload]';
           }

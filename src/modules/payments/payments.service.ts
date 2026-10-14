@@ -33,7 +33,13 @@
  *       │  { payoutId, status }        │  (webhook updates DB)   │
  */
 
-import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  InternalServerErrorException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHmac } from 'crypto';
 import axios from 'axios';
@@ -150,6 +156,7 @@ export class PaymentsService {
     razorpayOrderId:   string;
     razorpayPaymentId: string;
     razorpaySignature: string;
+    companionId?:      string;
   }) {
     // HMAC-SHA256: key = keySecret, data = "orderId|paymentId"
     const body = `${params.razorpayOrderId}|${params.razorpayPaymentId}`;
@@ -160,6 +167,16 @@ export class PaymentsService {
     if (expected !== params.razorpaySignature) {
       this.logger.warn(`Payment signature mismatch for order ${params.razorpayOrderId}`);
       throw new BadRequestException('Invalid payment signature');
+    }
+
+    const existingOrder = await this.prisma.razorpayOrder.findUnique({
+      where: { razorpayOrderId: params.razorpayOrderId },
+    });
+    if (!existingOrder) {
+      throw new BadRequestException('Order not found');
+    }
+    if (params.companionId && existingOrder.companionId !== params.companionId) {
+      throw new ForbiddenException('Unauthorized: You do not have permission to verify this order');
     }
 
     // Update order record
@@ -402,11 +419,14 @@ export class PaymentsService {
   // 5. GET PAYMENT STATUS — for polling from frontend
   // ─────────────────────────────────────────────────────────────────────────
 
-  async getPaymentStatus(razorpayOrderId: string) {
+  async getPaymentStatus(razorpayOrderId: string, companionId?: string) {
     const order = await this.prisma.razorpayOrder.findUnique({
       where: { razorpayOrderId },
     });
     if (!order) throw new BadRequestException('Order not found');
+    if (companionId && order.companionId !== companionId) {
+      throw new ForbiddenException('Unauthorized: You do not have permission to view this order');
+    }
     return {
       orderId:    order.razorpayOrderId,
       paymentId:  order.razorpayPaymentId,
@@ -427,8 +447,18 @@ export class PaymentsService {
     amountINR?:        number;   // Partial refund (null = full)
     reason?:           string;
     sessionId?:        string;
+    companionId?:      string;
   }) {
     try {
+      if (params.sessionId && params.companionId) {
+        const session = await this.prisma.session.findUnique({
+          where: { id: params.sessionId },
+        });
+        if (session && session.companionId !== params.companionId) {
+          throw new ForbiddenException('Unauthorized: You do not own this session');
+        }
+      }
+
       const body: Record<string, any> = {
         speed:  'optimum',  // optimum = instant if available, else 5-7 days
         notes:  { sessionId: params.sessionId ?? '', reason: params.reason ?? 'Booking cancelled' },
@@ -446,6 +476,9 @@ export class PaymentsService {
       this.logger.log(`Refund initiated: ${data.id} ₹${(data.amount / 100)}`);
       return { refundId: data.id, status: data.status, amountINR: data.amount / 100 };
     } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException) {
+        throw err;
+      }
       this.logger.error('Razorpay refund failed', err?.response?.data ?? err.message);
       throw new InternalServerErrorException('Refund initiation failed');
     }
