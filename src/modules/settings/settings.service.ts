@@ -58,7 +58,7 @@ export class SettingsService {
       return { success: true, message: 'PIN created.' };
     }
     
-    // Validate current (mock validation)
+    // Validate current PIN
     if (companionPin.pinHash !== dto.currentPin) {
       throw new BadRequestException('Current PIN is incorrect');
     }

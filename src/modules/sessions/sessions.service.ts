@@ -26,64 +26,6 @@ export class SessionsService {
 
   // ── GET /companion/sessions/upcoming ─────────────────────────────────────
   async getUpcoming(companionId: string) {
-    // Only seed if no real sessions exist (check by non-seed customerId)
-    const realCount = await this.prisma.session.count({
-      where: {
-        companionId,
-        NOT: { customerId: { startsWith: 'cust_seed_' } },
-      },
-    });
-
-    const totalCount = await this.prisma.session.count({ where: { companionId } });
-
-    // DEMO-SEED GUARD: Only auto-seed in development/test when ENABLE_DEMO_SEEDING=true
-    const enableDemoSeeding = process.env.ENABLE_DEMO_SEEDING === 'true' && process.env.NODE_ENV !== 'production';
-    if (totalCount === 0 && enableDemoSeeding) {
-      const now = new Date();
-      await this.prisma.session.createMany({
-        data: [
-          {
-            companionId,
-            customerId: 'cust_seed_3',
-            status: 'upcoming',
-            category: 'cafe_conversation',
-            customerInitials: 'AS',
-            customerTrustScore: 95,
-            customerVerified: true,
-            customerSafetyConsent: true,
-            venueName: 'Café Coffee Day - MP Nagar',
-            venueArea: 'MP Nagar',
-            venueCity: 'Bhopal',
-            scheduledStart: new Date(now.getTime() + 3600000 * 3),
-            scheduledEnd: new Date(now.getTime() + 3600000 * 5),
-            durationMinutes: 120,
-            baseEarning: 749.0,
-            estimatedTotal: 749.0,
-            sessionPassCode: 'AR-642',
-          },
-          {
-            companionId,
-            customerId: 'cust_seed_4',
-            status: 'upcoming',
-            category: 'city_walk',
-            customerInitials: 'RK',
-            customerTrustScore: 91,
-            customerVerified: true,
-            customerSafetyConsent: true,
-            venueName: 'Upper Lake Walkway',
-            venueArea: 'Shamla Hills',
-            venueCity: 'Bhopal',
-            scheduledStart: new Date(now.getTime() + 3600000 * 24),
-            scheduledEnd: new Date(now.getTime() + 3600000 * 25.5),
-            durationMinutes: 90,
-            baseEarning: 800.0,
-            estimatedTotal: 800.0,
-            sessionPassCode: 'RK-109',
-          },
-        ],
-      });
-    }
-
     const sessions = await this.prisma.session.findMany({
       where: {
         companionId,
@@ -186,9 +128,9 @@ export class SessionsService {
     const session = await this.findSessionOrThrow(companionId, sessionId);
     this.guardTransition(session.status, 'active');
 
-    const isBypass = passCode === '0000';
-    const match = isBypass || session.sessionPassCode === passCode;
-    if (!match) throw new BadRequestException('Invalid session pass code');
+    if (!session.sessionPassCode || session.sessionPassCode !== passCode) {
+      throw new BadRequestException('Invalid session pass code');
+    }
 
     const updated = await this.prisma.session.update({
       where: { id: sessionId },
@@ -205,6 +147,14 @@ export class SessionsService {
       `Your session with ${session.customerInitials} is now active. Have a great time!`,
       { sessionId },
     );
+
+    // S2S cross-backend sync to Customer Backend
+    if (session.requestId) {
+      this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
+        status: 'in_progress',
+        sessionId: session.id,
+      }).catch((err) => this.logger.warn(`Failed to sync session start to customer backend: ${err.message}`));
+    }
 
     return { ...this.toSessionResponse(updated), verified: true };
   }
@@ -313,6 +263,15 @@ export class SessionsService {
     });
 
     await this._finalizeEarnings(companionId, sessionId, confirmed, session);
+
+    // S2S cross-backend sync to Customer Backend
+    if (session.requestId) {
+      this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
+        status: 'completed',
+        sessionId: session.id,
+      }).catch((err) => this.logger.warn(`Failed to sync session completion to customer backend: ${err.message}`));
+    }
+
     return this.toSessionResponse(updated);
   }
 
@@ -339,6 +298,16 @@ export class SessionsService {
     );
 
     this.logger.log(`Session ${sessionId} cancelled by companion ${companionId}`);
+
+    // S2S cross-backend sync to Customer Backend
+    if (session.requestId) {
+      this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
+        status: 'cancelled',
+        reason: cancelReasonFull,
+        sessionId: session.id,
+      }).catch((err) => this.logger.warn(`Failed to sync session cancellation to customer backend: ${err.message}`));
+    }
+
     return this.toSessionResponse(updated);
   }
 
@@ -440,7 +409,8 @@ export class SessionsService {
   async getCallToken(companionId: string, sessionId: string) {
     const session = await this.findSessionOrThrow(companionId, sessionId);
     if (!['upcoming', 'checked_in', 'active'].includes(session.status)) throw new BadRequestException('Session is not active');
-    return { token: 'mock-jwt-token-for-webrtc-call', channel: `session-${sessionId}` };
+    const callToken = Buffer.from(JSON.stringify({ sessionId, companionId, ts: Date.now() })).toString('base64url');
+    return { token: callToken, channel: `session-${sessionId}` };
   }
 
   async updateLocation(companionId: string, sessionId: string, lat: number, lng: number) {
@@ -594,4 +564,28 @@ export class SessionsService {
       createdAt: session.createdAt.toISOString(),
     };
   }
+
+  // ── S2S HELPER: NOTIFY CUSTOMER BACKEND OF SESSION UPDATES ────────────────
+  private async notifyCustomerBackendOfSessionUpdate(bookingId: string, payload: any) {
+    const customerBackendUrl = process.env.CUSTOMER_API_URL || 'http://localhost:4002';
+    const internalToken = process.env.INTERNAL_SERVICE_TOKEN || 'cobuddy-internal-service-s2s-token-2026';
+    try {
+      const res = await fetch(`${customerBackendUrl}/api/v1/internal/bookings/${bookingId}/status-update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-token': internalToken,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        this.logger.warn(`Failed to notify customer backend for booking ${bookingId}: ${res.status}`);
+      } else {
+        this.logger.log(`Synced session status ${payload.status} for booking ${bookingId} to customer backend`);
+      }
+    } catch (err: any) {
+      this.logger.warn(`Error connecting to customer backend: ${err.message}`);
+    }
+  }
 }
+

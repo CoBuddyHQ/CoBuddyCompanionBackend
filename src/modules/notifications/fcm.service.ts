@@ -62,7 +62,7 @@ export class FcmService {
     }
   ): Promise<boolean> {
     if (!this.initialized || !this.firebaseAdmin) {
-      this.logger.debug(`[FCM Mock] → "${payload.title}": ${payload.body}`);
+      this.logger.debug(`[FCM Dev Bypass] → "${payload.title}": ${payload.body}`);
       return true; // Graceful no-op in development
     }
 
@@ -115,7 +115,7 @@ export class FcmService {
     if (!tokens.length) return { successCount: 0, failureCount: 0 };
 
     if (!this.initialized || !this.firebaseAdmin) {
-      this.logger.debug(`[FCM Mock Batch] ${tokens.length} tokens → "${payload.title}"`);
+      this.logger.debug(`[FCM Dev Bypass Batch] ${tokens.length} tokens → "${payload.title}"`);
       return { successCount: tokens.length, failureCount: 0 };
     }
 

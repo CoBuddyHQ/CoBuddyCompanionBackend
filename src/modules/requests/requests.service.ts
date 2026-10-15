@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { CreateInternalBookingRequestDto } from './dto/internal-booking-request.dto';
 
 @Injectable()
 export class RequestsService {
@@ -59,62 +60,6 @@ export class RequestsService {
     page = 1,
     limit = 20
   ) {
-    // Seed only if NO real (non-demo) requests exist
-    const realCount = await this.prisma.bookingRequest.count({
-      where: { companionId, NOT: { customerId: { startsWith: 'cust_seed_' } } },
-    });
-    const totalCount = await this.prisma.bookingRequest.count({ where: { companionId } });
-    // DEMO-SEED GUARD: Only auto-seed in development when ENABLE_DEMO_SEEDING=true
-    const enableDemoSeeding = process.env.ENABLE_DEMO_SEEDING === 'true' && process.env.NODE_ENV !== 'production';
-    if (totalCount === 0 && realCount === 0 && enableDemoSeeding) {
-      const now = new Date();
-      await this.prisma.bookingRequest.createMany({
-        data: [
-          {
-            companionId,
-            customerId: 'cust_seed_1',
-            status: 'pending',
-            category: 'cafe_conversation',
-            customerInitials: 'PM',
-            customerTrustScore: 94,
-            customerVerified: true,
-            customerSafetyConsent: true,
-            customerIdentityVerified: true,
-            venueName: 'Café Coffee Day - MP Nagar',
-            venueArea: 'MP Nagar',
-            venueCity: 'Bhopal',
-            proposedStart: new Date(now.getTime() + 3600000 * 2),
-            proposedEnd: new Date(now.getTime() + 3600000 * 4),
-            durationMinutes: 120,
-            estimatedEarning: 1299.0,
-            matchScore: 94,
-            customerNote: 'Looking forward to exploring the city!',
-            expiresAt: new Date(now.getTime() + 3600000 * 23),
-          },
-          {
-            companionId,
-            customerId: 'cust_seed_2',
-            status: 'pending',
-            category: 'city_walk',
-            customerInitials: 'RK',
-            customerTrustScore: 88,
-            customerVerified: true,
-            customerSafetyConsent: true,
-            customerIdentityVerified: true,
-            venueName: 'DB Mall',
-            venueArea: 'Arera Hills',
-            venueCity: 'Bhopal',
-            proposedStart: new Date(now.getTime() + 3600000 * 5),
-            proposedEnd: new Date(now.getTime() + 3600000 * 6.5),
-            durationMinutes: 90,
-            estimatedEarning: 1099.0,
-            matchScore: 88,
-            expiresAt: new Date(now.getTime() + 3600000 * 20),
-          },
-        ],
-      });
-    }
-
     const where: any = { companionId };
 
     if (status && status !== 'all') {
@@ -130,12 +75,9 @@ export class RequestsService {
       }
     }
 
-    // NOTE: We skip the minEarning filter entirely — seeded demo data may be below user's saved filter.
-    // The client-side filter (BookingRequestsInboxScreen) applies this filter locally.
-    // Removing it server-side ensures demo requests always load.
-    // if (minEarning && minEarning > 0) {
-    //   where.estimatedEarning = { gte: minEarning };
-    // }
+    if (minEarning && minEarning > 0) {
+      where.estimatedEarning = { gte: minEarning };
+    }
 
     let orderBy: any = { receivedAt: 'desc' };
     if (sortBy === 'newest') {
@@ -209,6 +151,86 @@ export class RequestsService {
     };
   }
 
+  // ── S2S INTERNAL: CREATE BOOKING REQUEST FROM CUSTOMER BACKEND ──────────
+  async createInternalRequest(dto: CreateInternalBookingRequestDto) {
+    const existing = await this.prisma.bookingRequest.findUnique({
+      where: { id: dto.bookingId },
+    });
+    if (existing) {
+      return { success: true, requestId: existing.id, request: this.toRequestResponse(existing) };
+    }
+
+    const companion = await this.prisma.companion.findUnique({
+      where: { id: dto.companionId },
+      select: { id: true },
+    });
+    if (!companion) {
+      throw new NotFoundException(`Companion with ID ${dto.companionId} not found`);
+    }
+
+    const category = this.mapToCategoryEnum(dto.category);
+    const expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : new Date(Date.now() + 15 * 60 * 1000);
+    const proposedStart = new Date(dto.proposedStart);
+    const proposedEnd = new Date(dto.proposedEnd);
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const req = await tx.bookingRequest.create({
+        data: {
+          id: dto.bookingId,
+          companionId: dto.companionId,
+          customerId: dto.customerId,
+          category,
+          customerInitials: dto.customerInitials || 'C.U.',
+          customerTrustScore: dto.customerTrustScore ?? 80,
+          customerVerified: dto.customerVerified ?? false,
+          venueName: dto.venueName || 'Public Venue',
+          venueArea: dto.venueArea || '',
+          venueCity: dto.venueCity || '',
+          venueType: dto.venueType || 'PUBLIC',
+          venueMeetingPoint: dto.venueMeetingPoint || null,
+          venueLandmark: dto.venueLandmark || null,
+          isVenueApproved: true,
+          proposedStart,
+          proposedEnd,
+          durationMinutes: dto.durationMinutes || 60,
+          language: dto.language || 'Hindi',
+          estimatedEarning: dto.estimatedEarning || 0,
+          customerNote: dto.customerNote || null,
+          expiresAt,
+          status: 'pending',
+        },
+      });
+
+      await tx.notification.create({
+        data: {
+          companionId: dto.companionId,
+          type: 'request',
+          title: 'New Booking Request',
+          body: `You received a booking request from ${dto.customerInitials || 'Customer'} at ${dto.venueName}`,
+          data: JSON.stringify({ requestId: req.id }),
+          isRead: false,
+        },
+      });
+
+      return req;
+    });
+
+    this.notificationsGateway.emitNotification(dto.companionId, {
+      notificationId: `notif-${created.id}`,
+      type: 'request',
+      title: 'New Booking Request',
+      body: `You received a booking request from ${dto.customerInitials || 'Customer'} at ${dto.venueName}`,
+      data: { requestId: created.id },
+    });
+
+    this.logger.log(`[S2S] Internal booking request created: ${created.id} for companion ${dto.companionId}`);
+    return {
+      success: true,
+      requestId: created.id,
+      request: this.toRequestResponse(created),
+    };
+  }
+
   // ── POST /companion/requests/:requestId/accept ────────────────────────────
   async acceptRequest(companionId: string, requestId: string) {
     const req = await this.findPendingOrThrow(companionId, requestId);
@@ -275,6 +297,15 @@ export class RequestsService {
     });
 
     this.logger.log(`Request ${requestId} accepted → Session ${session.id} created`);
+
+    // S2S cross-backend sync to Customer Backend
+    await this.notifyCustomerBackendOfStatusUpdate(requestId, {
+      status: 'accepted',
+      passCode: sessionPassCode,
+      companionId,
+      sessionId: session.id,
+    });
+
     return {
       request: this.toRequestResponse(updated),
       session: { sessionId: session.id, sessionPassCode },
@@ -308,6 +339,13 @@ export class RequestsService {
       body: notif.body,
     });
 
+    // S2S cross-backend sync to Customer Backend
+    await this.notifyCustomerBackendOfStatusUpdate(requestId, {
+      status: 'declined',
+      reason,
+      companionId,
+    });
+
     return {
       request: this.toRequestResponse(updated),
       message: 'Booking declined.',
@@ -326,10 +364,72 @@ export class RequestsService {
         respondedAt: new Date(),
       },
     });
+
+    // S2S cross-backend sync to Customer Backend
+    await this.notifyCustomerBackendOfStatusUpdate(requestId, {
+      status: 'counter_proposed',
+      newStart,
+      newEnd,
+      companionId,
+    });
+
     return {
       request: this.toRequestResponse(updated),
       message: 'Counter proposal sent to customer.',
     };
+  }
+
+  // ── S2S HELPER: NOTIFY CUSTOMER BACKEND ───────────────────────────────────
+  private async notifyCustomerBackendOfStatusUpdate(bookingId: string, payload: any) {
+    const customerBackendUrl = process.env.CUSTOMER_API_URL || 'http://localhost:4002';
+    const internalToken = process.env.INTERNAL_SERVICE_TOKEN || 'cobuddy-internal-service-s2s-token-2026';
+    try {
+      const res = await fetch(`${customerBackendUrl}/api/v1/internal/bookings/${bookingId}/status-update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-token': internalToken,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        this.logger.warn(`Failed to notify customer backend for booking ${bookingId}: ${res.status} ${res.statusText}`);
+      } else {
+        this.logger.log(`Successfully synced status update for booking ${bookingId} to customer backend`);
+      }
+    } catch (err: any) {
+      this.logger.warn(`Error connecting to customer backend at ${customerBackendUrl}: ${err.message}`);
+    }
+  }
+
+  private mapToCategoryEnum(cat?: string): any {
+    const validCategories = [
+      'cafe_conversation',
+      'city_walk',
+      'art_culture',
+      'food_experience',
+      'shopping_assistance',
+      'events',
+      'business_networking',
+      'bookstore',
+      'wellness_walk',
+      'movies',
+    ];
+    if (!cat) return 'cafe_conversation';
+    const normalized = cat.toLowerCase().replace(/[-\s]+/g, '_');
+    if (validCategories.includes(normalized)) {
+      return normalized;
+    }
+    if (normalized.includes('walk') || normalized.includes('city')) return 'city_walk';
+    if (normalized.includes('food') || normalized.includes('dining')) return 'food_experience';
+    if (normalized.includes('art') || normalized.includes('museum')) return 'art_culture';
+    if (normalized.includes('shop')) return 'shopping_assistance';
+    if (normalized.includes('event')) return 'events';
+    if (normalized.includes('business') || normalized.includes('network')) return 'business_networking';
+    if (normalized.includes('book')) return 'bookstore';
+    if (normalized.includes('wellness') || normalized.includes('fitness')) return 'wellness_walk';
+    if (normalized.includes('movie') || normalized.includes('cinema')) return 'movies';
+    return 'cafe_conversation';
   }
 
   private async findPendingOrThrow(companionId: string, requestId: string) {
@@ -347,3 +447,4 @@ export class RequestsService {
     return `${initials.replace('.', '').slice(0, 2)}-${suffix}`;
   }
 }
+
