@@ -21,10 +21,7 @@ export class InternalService {
     const whereClause: any = {
       accountStatus: 'active',
       verificationStatus: 'approved',
-      profileStatus: 'published',
-      settings: {
-        showInSearch: true,
-      },
+      profileStatus: { in: ['approved', 'published'] },
     };
 
     if (query.city) {
@@ -48,6 +45,9 @@ export class InternalService {
       };
     }
 
+    const allComps = await this.prisma.companion.findMany({ select: { id: true, displayName: true, accountStatus: true, verificationStatus: true, profileStatus: true } });
+    this.logger.log(`[InternalService] Total companions in DB: ${allComps.length}. Sample: ${JSON.stringify(allComps[0] || {})}`);
+
     const [companions, total] = await Promise.all([
       this.prisma.companion.findMany({
         where: whereClause,
@@ -65,6 +65,8 @@ export class InternalService {
       }),
       this.prisma.companion.count({ where: whereClause }),
     ]);
+
+    this.logger.log(`[InternalService] Matched companions: ${companions.length} of total ${total}`);
 
     const sanitized = companions.map((c) => this.sanitizeCompanionPublic(c));
 
@@ -239,6 +241,7 @@ export class InternalService {
     // 2. Persist real BookingRequest
     const created = await this.prisma.bookingRequest.create({
       data: {
+        ...(dto.bookingId ? { id: dto.bookingId } : {}),
         companionId: dto.companionId,
         customerId: dto.customerId,
         status: 'pending',

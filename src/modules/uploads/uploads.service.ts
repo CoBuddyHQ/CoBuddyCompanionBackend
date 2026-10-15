@@ -41,8 +41,15 @@ export class UploadsService {
     if (!file) throw new BadRequestException('No file provided');
 
     const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime', 'application/pdf'];
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.pdf', '.mp4', '.mov'];
+
     if (!allowedMimeTypes.includes(file.mimetype)) {
       throw new BadRequestException('Invalid file type. Allowed: JPEG, PNG, WebP, MP4, MOV, PDF');
+    }
+
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!allowedExtensions.includes(ext)) {
+      throw new BadRequestException(`Disallowed file extension (${ext}). Allowed: JPG, PNG, WEBP, PDF, MP4, MOV`);
     }
 
     const maxSize = 10 * 1024 * 1024; // 10MB
@@ -50,7 +57,34 @@ export class UploadsService {
       throw new BadRequestException('File too large. Maximum size is 10MB');
     }
 
-    const ext = path.extname(file.originalname).toLowerCase();
+    // Verify magic bytes from file buffer to prevent MIME spoofing
+    if (file.buffer) {
+      const magicMap: { mime: string; bytes: number[]; offset?: number }[] = [
+        { mime: 'image/jpeg', bytes: [0xff, 0xd8, 0xff] },
+        { mime: 'image/png',  bytes: [0x89, 0x50, 0x4e, 0x47] },
+        { mime: 'image/webp', bytes: [0x52, 0x49, 0x46, 0x46], offset: 0 },
+        { mime: 'application/pdf', bytes: [0x25, 0x50, 0x44, 0x46] },
+        { mime: 'video/mp4',  bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 },
+        { mime: 'video/quicktime', bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 },
+      ];
+      const match = magicMap.find(m => m.mime === file.mimetype || (file.mimetype === 'image/jpg' && m.mime === 'image/jpeg'));
+      if (match) {
+        const offset = match.offset ?? 0;
+        let valid = file.buffer.length >= offset + match.bytes.length;
+        if (valid) {
+          for (let i = 0; i < match.bytes.length; i++) {
+            if (file.buffer[offset + i] !== match.bytes[i]) {
+              valid = false;
+              break;
+            }
+          }
+        }
+        if (!valid) {
+          throw new BadRequestException('File content does not match declared type. Upload rejected.');
+        }
+      }
+    }
+
     const fileKey = `companions/${companionId}/${category}/${crypto.randomBytes(16).toString('hex')}${ext}`;
     
     let url: string;

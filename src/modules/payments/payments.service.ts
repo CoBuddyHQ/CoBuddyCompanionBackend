@@ -41,9 +41,17 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import axios from 'axios';
 import { PrismaService } from '../../prisma/prisma.service';
+
+function safeCompare(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
 
 // ─── Razorpay API base ───────────────────────────────────────────────────────
 const RAZORPAY_BASE = 'https://api.razorpay.com/v1';
@@ -164,7 +172,7 @@ export class PaymentsService {
       .update(body)
       .digest('hex');
 
-    if (expected !== params.razorpaySignature) {
+    if (!safeCompare(expected, params.razorpaySignature)) {
       this.logger.warn(`Payment signature mismatch for order ${params.razorpayOrderId}`);
       throw new BadRequestException('Invalid payment signature');
     }
@@ -208,7 +216,7 @@ export class PaymentsService {
       .update(rawBody)
       .digest('hex');
 
-    if (expected !== signature) {
+    if (!safeCompare(expected, signature)) {
       this.logger.warn('Webhook signature invalid — rejecting');
       throw new BadRequestException('Invalid webhook signature');
     }

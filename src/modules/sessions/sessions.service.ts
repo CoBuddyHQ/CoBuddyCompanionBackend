@@ -364,6 +364,15 @@ export class SessionsService {
     });
 
     await this._finalizeEarnings(companionId, sessionId, confirmed, session);
+
+    // S2S cross-backend sync to Customer Backend
+    if (session.requestId) {
+      this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
+        status: 'completed',
+        sessionId: session.id,
+      }).catch((err) => this.logger.warn(`Failed to sync session completion to customer backend: ${err.message}`));
+    }
+
     return this.toSessionResponse(updated);
   }
 

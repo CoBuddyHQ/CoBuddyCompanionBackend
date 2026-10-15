@@ -310,7 +310,9 @@ export class RequestsService {
 
     return {
       request: this.toRequestResponse(updated),
-      session: { sessionId: session.id, sessionPassCode },
+      session: { id: session.id, sessionId: session.id, sessionPassCode },
+      sessionId: session.id,
+      sessionPassCode,
       message: 'Booking accepted! Session created successfully.',
     };
   }
