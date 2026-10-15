@@ -4,9 +4,10 @@ import { InternalRequestsController } from './internal-requests.controller';
 import { RequestsService } from './requests.service';
 import { RequestSimulatorService } from './request-simulator.service';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { InternalModule } from '../internal/internal.module';
 
 @Module({
-  imports: [NotificationsModule],
+  imports: [NotificationsModule, InternalModule],
   controllers: [RequestsController, InternalRequestsController],
   providers: [RequestsService, RequestSimulatorService],
   exports: [RequestsService],

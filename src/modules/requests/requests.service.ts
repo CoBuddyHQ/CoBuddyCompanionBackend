@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { CreateInternalBookingRequestDto } from './dto/internal-booking-request.dto';
+import { InternalBridgeService } from '../internal/internal-bridge.service';
 
 @Injectable()
 export class RequestsService {
@@ -10,6 +11,7 @@ export class RequestsService {
   constructor(
     private prisma: PrismaService,
     private notificationsGateway: NotificationsGateway,
+    @Optional() private internalBridgeService?: InternalBridgeService,
   ) {}
 
   // Returns BookingRequest interface from store.types.ts
@@ -381,6 +383,14 @@ export class RequestsService {
 
   // ── S2S HELPER: NOTIFY CUSTOMER BACKEND ───────────────────────────────────
   private async notifyCustomerBackendOfStatusUpdate(bookingId: string, payload: any) {
+    if (this.internalBridgeService) {
+      await this.internalBridgeService.syncBookingStatus({
+        customerBookingId: bookingId,
+        ...payload,
+      });
+      return;
+    }
+
     const customerBackendUrl = process.env.CUSTOMER_API_URL || 'http://localhost:4002';
     const internalToken = process.env.INTERNAL_SERVICE_TOKEN || 'cobuddy-internal-service-s2s-token-2026';
     try {

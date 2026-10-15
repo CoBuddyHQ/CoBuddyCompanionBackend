@@ -21,6 +21,7 @@ import { TrainingModule } from './modules/training/training.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { InternalModule } from './modules/internal/internal.module';
 
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -32,8 +33,8 @@ import { AppController } from './app.controller';
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     ScheduleModule.forRoot(),
     ServeStaticModule.forRoot({
-      rootPath: join(process.cwd(), 'uploads'),
-      serveRoot: '/uploads',
+      rootPath: join(process.cwd(), 'uploads', 'photos'),
+      serveRoot: '/uploads/photos',
     }),
     PrismaModule,
     AuthModule,
@@ -53,6 +54,7 @@ import { AppController } from './app.controller';
     UploadsModule,
     SettingsModule,
     PaymentsModule,
+    InternalModule,
   ],
   controllers: [AppController],
   providers: [
