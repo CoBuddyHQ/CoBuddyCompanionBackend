@@ -29,7 +29,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-cobuddy}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-development-secret-password-2026}
     ports:
-      - "5432:5432" # Companion uses standard 5432 port
+      - "5434:5432" # Host port 5434 avoids collision with Admin postgres 5432
     volumes:
       - cobuddy_companion_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -47,7 +47,7 @@ services:
     container_name: cobuddy_companion_redis
     restart: unless-stopped
     ports:
-      - "6379:6379" # Companion uses standard 6379 port
+      - "6381:6379" # Host port 6381 avoids collision with Admin redis 6379
     volumes:
       - cobuddy_companion_redis_data:/data
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
@@ -67,6 +67,8 @@ services:
       dockerfile: Dockerfile
     container_name: cobuddy_companion_backend
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       NODE_ENV: development
       PORT: 4001
@@ -84,6 +86,10 @@ services:
       RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
 
       OTP_DEV_BYPASS: ${OTP_DEV_BYPASS:-123456}
+      OTP_TEST_BYPASS_ENABLED: ${OTP_TEST_BYPASS_ENABLED:-true}
+      OTP_TEST_ALLOWED_PHONES: ${OTP_TEST_ALLOWED_PHONES:-+919999999991,+919999999992,+918435892398,8435892398}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-c0buddY_s2s_s3cr3t_pr0d_2026_xK9#mQ}
+
 
     ports:
       - "4001:4001"
