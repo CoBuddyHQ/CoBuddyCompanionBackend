@@ -60,9 +60,15 @@ export class RequestSimulatorService {
     private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
+  private isEnabled(): boolean {
+    return process.env.NODE_ENV !== 'production' && process.env.ENABLE_REQUEST_SIMULATOR === 'true';
+  }
+
   // ── Every 2 minutes: create a new pending request for each companion ────────
   @Cron('*/2 * * * *')
   async createSimulatedRequest() {
+    if (!this.isEnabled()) return;
+
     try {
       // Get all active companions
       const companions = await this.prisma.companion.findMany({

@@ -587,15 +587,20 @@ export class SessionsService {
     }
 
     const customerBackendUrl = process.env.CUSTOMER_API_URL || 'http://localhost:4002';
-    const internalToken = process.env.INTERNAL_SERVICE_TOKEN || 'cobuddy-internal-service-s2s-token-2026';
+    const internalToken = process.env.INTERNAL_SERVICE_SECRET;
+    if (!internalToken) {
+      this.logger.warn(`Cannot notify customer backend for booking ${bookingId}: S2S secret is not configured`);
+      return;
+    }
     try {
       const res = await fetch(`${customerBackendUrl}/api/v1/internal/bookings/${bookingId}/status-update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-internal-token': internalToken,
+          'x-internal-service-key': internalToken,
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(5000),
       });
       if (!res.ok) {
         this.logger.warn(`Failed to notify customer backend for booking ${bookingId}: ${res.status}`);
@@ -607,4 +612,3 @@ export class SessionsService {
     }
   }
 }
-

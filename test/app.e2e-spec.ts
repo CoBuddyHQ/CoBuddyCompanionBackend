@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe, RequestMethod } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor';
@@ -7,8 +8,12 @@ import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter
 
 describe('CoBuddy Companion API (e2e)', () => {
   let app: INestApplication;
+  const internalServiceToken = randomBytes(32).toString('hex');
 
   beforeAll(async () => {
+    process.env.INTERNAL_SERVICE_SECRET = internalServiceToken;
+    process.env.INTERNAL_SERVICE_TOKEN = internalServiceToken;
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -61,10 +66,9 @@ describe('CoBuddy Companion API (e2e)', () => {
     it('rejects internal booking request with 400 when required payload fields are missing', () => {
       return request(app.getHttpServer())
         .post('/api/v1/internal/companion/requests')
-        .set('x-internal-token', process.env.INTERNAL_SERVICE_TOKEN || 'cobuddy-internal-service-s2s-token-2026')
+        .set('x-internal-token', internalServiceToken)
         .send({ bookingId: 'test-booking-id' })
         .expect(400);
     });
   });
 });
-

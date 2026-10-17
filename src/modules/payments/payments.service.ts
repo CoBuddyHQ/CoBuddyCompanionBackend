@@ -70,6 +70,12 @@ export class PaymentsService {
     return { Authorization: `Basic ${cred}` };
   }
 
+  private requirePaymentSecrets() {
+    if (!this.keyId || !this.keySecret || !this.webhookSecret) {
+      throw new BadRequestException('Payment provider is not configured.');
+    }
+  }
+
   constructor(
     private config: ConfigService,
     private prisma: PrismaService,
@@ -166,6 +172,7 @@ export class PaymentsService {
     razorpaySignature: string;
     companionId?:      string;
   }) {
+    this.requirePaymentSecrets();
     // HMAC-SHA256: key = keySecret, data = "orderId|paymentId"
     const body = `${params.razorpayOrderId}|${params.razorpayPaymentId}`;
     const expected = createHmac('sha256', this.keySecret)
@@ -211,6 +218,7 @@ export class PaymentsService {
   // ─────────────────────────────────────────────────────────────────────────
 
   async handleWebhook(rawBody: Buffer, signature: string) {
+    this.requirePaymentSecrets();
     // Verify webhook signature
     const expected = createHmac('sha256', this.webhookSecret)
       .update(rawBody)
@@ -457,38 +465,9 @@ export class PaymentsService {
     sessionId?:        string;
     companionId?:      string;
   }) {
-    try {
-      if (params.sessionId && params.companionId) {
-        const session = await this.prisma.session.findUnique({
-          where: { id: params.sessionId },
-        });
-        if (session && session.companionId !== params.companionId) {
-          throw new ForbiddenException('Unauthorized: You do not own this session');
-        }
-      }
-
-      const body: Record<string, any> = {
-        speed:  'optimum',  // optimum = instant if available, else 5-7 days
-        notes:  { sessionId: params.sessionId ?? '', reason: params.reason ?? 'Booking cancelled' },
-      };
-      if (params.amountINR) {
-        body.amount = Math.round(params.amountINR * 100);
-      }
-
-      const { data } = await axios.post(
-        `${RAZORPAY_BASE}/payments/${params.razorpayPaymentId}/refund`,
-        body,
-        { headers: { ...this.razorpayAuth, 'Content-Type': 'application/json' } },
-      );
-
-      this.logger.log(`Refund initiated: ${data.id} ₹${(data.amount / 100)}`);
-      return { refundId: data.id, status: data.status, amountINR: data.amount / 100 };
-    } catch (err: any) {
-      if (err instanceof ForbiddenException || err instanceof BadRequestException) {
-        throw err;
-      }
-      this.logger.error('Razorpay refund failed', err?.response?.data ?? err.message);
-      throw new InternalServerErrorException('Refund initiation failed');
-    }
+    void params;
+    throw new BadRequestException(
+      'Refunds are unavailable until a verified payment-to-booking ownership contract is configured. No refund was requested.',
+    );
   }
 }

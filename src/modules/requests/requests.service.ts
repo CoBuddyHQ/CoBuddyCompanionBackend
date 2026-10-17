@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, Logger, Optional } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, Optional, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { CreateInternalBookingRequestDto } from './dto/internal-booking-request.dto';
@@ -155,25 +155,61 @@ export class RequestsService {
 
   // ── S2S INTERNAL: CREATE BOOKING REQUEST FROM CUSTOMER BACKEND ──────────
   async createInternalRequest(dto: CreateInternalBookingRequestDto) {
+    const proposedStart = new Date(dto.proposedStart);
+    const proposedEnd = new Date(dto.proposedEnd);
+    const expiresAt = new Date(dto.expiresAt);
+    if (!Number.isFinite(proposedStart.getTime()) || !Number.isFinite(proposedEnd.getTime()) || proposedEnd <= proposedStart) {
+      throw new BadRequestException('A valid booking time range is required.');
+    }
+    if (!Number.isFinite(expiresAt.getTime()) || expiresAt <= new Date()) {
+      throw new BadRequestException('Booking request expiry must be in the future.');
+    }
+    if (dto.customerSafetyConsent !== true || !Number.isFinite(dto.estimatedEarning) || dto.estimatedEarning <= 0) {
+      throw new BadRequestException('Safety consent and positive server pricing are required.');
+    }
     const existing = await this.prisma.bookingRequest.findUnique({
       where: { id: dto.bookingId },
     });
     if (existing) {
+      if (existing.companionId !== dto.companionId || existing.customerId !== dto.customerId) {
+        throw new ConflictException('Booking identifier is already associated with a different customer or companion.');
+      }
       return { success: true, requestId: existing.id, request: this.toRequestResponse(existing) };
     }
 
-    const companion = await this.prisma.companion.findUnique({
-      where: { id: dto.companionId },
-      select: { id: true },
+    const companion = await this.prisma.companion.findFirst({
+      where: { id: dto.companionId, accountStatus: 'active', verificationStatus: 'approved', profileStatus: 'published' },
+      select: { id: true, hourlyRate: true },
     });
     if (!companion) {
-      throw new NotFoundException(`Companion with ID ${dto.companionId} not found`);
+      throw new NotFoundException(`Companion with ID ${dto.companionId} is not eligible for a booking`);
+    }
+    const hourlyRate = companion.hourlyRate === null ? 0 : Number(companion.hourlyRate);
+    if (!Number.isFinite(hourlyRate) || hourlyRate <= 0) {
+      throw new BadRequestException('Companion has no published positive rate.');
     }
 
+    const overlap = await this.prisma.session.findFirst({
+      where: {
+        companionId: dto.companionId,
+        status: { in: ['upcoming', 'pre_arrival', 'checked_in', 'active', 'extending'] },
+        scheduledStart: { lt: proposedEnd },
+        scheduledEnd: { gt: proposedStart },
+      },
+    });
+    if (overlap) throw new ConflictException('Companion already has an overlapping active session.');
+    const overlappingRequest = await this.prisma.bookingRequest.findFirst({
+      where: {
+        companionId: dto.companionId,
+        status: 'pending',
+        proposedStart: { lt: proposedEnd },
+        proposedEnd: { gt: proposedStart },
+        expiresAt: { gt: new Date() },
+      },
+    });
+    if (overlappingRequest) throw new ConflictException('Companion already has an overlapping pending request.');
+
     const category = this.mapToCategoryEnum(dto.category);
-    const expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : new Date(Date.now() + 15 * 60 * 1000);
-    const proposedStart = new Date(dto.proposedStart);
-    const proposedEnd = new Date(dto.proposedEnd);
 
     const created = await this.prisma.$transaction(async (tx) => {
       const req = await tx.bookingRequest.create({
@@ -183,20 +219,21 @@ export class RequestsService {
           customerId: dto.customerId,
           category,
           customerInitials: dto.customerInitials || 'C.U.',
-          customerTrustScore: dto.customerTrustScore ?? 80,
-          customerVerified: dto.customerVerified ?? false,
-          venueName: dto.venueName || 'Public Venue',
+          ...(dto.customerTrustScore !== undefined ? { customerTrustScore: dto.customerTrustScore } : {}),
+          customerVerified: dto.customerVerified === true,
+          customerSafetyConsent: dto.customerSafetyConsent,
+          venueName: dto.venueName,
           venueArea: dto.venueArea || '',
           venueCity: dto.venueCity || '',
-          venueType: dto.venueType || 'PUBLIC',
+          venueType: dto.venueType || 'UNVERIFIED',
           venueMeetingPoint: dto.venueMeetingPoint || null,
           venueLandmark: dto.venueLandmark || null,
-          isVenueApproved: true,
+          isVenueApproved: false,
           proposedStart,
           proposedEnd,
-          durationMinutes: dto.durationMinutes || 60,
-          language: dto.language || 'Hindi',
-          estimatedEarning: dto.estimatedEarning || 0,
+          durationMinutes: dto.durationMinutes,
+          language: dto.language || 'Unspecified',
+          estimatedEarning: dto.estimatedEarning,
           customerNote: dto.customerNote || null,
           expiresAt,
           status: 'pending',
@@ -394,15 +431,20 @@ export class RequestsService {
     }
 
     const customerBackendUrl = process.env.CUSTOMER_API_URL || 'http://localhost:4002';
-    const internalToken = process.env.INTERNAL_SERVICE_TOKEN || 'cobuddy-internal-service-s2s-token-2026';
+    const internalToken = process.env.INTERNAL_SERVICE_SECRET;
+    if (!internalToken) {
+      this.logger.warn(`Cannot notify customer backend for booking ${bookingId}: S2S secret is not configured`);
+      return;
+    }
     try {
       const res = await fetch(`${customerBackendUrl}/api/v1/internal/bookings/${bookingId}/status-update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-internal-token': internalToken,
+          'x-internal-service-key': internalToken,
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(5000),
       });
       if (!res.ok) {
         this.logger.warn(`Failed to notify customer backend for booking ${bookingId}: ${res.status} ${res.statusText}`);
@@ -459,4 +501,3 @@ export class RequestsService {
     return `${initials.replace('.', '').slice(0, 2)}-${suffix}`;
   }
 }
-

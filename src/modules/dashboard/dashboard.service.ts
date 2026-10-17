@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 // Simple in-memory TTL cache (companionId → { data, expiresAt })
@@ -128,21 +128,37 @@ export class DashboardService {
   }
 
   async getAnnouncements() {
-    try {
-      const adminUrl = (process.env.ADMIN_API_URL || 'http://localhost:4000').replace(/\/+$/, '');
-      const res = await fetch(`${adminUrl}/api/marketing/announcements`, {
-        signal: AbortSignal.timeout(3000),
-      });
-      if (res.ok) {
-        const json: any = await res.json();
-        if (Array.isArray(json?.data)) {
-          return { announcements: json.data };
-        }
-      }
-    } catch {
-      // Non-blocking fallback
+    const adminUrl = process.env.ADMIN_API_URL?.trim().replace(/\/+$/, '');
+    const internalSecret = process.env.INTERNAL_SERVICE_SECRET;
+    if (!adminUrl || !internalSecret) {
+      throw new ServiceUnavailableException('Admin announcement access is not configured.');
     }
-    return { announcements: [] };
+
+    try {
+      const res = await fetch(`${adminUrl}/api/internal/announcements/companions/active`, {
+        headers: {
+          Accept: 'application/json',
+          'X-Internal-Service-Key': internalSecret,
+        },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!res.ok) {
+        throw new Error(`Admin announcement service responded with status ${res.status}`);
+      }
+
+      const payload: any = await res.json();
+      const announcements = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload?.announcements)
+            ? payload.announcements
+            : null;
+      if (!announcements) throw new Error('Admin announcement service returned an invalid payload');
+      return { announcements };
+    } catch {
+      throw new ServiceUnavailableException('Announcements are temporarily unavailable.');
+    }
   }
 
   private toSessionPreview(s: any) {

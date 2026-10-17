@@ -32,7 +32,7 @@ export class SafetyService {
           companionId: timer.companionId,
           type: 'system',
           title: '⚠️ Safety Timer Expired',
-          body: 'Your safety timer expired without a check-in. Your trusted contacts have been notified.',
+          body: 'Your safety timer expired without a check-in. External contact notification is not configured.',
         },
       }).catch(() => null); // Don’t block cron on notification failure
     }
@@ -52,7 +52,7 @@ export class SafetyService {
 
     this.logger.warn(`🚨 SOS triggered by companion ${companionId}`);
 
-    // Dispatch real safety alerts to trusted contacts + admin
+    // Create an Admin-visible database notification. No external contact provider is configured.
     await this.dispatchSafetyAlert(companionId, sessionId, lat ?? null, lng ?? null);
 
     // Create an in-app notification so the companion sees confirmation
@@ -60,15 +60,17 @@ export class SafetyService {
       data: {
         companionId,
         type: 'system',
-        title: '🚨 SOS Alert Sent',
-        body: 'Your trusted contacts and CoBuddy Safety Team have been notified. Help is on the way.',
+        title: 'SOS recorded',
+        body: 'Your SOS was recorded. External contact notification is not configured.',
       },
     }).catch(() => null);
 
     return {
       sosId: sos.id,
-      status: 'triggered',
-      message: 'SOS alert sent to your trusted contacts and CoBuddy Safety Team.',
+      status: 'recorded',
+      contactsNotified: false,
+      externalDispatchConfigured: false,
+      message: 'SOS recorded. Trusted contacts and emergency services were not notified by this system.',
       triggeredAt: sos.createdAt.toISOString(),
     };
   }
@@ -104,15 +106,7 @@ export class SafetyService {
       },
     }).catch(() => null);
 
-    // 3. Log trusted contacts for manual SMS/call follow-up
-    // (Production: wire MSG91 or Twilio here to send real SMS to each contact)
-    if (trustedContacts.length > 0) {
-      this.logger.warn(
-        `🚨 SOS: Trusted contacts for ${companionId}: ${trustedContacts.map(c => c.maskedPhone).join(', ')} — SMS dispatch requires MSG91 integration (see docs/SAFETY_INTEGRATION.md)`,
-      );
-    } else {
-      this.logger.warn(`🚨 SOS: Companion ${companionId} has no trusted contacts configured.`);
-    }
+    this.logger.warn(`Safety event ${companionId} recorded; external dispatch is not configured (contacts=${trustedContacts.length}).`);
   }
 
   // ── POST /companion/safety/sos/resolve ────────────────────────────────────

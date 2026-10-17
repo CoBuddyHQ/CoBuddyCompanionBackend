@@ -23,11 +23,7 @@ export class InternalBridgeService {
   }
 
   private get internalSecret(): string {
-    return (
-      process.env.INTERNAL_SERVICE_SECRET ||
-      process.env.INTERNAL_SERVICE_TOKEN ||
-      'cobuddy-internal-service-s2s-token-2026'
-    );
+    return process.env.INTERNAL_SERVICE_SECRET || '';
   }
 
   /**
@@ -35,11 +31,15 @@ export class InternalBridgeService {
    * Includes X-Internal-Service-Key, X-Correlation-Id, and 5000ms timeout.
    */
   async syncBookingStatus(payload: BookingStatusSyncPayload): Promise<boolean> {
+    if (!this.internalSecret) {
+      this.logger.error('[S2S Bridge] No internal service secret is configured; status sync was not sent');
+      return false;
+    }
+
     const correlationId = crypto.randomUUID();
     const headers = {
       'Content-Type': 'application/json',
       'X-Internal-Service-Key': this.internalSecret,
-      'x-internal-token': this.internalSecret,
       'X-Correlation-Id': correlationId,
     };
 

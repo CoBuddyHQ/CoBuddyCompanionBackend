@@ -1,15 +1,14 @@
 import { Module } from '@nestjs/common';
+import { InternalServiceGuard } from '../../common/guards/internal-service.guard';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { InternalController } from './internal.controller';
-import { PublicCampaignController } from './public-campaign.controller';
 import { InternalService } from './internal.service';
 import { InternalBridgeService } from './internal-bridge.service';
-import { InternalServiceGuard } from './internal-service.guard';
 
 @Module({
   imports: [PrismaModule, NotificationsModule],
-  controllers: [InternalController, PublicCampaignController],
+  controllers: [InternalController],
   providers: [InternalService, InternalBridgeService, InternalServiceGuard],
   exports: [InternalService, InternalBridgeService, InternalServiceGuard],
 })

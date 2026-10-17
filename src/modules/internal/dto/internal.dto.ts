@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, IsDateString, IsBoolean } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsDateString, IsBoolean, Min, Max, IsIn } from 'class-validator';
 
 export class CreateInternalBookingRequestDto {
   @IsString()
@@ -18,20 +18,25 @@ export class CreateInternalBookingRequestDto {
   customerInitials?: string;
 
   @IsNumber()
+  @Min(0)
+  @Max(100)
   @IsOptional()
   customerTrustScore?: number;
 
   @IsBoolean()
-  @IsOptional()
-  customerVerified?: boolean;
+  customerVerified!: boolean;
+
+  @IsBoolean()
+  @IsIn([true])
+  customerSafetyConsent!: true;
 
   @IsString()
-  @IsOptional()
-  category?: string;
+  @IsNotEmpty()
+  category!: string;
 
   @IsString()
-  @IsOptional()
-  venueName?: string;
+  @IsNotEmpty()
+  venueName!: string;
 
   @IsString()
   @IsOptional()
@@ -62,16 +67,17 @@ export class CreateInternalBookingRequestDto {
   proposedEnd!: string;
 
   @IsNumber()
-  @IsOptional()
-  durationMinutes?: number;
+  @Min(1)
+  @Max(480)
+  durationMinutes!: number;
 
   @IsString()
   @IsOptional()
   language?: string;
 
   @IsNumber()
-  @IsOptional()
-  estimatedEarning?: number;
+  @Min(0.01)
+  estimatedEarning!: number;
 
   @IsString()
   @IsOptional()

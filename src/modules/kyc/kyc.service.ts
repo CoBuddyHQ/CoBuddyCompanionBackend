@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProgressEngineService } from './progress-engine.service';
 import { BasicDetailsDto, SaveDeclarationDto, SubmitGovernmentIdDto, UpdateGovernmentIdTypeDto, SubmitSelfieDto, SaveAddressDto, SavePanDto, SaveBankDto, VerifyBankDto, SaveUpiDto } from './dto/kyc.dto';
@@ -284,19 +284,11 @@ export class KycService {
   // ─── POST /companion/kyc/bank/verify ─────────────────────────────────────────
   // BankAccountVerificationScreen
   async verifyBank(companionId: string, dto: VerifyBankDto) {
-    const kyc = await this.prisma.companionKYC.findUnique({ where: { companionId } });
-    if (!kyc?.maskedBankAccount) throw new BadRequestException('No bank account found to verify');
-    // Simulate penny drop verification
-    await this.prisma.companionKYC.update({
-      where: { companionId },
-      data: { bankVerified: true },
-    });
-    return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
-      verified: true,
-      maskedAccount: kyc.maskedBankAccount,
-      bankName: kyc.bankName,
-      message: 'Bank account verified successfully.',
-    };
+    void companionId;
+    void dto;
+    throw new ServiceUnavailableException(
+      'Bank verification provider is not configured. Bank details remain unverified.',
+    );
   }
 
   // ─── POST /companion/kyc/emergency-contact ───────────────────────────────────

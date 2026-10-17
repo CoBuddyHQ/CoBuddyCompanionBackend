@@ -13,7 +13,7 @@ export class InternalRequestsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Internal service endpoint to create a booking request for a companion' })
-  @ApiHeader({ name: 'x-internal-token', required: true, description: 'Internal S2S Secret Token' })
+  @ApiHeader({ name: 'X-Internal-Service-Key', required: true, description: 'Internal S2S secret' })
   @ApiResponse({ status: 201, description: 'Booking request created successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized internal token' })
   async createInternalRequest(@Body() dto: CreateInternalBookingRequestDto) {

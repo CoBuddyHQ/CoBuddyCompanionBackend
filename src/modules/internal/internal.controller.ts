@@ -1,18 +1,15 @@
 import {
   Controller,
   Get,
-  Post,
   Param,
   Query,
   Body,
   UseGuards,
-  HttpCode,
-  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
+import { InternalServiceGuard } from '../../common/guards/internal-service.guard';
 import { InternalService } from './internal.service';
-import { InternalServiceGuard } from './internal-service.guard';
-import { CreateInternalBookingRequestDto, InternalCompanionQueryDto } from './dto/internal.dto';
+import { InternalCompanionQueryDto } from './dto/internal.dto';
 
 @ApiTags('Internal - S2S Platform Bridge')
 @Controller('internal')
@@ -38,30 +35,4 @@ export class InternalController {
     return this.internalService.getCompanionById(id);
   }
 
-  @Get('campaigns')
-  @ApiOperation({ summary: 'Internal campaign discovery strictly filtered for active customer view' })
-  @ApiHeader({ name: 'X-Internal-Service-Key', required: true })
-  @ApiResponse({ status: 200, description: 'Active customer campaigns' })
-  async getCampaigns() {
-    return this.internalService.getCampaigns();
-  }
-
-  @Post('booking-requests')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create booking request with double-booking 409 prevention' })
-  @ApiHeader({ name: 'X-Internal-Service-Key', required: true })
-  @ApiResponse({ status: 201, description: 'Booking request created' })
-  @ApiResponse({ status: 409, description: 'Overlapping booking conflict' })
-  async createBookingRequest(@Body() dto: CreateInternalBookingRequestDto) {
-    return this.internalService.createBookingRequest(dto);
-  }
-
-  // Legacy route compatibility for existing internal callers
-  @Post('companion/requests')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Legacy booking request creation endpoint' })
-  @ApiHeader({ name: 'X-Internal-Service-Key', required: true })
-  async createLegacyBookingRequest(@Body() dto: CreateInternalBookingRequestDto) {
-    return this.internalService.createBookingRequest(dto);
-  }
 }
