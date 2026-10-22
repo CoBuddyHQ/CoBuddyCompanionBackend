@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, Logger, Optional, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
-import { CreateInternalBookingRequestDto } from './dto/internal-booking-request.dto';
+import { CreateInternalBookingRequestDto, ModifyInternalBookingRequestDto } from './dto/internal-booking-request.dto';
 import { InternalBridgeService } from '../internal/internal-bridge.service';
 
 @Injectable()
@@ -270,6 +270,59 @@ export class RequestsService {
     };
   }
 
+  async modifyInternalRequest(bookingId: string, dto: ModifyInternalBookingRequestDto) {
+    const start = dto.proposedStart ? new Date(dto.proposedStart) : undefined;
+    const end = dto.proposedEnd ? new Date(dto.proposedEnd) : undefined;
+    if ((start && !end) || (!start && end) || (start && end && end <= start)) {
+      throw new BadRequestException('A valid start and end time are required together.');
+    }
+    if (!Object.values(dto).some((value) => value !== undefined)) {
+      throw new BadRequestException('At least one booking change is required.');
+    }
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.bookingRequest.updateMany({
+        where: { id: bookingId, status: 'pending', expiresAt: { gt: new Date() } },
+        data: {
+          ...(start && { proposedStart: start }),
+          ...(end && { proposedEnd: end }),
+          ...(dto.durationMinutes !== undefined && { durationMinutes: dto.durationMinutes }),
+          ...(dto.venueName !== undefined && { venueName: dto.venueName }),
+          ...(dto.venueArea !== undefined && { venueArea: dto.venueArea }),
+          ...(dto.venueCity !== undefined && { venueCity: dto.venueCity }),
+          ...(dto.venueType !== undefined && { venueType: dto.venueType }),
+          ...(dto.venueMeetingPoint !== undefined && { venueMeetingPoint: dto.venueMeetingPoint }),
+          ...(dto.venueLandmark !== undefined && { venueLandmark: dto.venueLandmark }),
+          ...(dto.estimatedEarning !== undefined && { estimatedEarning: dto.estimatedEarning }),
+          ...(dto.customerNote !== undefined && { customerNote: dto.customerNote }),
+        },
+      });
+      if (!result.count) {
+        throw new ConflictException('Booking request is no longer pending or has expired.');
+      }
+      const request = await tx.bookingRequest.findUnique({ where: { id: bookingId } });
+      if (!request) throw new NotFoundException('Booking request not found.');
+      await tx.notification.create({
+        data: {
+          companionId: request.companionId,
+          type: 'request',
+          title: 'Booking Request Updated',
+          body: 'The customer updated a pending booking request.',
+          data: JSON.stringify({ requestId: bookingId }),
+          isRead: false,
+        },
+      });
+      return request;
+    });
+    this.notificationsGateway.emitNotification(updated.companionId, {
+      notificationId: `updated-${updated.id}`,
+      type: 'request',
+      title: 'Booking Request Updated',
+      body: 'A customer updated a pending booking request.',
+      data: { requestId: updated.id },
+    });
+    return { success: true, request: this.toRequestResponse(updated) };
+  }
+
   // ── POST /companion/requests/:requestId/accept ────────────────────────────
   async acceptRequest(companionId: string, requestId: string) {
     const req = await this.findPendingOrThrow(companionId, requestId);
@@ -451,8 +504,8 @@ export class RequestsService {
       } else {
         this.logger.log(`Successfully synced status update for booking ${bookingId} to customer backend`);
       }
-    } catch (err: any) {
-      this.logger.warn(`Error connecting to customer backend at ${customerBackendUrl}: ${err.message}`);
+    } catch {
+      this.logger.warn('Error connecting to Customer Backend for booking status sync.');
     }
   }
 

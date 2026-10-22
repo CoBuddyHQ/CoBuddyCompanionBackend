@@ -162,8 +162,8 @@ async function bootstrap() {
     const prisma = app.get(PrismaService);
     await prisma.$queryRaw`SELECT 1`;
     logger.log('✅ Database connection verified');
-  } catch (err) {
-    logger.error('❌ Database connection failed at startup — aborting', err);
+  } catch {
+    logger.error('❌ Database connection failed at startup — aborting.');
     process.exit(1);
   }
 

@@ -1,4 +1,14 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, IsBoolean, IsDateString, Min, Max, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  IsDateString,
+  Min,
+  Max,
+  IsIn,
+} from 'class-validator';
 
 export class CreateInternalBookingRequestDto {
   @IsString()
@@ -81,4 +91,53 @@ export class CreateInternalBookingRequestDto {
 
   @IsDateString()
   expiresAt: string;
+}
+
+export class ModifyInternalBookingRequestDto {
+  @IsOptional()
+  @IsDateString()
+  proposedStart?: string;
+
+  @IsOptional()
+  @IsDateString()
+  proposedEnd?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(60)
+  @Max(480)
+  durationMinutes?: number;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  venueName?: string;
+
+  @IsOptional()
+  @IsString()
+  venueArea?: string;
+
+  @IsOptional()
+  @IsString()
+  venueCity?: string;
+
+  @IsOptional()
+  @IsString()
+  venueType?: string;
+
+  @IsOptional()
+  @IsString()
+  venueMeetingPoint?: string;
+
+  @IsOptional()
+  @IsString()
+  venueLandmark?: string;
+
+  @IsOptional()
+  @IsString()
+  estimatedEarning?: string;
+
+  @IsOptional()
+  @IsString()
+  customerNote?: string;
 }

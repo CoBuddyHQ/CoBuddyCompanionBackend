@@ -76,9 +76,8 @@ export class InternalBridgeService {
       }
 
       if (!res.ok) {
-        const errorText = await res.text().catch(() => '');
         this.logger.warn(
-          `[S2S Bridge] [${correlationId}] Customer backend returned HTTP ${res.status}: ${errorText}`
+          `[S2S Bridge] [${correlationId}] Customer backend returned HTTP ${res.status}.`
         );
         return false;
       }
@@ -87,9 +86,9 @@ export class InternalBridgeService {
         `[S2S Bridge] [${correlationId}] Successfully synced '${payload.status}' for booking ${payload.customerBookingId}`
       );
       return true;
-    } catch (err: any) {
+    } catch {
       this.logger.error(
-        `[S2S Bridge] [${correlationId}] Network/timeout error syncing status to Customer Backend: ${err.message}`
+        `[S2S Bridge] [${correlationId}] Network/timeout error syncing status to Customer Backend.`
       );
       return false;
     }

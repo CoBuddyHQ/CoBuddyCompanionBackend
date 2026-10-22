@@ -11,7 +11,7 @@ export class SupportService {
       orderBy: { createdAt: 'desc' },
       include: { messages: true },
     });
-    
+
     const formattedTickets = tickets.map((t) => ({
       id: t.id,
       category: t.category,
@@ -24,10 +24,13 @@ export class SupportService {
         id: m.id,
         from: m.sender === 'agent' ? 'agent' : 'me',
         text: m.text,
-        time: m.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        time: m.createdAt.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
       })),
     }));
-    
+
     return { tickets: formattedTickets };
   }
 
@@ -37,7 +40,7 @@ export class SupportService {
       include: { messages: true },
     });
     if (!t) throw new NotFoundException('Ticket not found');
-    
+
     return {
       id: t.id,
       category: t.category,
@@ -50,7 +53,10 @@ export class SupportService {
         id: m.id,
         from: m.sender === 'agent' ? 'agent' : 'me',
         text: m.text,
-        time: m.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        time: m.createdAt.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
       })),
     };
   }
@@ -66,21 +72,43 @@ export class SupportService {
         status: 'OPEN',
       },
     });
-    return { ticketId: ticket.id, message: 'Support ticket created successfully.' };
+    return {
+      ticketId: ticket.id,
+      message: 'Support ticket created successfully.',
+    };
   }
 
-  async addTicketMessage(companionId: string, ticketId: string, message: string) {
-    const ticket = await this.prisma.supportTicket.findFirst({ where: { id: ticketId, companionId } });
+  async addTicketMessage(
+    companionId: string,
+    ticketId: string,
+    message: string,
+  ) {
+    const ticket = await this.prisma.supportTicket.findFirst({
+      where: {
+        id: ticketId,
+        companionId,
+        category: { not: 'DISPUTE' },
+        status: 'OPEN',
+      },
+    });
     if (!ticket) throw new NotFoundException('Ticket not found');
-    
-    await this.prisma.ticketMessage.create({
+    const created = await this.prisma.ticketMessage.create({
       data: {
         ticketId: ticket.id,
         sender: 'me',
         text: message,
       },
     });
-    return { message: 'Reply sent' };
+    return {
+      message: 'Reply sent',
+      data: {
+        id: created.id,
+        senderId: companionId,
+        senderType: 'companion',
+        text: created.text,
+        timestamp: created.createdAt.toISOString(),
+      },
+    };
   }
 
   async getDisputes(companionId: string) {
@@ -89,7 +117,7 @@ export class SupportService {
       orderBy: { createdAt: 'desc' },
       include: { timeline: true },
     });
-    
+
     const formattedDisputes = disputes.map((d) => ({
       id: d.id,
       category: d.subject,
@@ -114,7 +142,7 @@ export class SupportService {
       include: { timeline: true },
     });
     if (!d) throw new NotFoundException('Dispute not found');
-    
+
     return {
       id: d.id,
       category: d.subject,
@@ -146,14 +174,21 @@ export class SupportService {
           create: {
             date: new Date().toLocaleDateString(),
             desc: 'Dispute filed by companion',
-          }
-        }
+          },
+        },
       },
     });
-    return { disputeId: dispute.id, message: 'Dispute submitted and under review.' };
+    return {
+      disputeId: dispute.id,
+      message: 'Dispute submitted and under review.',
+    };
   }
 
-  async uploadDisputeEvidence(companionId: string, disputeId: string, evidenceUrls: string[]) {
+  async uploadDisputeEvidence(
+    companionId: string,
+    disputeId: string,
+    evidenceUrls: string[],
+  ) {
     // In actual implementation, we'd save to a separate evidence table or array column
     return { message: 'Evidence uploaded successfully' };
   }
@@ -171,26 +206,33 @@ export class SupportService {
     if (!article) throw new NotFoundException('Help Article not found');
     return article;
   }
-  
+
   async getChatHistory(companionId: string, ticketId: string) {
     const ticket = await this.prisma.supportTicket.findFirst({
       where: { id: ticketId, companionId },
       include: { messages: { orderBy: { createdAt: 'asc' } } },
     });
     if (!ticket) throw new NotFoundException('Ticket not found');
-    
+
     return {
       ticketId,
       messages: ticket.messages.map((m) => ({
         id: m.id,
         from: m.sender === 'agent' ? 'agent' : 'me',
         text: m.text,
-        time: m.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        time: m.createdAt.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
       })),
     };
   }
 
-  async appealDispute(companionId: string, disputeId: string, dto: { reason: string; evidenceUrls?: string[] }) {
+  async appealDispute(
+    companionId: string,
+    disputeId: string,
+    dto: { reason: string; evidenceUrls?: string[] },
+  ) {
     const dispute = await this.prisma.supportTicket.findFirst({
       where: { id: disputeId, companionId, category: 'DISPUTE' },
     });
@@ -205,12 +247,11 @@ export class SupportService {
           create: {
             date: new Date().toLocaleDateString(),
             desc: 'Appeal submitted by companion',
-          }
-        }
+          },
+        },
       },
     });
 
     return { success: true, message: 'Dispute appeal submitted successfully.' };
   }
 }
-

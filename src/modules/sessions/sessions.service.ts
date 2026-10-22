@@ -155,7 +155,7 @@ export class SessionsService {
       this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
         status: 'in_progress',
         sessionId: session.id,
-      }).catch((err) => this.logger.warn(`Failed to sync session start to customer backend: ${err.message}`));
+      }).catch(() => this.logger.warn('Failed to sync session start to Customer Backend.'));
     }
 
     return { ...this.toSessionResponse(updated), verified: true };
@@ -271,7 +271,7 @@ export class SessionsService {
       this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
         status: 'completed',
         sessionId: session.id,
-      }).catch((err) => this.logger.warn(`Failed to sync session completion to customer backend: ${err.message}`));
+      }).catch(() => this.logger.warn('Failed to sync session completion to Customer Backend.'));
     }
 
     return this.toSessionResponse(updated);
@@ -307,7 +307,7 @@ export class SessionsService {
         status: 'cancelled',
         reason: cancelReasonFull,
         sessionId: session.id,
-      }).catch((err) => this.logger.warn(`Failed to sync session cancellation to customer backend: ${err.message}`));
+      }).catch(() => this.logger.warn('Failed to sync session cancellation to Customer Backend.'));
     }
 
     return this.toSessionResponse(updated);
@@ -370,7 +370,7 @@ export class SessionsService {
       this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
         status: 'completed',
         sessionId: session.id,
-      }).catch((err) => this.logger.warn(`Failed to sync session completion to customer backend: ${err.message}`));
+      }).catch(() => this.logger.warn('Failed to sync session completion to Customer Backend.'));
     }
 
     return this.toSessionResponse(updated);
@@ -488,8 +488,8 @@ export class SessionsService {
         data,
         createdAt: notif.createdAt.toISOString(),
       });
-    } catch (err: any) {
-      this.logger.warn(`Failed to create notification for ${companionId}: ${err.message}`);
+    } catch {
+      this.logger.warn('Failed to create a session notification.');
     }
   }
 
@@ -526,7 +526,7 @@ export class SessionsService {
       { sessionId },
     );
 
-    this.logger.log(`Session ${sessionId} finalized. Earning: ₹${confirmed}`);
+    this.logger.log('Session finalized and earnings recorded.');
   }
 
   // Returns EXACT Session interface from store.types.ts
@@ -607,8 +607,8 @@ export class SessionsService {
       } else {
         this.logger.log(`Synced session status ${payload.status} for booking ${bookingId} to customer backend`);
       }
-    } catch (err: any) {
-      this.logger.warn(`Error connecting to customer backend: ${err.message}`);
+    } catch {
+      this.logger.warn('Error connecting to Customer Backend for session status sync.');
     }
   }
 }

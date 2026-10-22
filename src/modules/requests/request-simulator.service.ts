@@ -118,8 +118,8 @@ export class RequestSimulatorService {
         this.notificationsGateway.emitNewBookingRequest(companion.id, req);
         this.logger.log(`✅ Simulated request created for companion ${companion.id} [${category} @ ${venue.name}]`);
       }
-    } catch (err: any) {
-      this.logger.error('Failed to create simulated request', err?.message);
+    } catch {
+      this.logger.error('Failed to create a development-only simulated request.');
     }
   }
 
@@ -138,8 +138,8 @@ export class RequestSimulatorService {
       if (result.count > 0) {
         this.logger.log(`🕐 Expired ${result.count} old pending requests`);
       }
-    } catch (err: any) {
-      this.logger.error('Failed to expire requests', err?.message);
+    } catch {
+      this.logger.error('Failed to expire requests.');
     }
   }
 }

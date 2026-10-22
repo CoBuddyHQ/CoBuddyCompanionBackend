@@ -154,8 +154,8 @@ export class PaymentsService {
         // Return key to React Native SDK — key_id is public
         key:      this.keyId,
       };
-    } catch (err: any) {
-      this.logger.error('Razorpay createOrder failed', err?.response?.data ?? err.message);
+    } catch {
+      this.logger.error('Razorpay order creation failed.');
       throw new InternalServerErrorException('Payment order creation failed');
     }
   }
@@ -279,7 +279,7 @@ export class PaymentsService {
           where: { razorpayPayoutId: payout.id },
           data:  { status: 'completed', utrNumber: payout.utr, completedAt: new Date() },
         });
-        this.logger.log(`Payout ${payout.id} processed. UTR: ${payout.utr}`);
+        this.logger.log('Payout status updated from the provider.');
         break;
       }
 
@@ -352,7 +352,7 @@ export class PaymentsService {
         { headers: { ...this.razorpayAuth, 'Content-Type': 'application/json' } },
       );
 
-      this.logger.log(`Payout initiated: ${data.id} ₹${params.amountINR} → ${params.bankName}`);
+      this.logger.log('Payout initiated with the configured payment provider.');
 
       // Update DB with Razorpay payout ID
       await this.prisma.payoutRecord.update({
@@ -365,12 +365,12 @@ export class PaymentsService {
         status:           data.status,
         utr:              data.utr ?? null,
       };
-    } catch (err: any) {
-      this.logger.error('Razorpay payout failed', err?.response?.data ?? err.message);
+    } catch {
+      this.logger.error('Razorpay payout request failed.');
       // Mark payout record as failed
       await this.prisma.payoutRecord.update({
         where: { id: params.payoutRecordId },
-        data:  { status: 'failed', failureReason: err?.response?.data?.error?.description ?? 'Payout failed' },
+        data:  { status: 'failed', failureReason: 'Payout request failed' },
       });
       throw new InternalServerErrorException('Payout initiation failed');
     }
