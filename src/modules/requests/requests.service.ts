@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { CreateInternalBookingRequestDto, ModifyInternalBookingRequestDto } from './dto/internal-booking-request.dto';
 import { InternalBridgeService } from '../internal/internal-bridge.service';
+import { randomInt } from 'crypto';
 
 @Injectable()
 export class RequestsService {
@@ -246,7 +247,11 @@ export class RequestsService {
           type: 'request',
           title: 'New Booking Request',
           body: `You received a booking request from ${dto.customerInitials || 'Customer'} at ${dto.venueName}`,
-          data: JSON.stringify({ requestId: req.id }),
+          data: JSON.stringify({
+            route: 'CPN_082_NewBookingRequestDetail',
+            params: { requestId: req.id },
+            requestId: req.id,
+          }),
           isRead: false,
         },
       });
@@ -254,19 +259,40 @@ export class RequestsService {
       return req;
     });
 
+    const requestResponse = this.toRequestResponse(created);
+
+    // 1. Emit dedicated real-time socket event for companion app
+    this.notificationsGateway.emitNewBookingRequest(dto.companionId, requestResponse);
+
+    // 2. Emit live notification payload with explicit actionRoute & deep-link parameters
     this.notificationsGateway.emitNotification(dto.companionId, {
       notificationId: `notif-${created.id}`,
       type: 'request',
+      category: 'request',
+      priority: 'high',
       title: 'New Booking Request',
       body: `You received a booking request from ${dto.customerInitials || 'Customer'} at ${dto.venueName}`,
-      data: { requestId: created.id },
+      actionRoute: 'CPN_082_NewBookingRequestDetail',
+      actionParams: { requestId: created.id },
+      data: {
+        requestId: created.id,
+        route: 'CPN_082_NewBookingRequestDetail',
+        params: { requestId: created.id },
+      },
+      createdAt: new Date().toISOString(),
+    });
+
+    // 3. Emit booking_updated event for companion app cache invalidation
+    this.notificationsGateway.emitBookingUpdated(dto.companionId, {
+      requestId: created.id,
+      status: 'pending',
     });
 
     this.logger.log(`[S2S] Internal booking request created: ${created.id} for companion ${dto.companionId}`);
     return {
       success: true,
       requestId: created.id,
-      request: this.toRequestResponse(created),
+      request: requestResponse,
     };
   }
 
@@ -369,10 +395,15 @@ export class RequestsService {
       const dbNotif = await tx.notification.create({
         data: {
           companionId,
-          type: 'request',
+          type: 'session',
           title: 'Booking Accepted ✓',
           body: `You accepted the booking from ${req.customerInitials} at ${req.venueName}. Session created with pass code: ${sessionPassCode}`,
-          data: JSON.stringify({ sessionId: newSession.id, requestId }),
+          data: JSON.stringify({
+            sessionId: newSession.id,
+            requestId,
+            route: 'CPN_097_SessionDetail',
+            params: { sessionId: newSession.id },
+          }),
           isRead: false,
         },
       });
@@ -382,10 +413,20 @@ export class RequestsService {
 
     this.notificationsGateway.emitNotification(companionId, {
       notificationId: notif.id,
-      type: 'request',
+      type: 'session',
+      category: 'session',
+      priority: 'high',
       title: notif.title,
       body: notif.body,
-      data: { sessionId: session.id, requestId },
+      actionRoute: 'CPN_097_SessionDetail',
+      actionParams: { sessionId: session.id },
+      data: { sessionId: session.id, requestId, route: 'CPN_097_SessionDetail', params: { sessionId: session.id } },
+      createdAt: new Date().toISOString(),
+    });
+
+    this.notificationsGateway.emitSessionUpdated(companionId, {
+      sessionId: session.id,
+      status: 'upcoming',
     });
 
     this.logger.log(`Request ${requestId} accepted → Session ${session.id} created`);
@@ -422,15 +463,20 @@ export class RequestsService {
         type: 'request',
         title: 'Booking Declined',
         body: `You declined the booking from ${req.customerInitials} at ${req.venueName}. Reason: ${reason}`,
-        data: JSON.stringify({ requestId }),
+        data: JSON.stringify({ requestId, route: 'CPN_081_BookingRequestsInbox' }),
         isRead: false,
       },
     });
     this.notificationsGateway.emitNotification(companionId, {
       notificationId: notif.id,
       type: 'request',
+      category: 'request',
       title: notif.title,
       body: notif.body,
+      actionRoute: 'CPN_081_BookingRequestsInbox',
+      actionParams: {},
+      data: { requestId },
+      createdAt: new Date().toISOString(),
     });
 
     // S2S cross-backend sync to Customer Backend
@@ -550,7 +596,7 @@ export class RequestsService {
   }
 
   private generatePassCode(initials: string): string {
-    const suffix = Math.floor(100 + Math.random() * 900).toString();
-    return `${initials.replace('.', '').slice(0, 2)}-${suffix}`;
+    // 4-digit numeric start PIN matching audit spec CB-SEC-07 & mobile app inputs
+    return randomInt(1000, 10000).toString();
   }
 }

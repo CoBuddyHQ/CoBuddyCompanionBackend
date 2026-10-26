@@ -1,4 +1,6 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ServiceUnavailableException, Logger } from '@nestjs/common';
+import type { Response } from 'express';
+import { validateUpload } from '../../common/utils/upload-content.util';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import * as path from 'path';
@@ -39,6 +41,15 @@ export class UploadsService {
     category: 'profile_photo' | 'gallery' | 'kyc_identity' | 'kyc_selfie' | 'kyc_address' | 'kyc_police' | 'evidence',
   ): Promise<{ url: string; key: string; size: number; mimeType: string }> {
     if (!file) throw new BadRequestException('No file provided');
+    const isPrivate = !['profile_photo', 'gallery'].includes(category);
+    validateUpload(file, !isPrivate);
+    if (isPrivate && this.config.get('NODE_ENV') === 'production') {
+      throw new ServiceUnavailableException('Private document storage is not configured');
+    }
+    if (this.config.get('NODE_ENV') === 'production' && !this.isCloudinaryConfigured &&
+      !(this.config.get('AWS_ACCESS_KEY_ID') && this.config.get('AWS_SECRET_ACCESS_KEY'))) {
+      throw new ServiceUnavailableException('Persistent media storage is not configured');
+    }
 
     const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime', 'application/pdf'];
     const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.pdf', '.mp4', '.mov'];
@@ -89,8 +100,13 @@ export class UploadsService {
     
     let url: string;
     let finalKey = fileKey;
+    const uploadId = crypto.randomUUID();
 
-    if (this.isCloudinaryConfigured) {
+    if (isPrivate) {
+      finalKey = `private/${fileKey}`;
+      await this.saveLocally(file, finalKey);
+      url = `/api/v1/companion/uploads/files/${uploadId}`;
+    } else if (this.isCloudinaryConfigured) {
       const publicId = `cobuddy/companions/${companionId}/${category}/${crypto.randomBytes(16).toString('hex')}`;
       const uploadResult = await this.uploadToCloudinary(file, publicId);
       url = uploadResult.secure_url;
@@ -98,12 +114,19 @@ export class UploadsService {
     } else if (this.config.get('AWS_ACCESS_KEY_ID') && this.config.get('AWS_SECRET_ACCESS_KEY')) {
       url = await this.uploadToS3(file, fileKey);
     } else {
-      url = await this.saveLocally(file, fileKey);
+      const base = this.config.get<string>('PUBLIC_MEDIA_BASE_URL');
+      if (!base || !/^https?:\/\//.test(base)) {
+        throw new ServiceUnavailableException('PUBLIC_MEDIA_BASE_URL is required for local public uploads');
+      }
+      finalKey = `public/${fileKey}`;
+      const relativeUrl = await this.saveLocally(file, finalKey);
+      url = `${base.replace(/\/+$/, '')}${relativeUrl}`;
     }
 
     // Track upload in DB
     await this.prisma.uploadedFile.create({
       data: {
+        id: uploadId,
         companionId,
         url,
         key: finalKey,
@@ -138,6 +161,19 @@ export class UploadsService {
     });
 
     return { galleryPhotos: photos.map(p => p.url) };
+  }
+
+  async streamPrivateFile(companionId: string, fileId: string, res: Response) {
+    const record = await this.prisma.uploadedFile.findFirst({ where: { id: fileId, companionId } });
+    if (!record || !record.key.startsWith('private/')) throw new NotFoundException('Document not found');
+    const root = path.resolve(process.cwd(), 'uploads', 'private');
+    const location = path.resolve(process.cwd(), 'uploads', record.key);
+    if (!location.startsWith(root + path.sep) || !fs.existsSync(location)) throw new NotFoundException('Document not found');
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Type', record.mimeType);
+    res.setHeader('Content-Disposition', 'attachment');
+    res.sendFile(location);
   }
 
   async deleteGalleryPhoto(companionId: string, photoId: string) {
@@ -185,7 +221,6 @@ export class UploadsService {
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
     const filePath = path.join(process.cwd(), 'uploads', key);
     fs.writeFileSync(filePath, file.buffer);
-    const port = this.config.get('PORT') || 4001;
-    return `http://localhost:${port}/uploads/${key}`;
+    return `/uploads/${key}`;
   }
 }

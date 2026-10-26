@@ -130,7 +130,7 @@ export class SessionsService {
     const session = await this.findSessionOrThrow(companionId, sessionId);
     this.guardTransition(session.status, 'active');
 
-    if (!session.sessionPassCode || session.sessionPassCode !== passCode) {
+    if (!session.sessionPassCode || typeof passCode !== 'string' || session.sessionPassCode !== passCode) {
       throw new BadRequestException('Invalid session pass code');
     }
 
@@ -152,7 +152,7 @@ export class SessionsService {
 
     // S2S cross-backend sync to Customer Backend
     if (session.requestId) {
-      this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
+      await this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
         status: 'in_progress',
         sessionId: session.id,
       }).catch(() => this.logger.warn('Failed to sync session start to Customer Backend.'));
@@ -268,7 +268,7 @@ export class SessionsService {
 
     // S2S cross-backend sync to Customer Backend
     if (session.requestId) {
-      this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
+      await this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
         status: 'completed',
         sessionId: session.id,
       }).catch(() => this.logger.warn('Failed to sync session completion to Customer Backend.'));
@@ -303,7 +303,7 @@ export class SessionsService {
 
     // S2S cross-backend sync to Customer Backend
     if (session.requestId) {
-      this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
+      await this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
         status: 'cancelled',
         reason: cancelReasonFull,
         sessionId: session.id,
@@ -367,7 +367,7 @@ export class SessionsService {
 
     // S2S cross-backend sync to Customer Backend
     if (session.requestId) {
-      this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
+      await this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
         status: 'completed',
         sessionId: session.id,
       }).catch(() => this.logger.warn('Failed to sync session completion to Customer Backend.'));
@@ -395,13 +395,40 @@ export class SessionsService {
   }
 
   // ── POST /companion/sessions/:sessionId/rate-customer ─────────────────────
-  async rateCustomer(companionId: string, sessionId: string, rating: number, feedback?: string) {
+  async rateCustomer(
+    companionId: string,
+    sessionId: string,
+    rating: number,
+    feedback?: string,
+    highlights?: string[],
+  ) {
     if (rating < 1 || rating > 5) throw new BadRequestException('Rating must be 1–5');
-    await this.findSessionOrThrow(companionId, sessionId);
+    const session = await this.findSessionOrThrow(companionId, sessionId);
     await this.prisma.session.update({
       where: { id: sessionId },
       data: { customerRating: rating, customerFeedback: feedback },
     });
+
+    const bookingId = session.requestId || sessionId;
+
+    // Notify Customer Backend (S2S)
+    await this.notifyCustomerBackendOfSessionUpdate(bookingId, {
+      status: 'customer_rated',
+      customerRating: rating,
+      customerFeedback: feedback,
+      highlights,
+    }).catch(() => {});
+
+    // Notify Admin Backend (S2S)
+    this.notifyAdminBackendOfReview({
+      bookingId,
+      byCompanionId: companionId,
+      toCustomerId: session.customerId,
+      rating,
+      text: feedback,
+      tagCodes: highlights,
+    }).catch(() => {});
+
     return { sessionId, customerRating: rating, message: 'Customer rated successfully' };
   }
 
@@ -469,13 +496,17 @@ export class SessionsService {
     data?: Record<string, any>,
   ) {
     try {
+      const route = data?.route || (data?.sessionId ? 'CPN_097_SessionDetail' : undefined);
+      const params = data?.params || (data?.sessionId ? { sessionId: data.sessionId } : undefined);
+      const enrichedData = data ? { ...data, ...(route ? { route, params } : {}) } : undefined;
+
       const notif = await this.prisma.notification.create({
         data: {
           companionId,
           type: type as any,
           title,
           body,
-          data: data ? JSON.stringify(data) : undefined,
+          data: enrichedData ? JSON.stringify(enrichedData) : undefined,
           isRead: false,
         },
       });
@@ -483,11 +514,21 @@ export class SessionsService {
       this.notificationsGateway.emitNotification(companionId, {
         notificationId: notif.id,
         type,
+        category: type,
         title,
         body,
-        data,
+        actionRoute: route ?? null,
+        actionParams: params ?? null,
+        data: enrichedData,
         createdAt: notif.createdAt.toISOString(),
       });
+
+      if (data?.sessionId) {
+        this.notificationsGateway.emitSessionUpdated(companionId, {
+          sessionId: data.sessionId,
+          status: type,
+        });
+      }
     } catch {
       this.logger.warn('Failed to create a session notification.');
     }
@@ -609,6 +650,48 @@ export class SessionsService {
       }
     } catch {
       this.logger.warn('Error connecting to Customer Backend for session status sync.');
+    }
+  }
+
+  // ── S2S HELPER: NOTIFY ADMIN BACKEND OF BOOKING UPDATES ───────────────────
+  private async notifyAdminBackendOfBookingSync(payload: any) {
+    const adminBackendUrl = process.env.ADMIN_API_URL || 'http://admin-backend:4000';
+    const internalToken = process.env.INTERNAL_SERVICE_SECRET;
+    if (!internalToken) return;
+    try {
+      await fetch(`${adminBackendUrl}/api/internal/bookings/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-service-key': internalToken,
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(5000),
+      });
+      this.logger.log(`Synced session ${payload.bookingId} to Admin Backend as ${payload.status}`);
+    } catch {
+      this.logger.warn('Error connecting to Admin Backend for booking sync.');
+    }
+  }
+
+  // ── S2S HELPER: NOTIFY ADMIN BACKEND OF REVIEWS ───────────────────────────
+  private async notifyAdminBackendOfReview(payload: any) {
+    const adminBackendUrl = process.env.ADMIN_API_URL || 'http://admin-backend:4000';
+    const internalToken = process.env.INTERNAL_SERVICE_SECRET;
+    if (!internalToken) return;
+    try {
+      await fetch(`${adminBackendUrl}/api/internal/reviews/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-service-key': internalToken,
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(5000),
+      });
+      this.logger.log(`Synced review for booking ${payload.bookingId} to Admin Backend`);
+    } catch {
+      this.logger.warn('Error connecting to Admin Backend for review sync.');
     }
   }
 }

@@ -1,15 +1,18 @@
 import {
   Controller,
   Get,
+  Post,
   Param,
   Query,
   Body,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { InternalServiceGuard } from '../../common/guards/internal-service.guard';
 import { InternalService } from './internal.service';
-import { InternalCompanionQueryDto } from './dto/internal.dto';
+import { InternalCompanionQueryDto, CreateInternalReviewDto } from './dto/internal.dto';
 
 @ApiTags('Internal - S2S Platform Bridge')
 @Controller('internal')
@@ -35,4 +38,14 @@ export class InternalController {
     return this.internalService.getCompanionById(id);
   }
 
+  @Post('companions/:id/reviews')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Internal creation and sync of customer review for a companion' })
+  @ApiHeader({ name: 'X-Internal-Service-Key', required: true })
+  async createReview(
+    @Param('id') companionId: string,
+    @Body() dto: CreateInternalReviewDto,
+  ) {
+    return this.internalService.createInternalReview(companionId, dto);
+  }
 }

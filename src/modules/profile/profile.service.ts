@@ -557,31 +557,15 @@ export class ProfileService {
     });
     if (!companion) throw new NotFoundException('Companion not found');
 
-    if (!companion.categories.length) {
-      await this.prisma.companionCategory.create({
-        data: { companionId, category: 'cafe_conversation' },
-      });
-    }
-
-    if (!companion.languages.length) {
-      await this.prisma.companionLanguage.create({
-        data: { companionId, language: 'English', proficiency: 'fluent' },
-      });
-    }
-
-    if (!companion.hourlyRate) {
-      await this.prisma.companion.update({
-        where: { id: companionId },
-        data: { hourlyRate: 500 },
-      });
+    if (!companion.categories.length || !companion.languages.length || !companion.hourlyRate) {
+      throw new BadRequestException('Select categories, languages and an hourly rate before submitting your profile');
     }
 
     const updated = await this.prisma.companion.update({
       where: { id: companionId },
       data: {
         profileStatus: 'published',
-        // SECURITY FIX: Do NOT auto-approve — Admin team must review documents before approving.
-        // verificationStatus stays as-is (pending_review) until Admin sets 'approved' via the Admin panel.
+        // Authentication test settings never grant identity-review approval.
         verificationStatus: 'pending_review',
       },
     });
@@ -596,7 +580,7 @@ export class ProfileService {
     return {
       profileStatus: updated.profileStatus,
       verificationStatus: updated.verificationStatus,
-      message: 'Profile submitted for review. Our team will review within 2-3 business days.',
+      message: 'Profile submitted and pending review. Submission does not approve identity verification.',
     };
   }
 
@@ -669,7 +653,7 @@ export class ProfileService {
     const skip = (page - 1) * limit;
 
     const where: any = {
-      profileStatus: 'approved',
+      profileStatus: { in: ['approved', 'published'] },
       verificationStatus: 'approved',
       accountStatus: 'active',
       deletedAt: null,

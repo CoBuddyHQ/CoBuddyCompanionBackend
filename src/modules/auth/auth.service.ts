@@ -139,12 +139,16 @@ export class AuthService {
     if (new Date() > tokenRecord.expiresAt) {
       throw new UnauthorizedException('Refresh token expired');
     }
+    if (tokenRecord.companion.deletedAt || ['deleted', 'suspended', 'deactivated'].includes(tokenRecord.companion.accountStatus)) {
+      throw new UnauthorizedException('Account is not active');
+    }
 
     // Rotate token
-    await this.prisma.refreshToken.update({
-      where: { id: tokenRecord.id },
+    const consumed = await this.prisma.refreshToken.updateMany({
+      where: { id: tokenRecord.id, isRevoked: false },
       data: { isRevoked: true },
     });
+    if (consumed.count !== 1) throw new UnauthorizedException('Refresh token already used');
 
     const tokens = await this.generateTokens(tokenRecord.companion, tokenRecord.deviceId ?? undefined);
     return tokens;

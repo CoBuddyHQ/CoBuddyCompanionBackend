@@ -56,6 +56,17 @@ export class EarningsService {
       _sum: { amount: true },
     });
 
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayTxs = await this.prisma.earningsTransaction.findMany({
+      where: {
+        companionId,
+        createdAt: { gte: todayStart },
+        type: { in: ['session_earning', 'extension_earning', 'safety_bonus'] },
+        status: { not: 'on_hold' },
+      },
+    });
+    const todayEarnings = todayTxs.reduce((sum, t) => sum + Math.max(0, Number(t.amount)), 0);
+
     // Calculate next payout cycle (next 1st or 16th of month)
     const nextPayout = now.getDate() < 16
       ? new Date(now.getFullYear(), now.getMonth(), 16)
@@ -65,8 +76,10 @@ export class EarningsService {
     return {
       availableBalance: Math.max(0, availableBalance),
       pendingBalance: Math.max(0, pendingBalance),
+      todayEarnings,
       totalEarnedAllTime: allEarningTxs.reduce((sum, transaction) => sum + Math.max(0, Number(transaction.amount)), 0),
       totalEarnedThisMonth,
+      totalSessions: companion?.totalSessions ?? sessionsThisMonth,
       totalSessionsThisMonth: sessionsThisMonth,
       nextPayoutCycleDate: nextPayout.toISOString().split('T')[0],
       safetyHoldAmount: Number(onHold._sum.amount ?? 0),

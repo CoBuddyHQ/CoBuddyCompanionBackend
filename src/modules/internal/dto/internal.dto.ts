@@ -111,3 +111,52 @@ export class InternalCompanionQueryDto {
   @IsOptional()
   limit?: number;
 }
+
+export class CreateInternalReviewDto {
+  @IsString()
+  @IsNotEmpty()
+  bookingId!: string;
+
+  @IsString()
+  @IsOptional()
+  sessionId?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  customerId!: string;
+
+  @IsString()
+  @IsOptional()
+  customerInitials?: string;
+
+  @IsNumber()
+  @Min(1)
+  @Max(5)
+  rating!: number;
+
+  @IsString()
+  @IsOptional()
+  comment?: string;
+
+  @IsString()
+  @IsOptional()
+  text?: string;
+
+  @IsOptional()
+  tags?: string[];
+
+  @IsOptional()
+  highlights?: string[];
+
+  @IsNumber()
+  @IsOptional()
+  punctuality?: number;
+
+  @IsNumber()
+  @IsOptional()
+  communication?: number;
+
+  @IsNumber()
+  @IsOptional()
+  behavior?: number;
+}
