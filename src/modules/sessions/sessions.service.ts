@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Logger, Optional } 
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { InternalBridgeService } from '../internal/internal-bridge.service';
+import { Cron } from '@nestjs/schedule';
 
 // ── Valid session status transition map ─────────────────────────────────────
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -19,12 +20,51 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
 @Injectable()
 export class SessionsService {
   private readonly logger = new Logger(SessionsService.name);
+  private reconciliationRunning = false;
 
   constructor(
     private prisma: PrismaService,
     private notificationsGateway: NotificationsGateway,
     @Optional() private internalBridgeService?: InternalBridgeService,
   ) {}
+
+  @Cron('*/15 * * * * *')
+  async reconcileRecentBookingStatuses(): Promise<void> {
+    if (this.reconciliationRunning || !this.internalBridgeService) return;
+    this.reconciliationRunning = true;
+    try {
+      const sessions = await this.prisma.session.findMany({
+        where: {
+          requestId: { not: null },
+          updatedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+          status: { in: ['active', 'extending', 'completed', 'cancelled'] },
+        },
+        select: { id: true, requestId: true, status: true },
+        take: 200,
+        orderBy: { updatedAt: 'asc' },
+      });
+      for (const session of sessions) {
+        let status: 'in_progress' | 'completed' | 'cancelled';
+        switch (session.status) {
+          case 'active':
+          case 'extending': status = 'in_progress'; break;
+          case 'completed':
+          case 'cancelled': status = session.status; break;
+          default: continue;
+        }
+        const synced = await this.internalBridgeService.syncBookingStatus({
+          customerBookingId: session.requestId!,
+          sessionId: session.id,
+          status,
+        });
+        if (!synced) break;
+      }
+    } catch {
+      this.logger.warn('Recent booking status reconciliation failed; it will retry on the next interval.');
+    } finally {
+      this.reconciliationRunning = false;
+    }
+  }
 
   // ── GET /companion/sessions/upcoming ─────────────────────────────────────
   async getUpcoming(companionId: string) {
@@ -524,9 +564,11 @@ export class SessionsService {
       });
 
       if (data?.sessionId) {
-        this.notificationsGateway.emitSessionUpdated(companionId, {
-          sessionId: data.sessionId,
-          status: type,
+        const current = await this.prisma.session.findFirst({
+          where: { id: data.sessionId, companionId }, select: { status: true },
+        });
+        if (current) this.notificationsGateway.emitSessionUpdated(companionId, {
+          sessionId: data.sessionId, status: current.status,
         });
       }
     } catch {
