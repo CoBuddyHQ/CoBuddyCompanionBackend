@@ -12,7 +12,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-cobuddy_companion_db}
       POSTGRES_USER: ${POSTGRES_USER:-cobuddy}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-development-secret-password-2026}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
       - "5432:5432"
     volumes:
@@ -53,13 +53,14 @@ services:
     environment:
       NODE_ENV: development
       PORT: 4001
-      DATABASE_URL: postgresql://${POSTGRES_USER:-cobuddy}:${POSTGRES_PASSWORD:-development-secret-password-2026}@postgres:5432/${POSTGRES_DB:-cobuddy_companion_db}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cobuddy}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-cobuddy_companion_db}?schema=public
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:-cobuddy-companion-super-secret-jwt-key-2026}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-cobuddy-companion-super-secret-refresh-key-2026}
-      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-rzp_test_TLCpKIamWxQBYy}
-      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-w2l3tVjYk6aH4zM9xQ8pL7nR}
-      OTP_DEV_BYPASS: ${OTP_DEV_BYPASS:-123456}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET in .env}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      OTP_TEST_BYPASS_ENABLED: ${OTP_TEST_BYPASS_ENABLED:-false}
+      OTP_TEST_ALLOWED_PHONES: ${OTP_TEST_ALLOWED_PHONES:-}
       CORS_ORIGIN: "*"
     ports:
       - "4001:4001"

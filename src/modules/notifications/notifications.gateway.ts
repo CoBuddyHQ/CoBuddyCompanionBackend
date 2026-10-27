@@ -93,4 +93,16 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
       });
     }
   }
+
+  emitSessionUpdated(companionId: string, session: { sessionId: string; status: string }) {
+    for (const socketId of this.connectedCompanions.get(companionId) ?? []) {
+      this.server.to(socketId).emit('session_updated', session);
+    }
+  }
+
+  emitBookingUpdated(companionId: string, bookingData?: any) {
+    for (const socketId of this.connectedCompanions.get(companionId) ?? []) {
+      this.server.to(socketId).emit('booking_updated', bookingData || {});
+    }
+  }
 }

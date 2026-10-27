@@ -12,13 +12,22 @@ import { Server, Socket } from 'socket.io';
 import { UseGuards, Logger } from '@nestjs/common';
 import { WsJwtGuard } from '../../common/guards/ws-jwt.guard';
 import { PrismaService } from '../../prisma/prisma.service';
+import { getCompanionSocketIdentity } from '../../common/types/companion-socket';
 
 @WebSocketGateway({
   namespace: '/sessions',
-  cors: { origin: '*' },
+  cors: {
+    origin: (process.env.CORS_ORIGIN || '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+    credentials: true,
+  },
 })
 @UseGuards(WsJwtGuard)
-export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class SessionGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -41,16 +50,27 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { sessionId: string },
   ) {
-    const companion = client.data.companion;
-    if (!companion) throw new WsException('Unauthorized');
+    const companion = getCompanionSocketIdentity(client);
+    if (
+      !companion ||
+      typeof payload?.sessionId !== 'string' ||
+      !payload.sessionId.trim() ||
+      payload.sessionId.length > 100
+    ) {
+      throw new WsException('Unauthorized');
+    }
 
     // Verify session ownership
     const session = await this.prisma.session.findFirst({
       where: { id: payload.sessionId, companionId: companion.sub },
     });
     if (!session) {
-      this.logger.warn(`Unauthorized join attempt for session ${payload.sessionId} by companion ${companion.sub}`);
-      throw new WsException('Unauthorized: session not found or does not belong to you');
+      this.logger.warn(
+        `Unauthorized join attempt for session ${payload.sessionId} by companion ${companion.sub}`,
+      );
+      throw new WsException(
+        'Unauthorized: session not found or does not belong to you',
+      );
     }
 
     const room = `session_${payload.sessionId}`;
@@ -58,7 +78,9 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
     this.connectedClients.set(client.id, client);
 
     this.logger.log(`Companion ${companion.sub} joined room: ${room}`);
-    this.server.to(room).emit('companion_joined', { companionId: companion.sub });
+    this.server
+      .to(room)
+      .emit('companion_joined', { companionId: companion.sub });
 
     return { event: 'joined', room };
   }
@@ -66,9 +88,21 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
   @SubscribeMessage('send_message')
   async handleMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { sessionId: string; text: string; attachmentUrl?: string },
+    @MessageBody()
+    payload: { sessionId: string; text: string; attachmentUrl?: string },
   ) {
-    const companion = client.data.companion;
+    const companion = await this.assertSessionMember(
+      client,
+      payload?.sessionId,
+    );
+    if (
+      typeof payload.text !== 'string' ||
+      !payload.text.trim() ||
+      payload.text.length > 5000 ||
+      payload.attachmentUrl !== undefined
+    ) {
+      throw new WsException('Invalid session message');
+    }
     const room = `session_${payload.sessionId}`;
 
     const message = {
@@ -87,9 +121,26 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
   @SubscribeMessage('update_location')
   async handleLocationUpdate(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { sessionId: string; lat: number; lng: number; heading?: number },
+    @MessageBody()
+    payload: { sessionId: string; lat: number; lng: number; heading?: number },
   ) {
-    const companion = client.data.companion;
+    const companion = await this.assertSessionMember(
+      client,
+      payload?.sessionId,
+    );
+    if (
+      !Number.isFinite(payload.lat) ||
+      payload.lat < -90 ||
+      payload.lat > 90 ||
+      !Number.isFinite(payload.lng) ||
+      payload.lng < -180 ||
+      payload.lng > 180 ||
+      (payload.heading !== undefined &&
+        (!Number.isFinite(payload.heading) ||
+          payload.heading < 0 ||
+          payload.heading >= 360))
+    )
+      throw new WsException('Invalid location update');
     const room = `session_${payload.sessionId}`;
 
     const locationUpdate = {
@@ -109,7 +160,12 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { sessionId: string; isTyping: boolean },
   ) {
-    const companion = client.data.companion;
+    const companion = await this.assertSessionMember(
+      client,
+      payload?.sessionId,
+    );
+    if (typeof payload.isTyping !== 'boolean')
+      throw new WsException('Invalid typing update');
     const room = `session_${payload.sessionId}`;
 
     client.to(room).emit('typing', {
@@ -118,5 +174,30 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
     });
 
     return { success: true };
+  }
+
+  private async assertSessionMember(client: Socket, sessionId?: string) {
+    const companion = getCompanionSocketIdentity(client);
+    if (
+      !companion ||
+      typeof sessionId !== 'string' ||
+      !sessionId.trim() ||
+      sessionId.length > 100
+    ) {
+      throw new WsException('Unauthorized');
+    }
+    const room = `session_${sessionId}`;
+    if (!client.rooms.has(room)) throw new WsException('Unauthorized');
+    const session = await this.prisma.session.findFirst({
+      where: { id: sessionId, companionId: companion.sub },
+      select: { id: true, status: true },
+    });
+    if (
+      !session ||
+      ['completed', 'cancelled', 'no_show'].includes(session.status)
+    ) {
+      throw new WsException('Unauthorized');
+    }
+    return companion;
   }
 }

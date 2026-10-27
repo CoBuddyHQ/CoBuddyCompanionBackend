@@ -29,7 +29,7 @@ export class VerifyOtpDto {
 
   @ApiProperty({ example: '123456' })
   @IsNumberString()
-  @Length(6, 6)
+  @Length(6, 8)
   otp: string;
 
   @ApiPropertyOptional({ example: 'device-uuid-123' })

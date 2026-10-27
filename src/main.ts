@@ -29,6 +29,21 @@ function validateEnvironment(): void {
   }
 
   if (isProd) {
+    const invalidProductionConfig: string[] = [];
+    if (process.env.OTP_TEST_BYPASS_ENABLED === 'true') {
+      invalidProductionConfig.push('OTP_TEST_BYPASS_ENABLED must be false');
+    }
+    if (!process.env.INTERNAL_SERVICE_SECRET) {
+      invalidProductionConfig.push('INTERNAL_SERVICE_SECRET is required');
+    }
+    if (!process.env.ADMIN_API_URL) {
+      invalidProductionConfig.push('ADMIN_API_URL is required for live customer campaigns');
+    }
+    if (invalidProductionConfig.length > 0) {
+      logger.error(`Startup blocked: Invalid production configuration: ${invalidProductionConfig.join(', ')}`);
+      process.exit(1);
+    }
+
     const insecure: string[] = [];
     if (
       process.env.JWT_SECRET === 'default-secret' ||
@@ -147,8 +162,8 @@ async function bootstrap() {
     const prisma = app.get(PrismaService);
     await prisma.$queryRaw`SELECT 1`;
     logger.log('✅ Database connection verified');
-  } catch (err) {
-    logger.error('❌ Database connection failed at startup — aborting', err);
+  } catch {
+    logger.error('❌ Database connection failed at startup — aborting.');
     process.exit(1);
   }
 

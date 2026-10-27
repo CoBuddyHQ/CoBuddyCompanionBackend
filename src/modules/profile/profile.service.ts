@@ -288,7 +288,7 @@ export class ProfileService {
           data: {
             companionId,
             taskId: dto.taskId,
-            title: dto.taskId, // mock title
+            title: dto.taskId,
             description: '',
             category: 'general',
             points: dto.points,
@@ -557,31 +557,15 @@ export class ProfileService {
     });
     if (!companion) throw new NotFoundException('Companion not found');
 
-    if (!companion.categories.length) {
-      await this.prisma.companionCategory.create({
-        data: { companionId, category: 'cafe_conversation' },
-      });
-    }
-
-    if (!companion.languages.length) {
-      await this.prisma.companionLanguage.create({
-        data: { companionId, language: 'English', proficiency: 'fluent' },
-      });
-    }
-
-    if (!companion.hourlyRate) {
-      await this.prisma.companion.update({
-        where: { id: companionId },
-        data: { hourlyRate: 500 },
-      });
+    if (!companion.categories.length || !companion.languages.length || !companion.hourlyRate) {
+      throw new BadRequestException('Select categories, languages and an hourly rate before submitting your profile');
     }
 
     const updated = await this.prisma.companion.update({
       where: { id: companionId },
       data: {
         profileStatus: 'published',
-        // SECURITY FIX: Do NOT auto-approve — Admin team must review documents before approving.
-        // verificationStatus stays as-is (pending_review) until Admin sets 'approved' via the Admin panel.
+        // Authentication test settings never grant identity-review approval.
         verificationStatus: 'pending_review',
       },
     });
@@ -596,7 +580,7 @@ export class ProfileService {
     return {
       profileStatus: updated.profileStatus,
       verificationStatus: updated.verificationStatus,
-      message: 'Profile submitted for review. Our team will review within 2-3 business days.',
+      message: 'Profile submitted and pending review. Submission does not approve identity verification.',
     };
   }
 
@@ -653,5 +637,121 @@ export class ProfileService {
     const last4 = phone.slice(-4);
     const prefix = phone.slice(0, phone.indexOf(phone.replace(/^\+\d+\s?/, '')[0]));
     return `${prefix} ••••••${last4}`;
+  }
+
+  // ── Public Companion Discovery (for Customer App & Admin) ───────────────
+  async getApprovedCompanions(query: {
+    city?: string;
+    category?: string;
+    gender?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = Math.max(Number(query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(query.limit) || 20, 1), 100);
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      profileStatus: { in: ['approved', 'published'] },
+      verificationStatus: 'approved',
+      accountStatus: 'active',
+      deletedAt: null,
+    };
+
+    if (query.city && query.city.trim()) {
+      where.city = { contains: query.city.trim(), mode: 'insensitive' };
+    }
+    if (query.gender && query.gender.toLowerCase() !== 'any') {
+      where.gender = { equals: query.gender.trim(), mode: 'insensitive' };
+    }
+    if (query.search && query.search.trim()) {
+      const q = query.search.trim();
+      where.OR = [
+        { displayName: { contains: q, mode: 'insensitive' } },
+        { bio: { contains: q, mode: 'insensitive' } },
+        { city: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.companion.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: [{ rating: 'desc' }, { totalSessions: 'desc' }],
+        include: {
+          categories: true,
+          languages: true,
+          serviceAreas: true,
+          galleryPhotos: { take: 5 },
+        },
+      }),
+      this.prisma.companion.count({ where }),
+    ]);
+
+    return {
+      companions: items.map((c) => this.toPublicCard(c)),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getPublicCompanionDetail(id: string) {
+    const c = await this.prisma.companion.findFirst({
+      where: {
+        id,
+        verificationStatus: 'approved',
+        accountStatus: 'active',
+        deletedAt: null,
+      },
+      include: {
+        categories: true,
+        languages: true,
+        serviceAreas: true,
+        galleryPhotos: true,
+        reviews: { take: 10, orderBy: { createdAt: 'desc' } },
+      },
+    });
+    if (!c) throw new NotFoundException('Companion profile not found');
+    return this.toPublicCard(c);
+  }
+
+  toPublicCard(c: any) {
+    const activities = (c.categories || []).map((cat: any) => String(cat.category));
+    const languages = (c.languages || []).map((l: any) => String(l.language));
+    const photos = [
+      ...(c.photoUrl ? [c.photoUrl] : []),
+      ...((c.galleryPhotos || []).map((p: any) => p.url || p.photoUrl).filter(Boolean)),
+    ];
+
+    return {
+      id: c.id,
+      name: c.displayName || 'Companion',
+      age: c.dateOfBirth ? Math.floor((Date.now() - new Date(c.dateOfBirth).getTime()) / (365.25 * 24 * 3600 * 1000)) : 25,
+      initials: (c.displayName || 'CO').slice(0, 2).toUpperCase(),
+      title: c.tagline || 'Verified Companion',
+      bio: c.bio || '',
+      activities: activities.length ? activities : ['Social Meetup'],
+      trustScore: c.trustScore || 0,
+      rating: Number(c.rating) || 0.0,
+      reviewsCount: c.totalReviews || 0,
+      sessionsCount: c.totalSessions || 0,
+      completedSessions: c.totalSessions || 0,
+      rate: Number(c.hourlyRate) || 500,
+      formattedRate: `₹${Number(c.hourlyRate) || 500} /hr`,
+      location: c.city ? `${c.city}, India` : 'India',
+      city: c.city || '',
+      gender: c.gender || 'Any',
+      photos,
+      languages: languages.length ? languages : ['English', 'Hindi'],
+      hobbies: c.interestTags || [],
+      personality: [],
+      travelPreference: c.willingToTravel ? `Willing to travel up to ${c.travelRadius || 10} km` : 'No travel',
+      isOnline: c.isOnline || false,
+      category: activities[0] || 'coffee',
+    };
   }
 }

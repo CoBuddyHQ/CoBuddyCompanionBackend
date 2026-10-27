@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaymentsService } from '../payments/payments.service';
 
@@ -13,41 +13,7 @@ export class EarningsService {
   // ── GET /companion/earnings/summary — returns EarningsSummary interface ────
 
   async getSummary(companionId: string) {
-    let txCount = await this.prisma.earningsTransaction.count({ where: { companionId } });
-    // DEMO-SEED GUARD: Only auto-seed in development when ENABLE_DEMO_SEEDING=true
-    const enableDemoSeeding = process.env.ENABLE_DEMO_SEEDING === 'true' && process.env.NODE_ENV !== 'production';
-    if (txCount === 0 && enableDemoSeeding) {
-      await this.prisma.earningsTransaction.createMany({
-        data: [
-          {
-            companionId,
-            amount: 2550.0,
-            type: 'session_earning',
-            status: 'payout_eligible',
-            customerInitials: 'Neha S.',
-            description: 'Café Conversation Session Earning',
-          },
-          {
-            companionId,
-            amount: 1250.0,
-            type: 'session_earning',
-            status: 'pending_review',
-            customerInitials: 'Aman K.',
-            description: 'City Walk Session Earning (Under 48h clearance)',
-          },
-          {
-            companionId,
-            amount: 1950.0,
-            type: 'session_earning',
-            status: 'payout_eligible',
-            customerInitials: 'Rahul M.',
-            description: 'Art & Culture Exploration Earning',
-          },
-        ],
-      });
-    }
-
-    const [transactions, pendingTxs, companion] = await Promise.all([
+    const [transactions, pendingTxs, companion, allEarningTxs] = await Promise.all([
       this.prisma.earningsTransaction.findMany({
         where: { companionId, status: { in: ['payout_eligible', 'approved'] } },
       }),
@@ -55,6 +21,10 @@ export class EarningsService {
         where: { companionId, status: 'pending_review' },
       }),
       this.prisma.companion.findUnique({ where: { id: companionId } }),
+      this.prisma.earningsTransaction.findMany({
+        where: { companionId, type: { in: ['session_earning', 'extension_earning', 'safety_bonus'] }, status: { not: 'on_hold' } },
+        select: { amount: true },
+      }),
     ]);
 
     const now = new Date();
@@ -86,6 +56,17 @@ export class EarningsService {
       _sum: { amount: true },
     });
 
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayTxs = await this.prisma.earningsTransaction.findMany({
+      where: {
+        companionId,
+        createdAt: { gte: todayStart },
+        type: { in: ['session_earning', 'extension_earning', 'safety_bonus'] },
+        status: { not: 'on_hold' },
+      },
+    });
+    const todayEarnings = todayTxs.reduce((sum, t) => sum + Math.max(0, Number(t.amount)), 0);
+
     // Calculate next payout cycle (next 1st or 16th of month)
     const nextPayout = now.getDate() < 16
       ? new Date(now.getFullYear(), now.getMonth(), 16)
@@ -95,8 +76,10 @@ export class EarningsService {
     return {
       availableBalance: Math.max(0, availableBalance),
       pendingBalance: Math.max(0, pendingBalance),
-      totalEarnedAllTime: companion?.totalSessions ? companion.totalSessions * 700 : 0,
+      todayEarnings,
+      totalEarnedAllTime: allEarningTxs.reduce((sum, transaction) => sum + Math.max(0, Number(transaction.amount)), 0),
       totalEarnedThisMonth,
+      totalSessions: companion?.totalSessions ?? sessionsThisMonth,
       totalSessionsThisMonth: sessionsThisMonth,
       nextPayoutCycleDate: nextPayout.toISOString().split('T')[0],
       safetyHoldAmount: Number(onHold._sum.amount ?? 0),
@@ -141,78 +124,11 @@ export class EarningsService {
   // Backend derives maskedBank from companion's KYC-verified bank account.
 
   async requestPayout(companionId: string, amount: number) {
-    // Validate balance
-    const summary = await this.getSummary(companionId);
-    if (amount > summary.availableBalance) {
-      throw new BadRequestException('Insufficient available balance');
-    }
-    if (amount < 100) throw new BadRequestException('Minimum payout is ₹100');
-
-    // Derive masked bank from companion KYC record
-    const companion = await this.prisma.companion.findUnique({
-      where: { id: companionId },
-      select: { 
-        kyc: { select: { bankName: true, maskedBankAccount: true, bankIfsc: true, bankHolderName: true } } 
-      },
-    });
-    const maskedBank = companion?.kyc?.maskedBankAccount ?? 'HDFC Bank ****4545';
-
-    // No platform fee — CoBuddy covers all payout charges (shown on PayoutRequestScreen)
-    const netAmount = amount;
-
-    const payout = await this.prisma.payoutRecord.create({
-      data: {
-        companionId,
-        status: 'requested',
-        amount: netAmount,
-        platformFee: 0,
-        maskedBank,
-        requestedAt: new Date(),
-      },
-    });
-
-    // Log the payout debit transaction so it appears in TransactionHistory
-    await this.prisma.earningsTransaction.create({
-      data: {
-        companionId,
-        type: 'payout_transfer',
-        status: 'pending_review',
-        amount: -amount,
-        description: `Withdrawal to ${maskedBank}`,
-        payoutId: payout.id,
-        // PayoutSuccessScreen shows payoutId as Reference ID (format: PAY-XXXXXX)
-      },
-    });
-
-    // Trigger RazorpayX Payout if bank details are available
-    if (companion?.kyc?.bankIfsc && companion?.kyc?.bankHolderName) {
-      try {
-        await this.paymentsService.initiateCompanionPayout({
-          companionId,
-          amountINR: netAmount,
-          bankName: companion.kyc.bankName ?? 'Bank',
-          accountNumber: '1234567890', // In production, retrieved securely from encrypted KYC store
-          ifscCode: companion.kyc.bankIfsc,
-          accountName: companion.kyc.bankHolderName,
-          payoutRecordId: payout.id,
-        });
-      } catch (err: any) {
-        this.logger.warn(`RazorpayX live payout queued/failed: ${err.message}. Record saved in DB.`);
-      }
-    }
-
-    this.logger.log(`Payout requested: ${companionId} ₹${netAmount} → ${maskedBank}`);
-
-    // Returns exactly what PayoutSuccessScreen route.params expects: { payoutId, amount }
-    return {
-      payoutId: `PAY-${payout.id.slice(-6).toUpperCase()}`,
-      status: 'requested',
-      amount: netAmount,
-      platformFee: 0,
-      maskedBank,
-      estimatedArrival: '24–48 hours',
-      message: 'Payout request submitted. No transfer fees — CoBuddy covers all charges.',
-    };
+    void companionId;
+    void amount;
+    throw new ServiceUnavailableException(
+      'Payout processing is unavailable until verified bank details are stored securely and the payout provider is configured. No payout was created or balance debited.',
+    );
   }
 
   // ── GET /companion/earnings/payout/history ────────────────────────────────
@@ -420,8 +336,8 @@ export class EarningsService {
       // Parties section
       billedTo: 'CoBuddy Technologies Pvt Ltd',
       gstin: '29AABCU9603R1ZX',
-      companionCode: `CPN-${companion?.id.slice(0, 5).toUpperCase() ?? '10042'}`,
-      panNumber: companion?.kyc?.maskedPan ?? 'ABCDE1234F',
+      companionCode: companion ? `CPN-${companion.id.slice(0, 5).toUpperCase()}` : null,
+      panNumber: companion?.kyc?.maskedPan ?? null,
       // Session info
       category: session.category.toLowerCase(),
       venueName: session.venueName,

@@ -26,7 +26,7 @@ export class FcmService {
     if (!projectId || !clientEmail || !privateKey) {
       this.logger.warn(
         'Firebase Admin SDK not configured — FCM push notifications disabled. ' +
-        'Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY in .env to enable.'
+          'Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY in .env to enable.',
       );
       return;
     }
@@ -45,8 +45,10 @@ export class FcmService {
       this.firebaseAdmin = admin;
       this.initialized = true;
       this.logger.log('Firebase Admin SDK initialized ✓');
-    } catch (err) {
-      this.logger.warn(`Firebase Admin SDK init failed: ${err}`);
+    } catch {
+      this.logger.warn(
+        'Firebase Admin SDK initialization failed; push delivery is unavailable.',
+      );
     }
   }
 
@@ -59,11 +61,13 @@ export class FcmService {
       title: string;
       body: string;
       data?: Record<string, string>;
-    }
+    },
   ): Promise<boolean> {
     if (!this.initialized || !this.firebaseAdmin) {
-      this.logger.debug(`[FCM Mock] → "${payload.title}": ${payload.body}`);
-      return true; // Graceful no-op in development
+      this.logger.debug(
+        'Push notification was not sent because Firebase is not configured.',
+      );
+      return false;
     }
 
     try {
@@ -95,7 +99,7 @@ export class FcmService {
       this.logger.log(`FCM sent: ${response}`);
       return true;
     } catch (err: any) {
-      this.logger.error(`FCM send error: ${err?.message}`);
+      this.logger.error('Push notification delivery failed.');
       return false;
     }
   }
@@ -110,13 +114,15 @@ export class FcmService {
       title: string;
       body: string;
       data?: Record<string, string>;
-    }
+    },
   ): Promise<{ successCount: number; failureCount: number }> {
     if (!tokens.length) return { successCount: 0, failureCount: 0 };
 
     if (!this.initialized || !this.firebaseAdmin) {
-      this.logger.debug(`[FCM Mock Batch] ${tokens.length} tokens → "${payload.title}"`);
-      return { successCount: tokens.length, failureCount: 0 };
+      this.logger.debug(
+        'Push notifications were not sent because Firebase is not configured.',
+      );
+      return { successCount: 0, failureCount: tokens.length };
     }
 
     try {
@@ -131,8 +137,8 @@ export class FcmService {
         successCount: response.successCount,
         failureCount: response.failureCount,
       };
-    } catch (err: any) {
-      this.logger.error(`FCM batch send error: ${err?.message}`);
+    } catch {
+      this.logger.error('Push notification batch delivery failed.');
       return { successCount: 0, failureCount: tokens.length };
     }
   }
@@ -142,7 +148,11 @@ export class FcmService {
    */
   async notifyNewBookingRequest(
     companionTokens: string[],
-    requestData: { requestId: string; customerInitials: string; earning: number }
+    requestData: {
+      requestId: string;
+      customerInitials: string;
+      earning: number;
+    },
   ) {
     return this.sendToMultiple(companionTokens, {
       title: '🔔 New Booking Request',
@@ -159,7 +169,7 @@ export class FcmService {
    */
   async notifySessionReminder(
     companionTokens: string[],
-    sessionData: { sessionId: string; minutesBefore: number }
+    sessionData: { sessionId: string; minutesBefore: number },
   ) {
     return this.sendToMultiple(companionTokens, {
       title: '⏰ Session Reminder',
@@ -176,7 +186,7 @@ export class FcmService {
    */
   async notifyPayoutProcessed(
     token: string,
-    payoutData: { amount: number; transactionId: string }
+    payoutData: { amount: number; transactionId: string },
   ) {
     return this.sendToToken(token, {
       title: '💰 Payout Processed',

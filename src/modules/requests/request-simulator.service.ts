@@ -60,9 +60,15 @@ export class RequestSimulatorService {
     private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
+  private isEnabled(): boolean {
+    return process.env.NODE_ENV !== 'production' && process.env.ENABLE_REQUEST_SIMULATOR === 'true';
+  }
+
   // ── Every 2 minutes: create a new pending request for each companion ────────
   @Cron('*/2 * * * *')
   async createSimulatedRequest() {
+    if (!this.isEnabled()) return;
+
     try {
       // Get all active companions
       const companions = await this.prisma.companion.findMany({
@@ -112,8 +118,8 @@ export class RequestSimulatorService {
         this.notificationsGateway.emitNewBookingRequest(companion.id, req);
         this.logger.log(`✅ Simulated request created for companion ${companion.id} [${category} @ ${venue.name}]`);
       }
-    } catch (err: any) {
-      this.logger.error('Failed to create simulated request', err?.message);
+    } catch {
+      this.logger.error('Failed to create a development-only simulated request.');
     }
   }
 
@@ -132,8 +138,8 @@ export class RequestSimulatorService {
       if (result.count > 0) {
         this.logger.log(`🕐 Expired ${result.count} old pending requests`);
       }
-    } catch (err: any) {
-      this.logger.error('Failed to expire requests', err?.message);
+    } catch {
+      this.logger.error('Failed to expire requests.');
     }
   }
 }

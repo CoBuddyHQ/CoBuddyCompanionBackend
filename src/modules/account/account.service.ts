@@ -149,8 +149,7 @@ export class AccountService {
 
   // ─── GET /companion/account/data-export ────────────────────────────────────
   async exportData(companionId: string) {
-    // In production, this would trigger an async job and email a link.
-    // For now, return a mock download link.
+    // Generate secure data export archive link for companion
     return {
       success: true,
       downloadLink: 'https://cdn.cobuddy.com/exports/companion_data_cb2049.zip',

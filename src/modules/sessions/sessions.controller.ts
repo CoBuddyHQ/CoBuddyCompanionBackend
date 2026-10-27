@@ -77,6 +77,15 @@ class RateCustomerDto {
   @ApiPropertyOptional()
   @IsOptional() @IsString()
   feedback?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional() @IsString()
+  comment?: string;
+
+  @ApiPropertyOptional({ isArray: true })
+  @IsOptional() @IsArray()
+  @IsString({ each: true })
+  highlights?: string[];
 }
 
 @ApiTags('Sessions')
@@ -259,7 +268,13 @@ export class SessionsController {
     @Param('sessionId') sessionId: string,
     @Body() dto: RateCustomerDto,
   ) {
-    return this.sessionsService.rateCustomer(c.sub, sessionId, dto.rating, dto.feedback);
+    return this.sessionsService.rateCustomer(
+      c.sub,
+      sessionId,
+      dto.rating,
+      dto.feedback || dto.comment,
+      dto.highlights,
+    );
   }
 
   // ── IN-SESSION COMMUNICATIONS & TRACKING ───────────────────────────────────

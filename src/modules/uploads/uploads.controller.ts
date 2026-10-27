@@ -1,5 +1,5 @@
 import {
-  Controller, Post, Delete, Body, Param, UseGuards,
+  Controller, Post, Get, Res, Delete, Body, Param, UseGuards,
   UseInterceptors, UploadedFile, HttpCode, HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -10,6 +10,7 @@ import { CurrentCompanion } from '../../common/decorators/current-companion.deco
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { memoryStorage } from 'multer';
 import { ProfileService } from '../profile/profile.service';
+import type { Response } from 'express';
 
 const upload = memoryStorage();
 
@@ -23,13 +24,18 @@ export class UploadsController {
     private readonly profileService: ProfileService,
   ) {}
 
+  @Get('files/:fileId')
+  getPrivateFile(@CurrentCompanion() c: JwtPayload, @Param('fileId') fileId: string, @Res() res: Response) {
+    return this.uploadsService.streamPrivateFile(c.sub, fileId, res);
+  }
+
   /**
    * POST /companion/uploads/profile-photo — Endpoints.UPLOADS.PROFILE_PHOTO
    * Multipart/form-data with file field "photo"
    */
   @Post('profile-photo')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('photo', { storage: upload }))
+  @UseInterceptors(FileInterceptor('photo', { storage: upload, limits: { fileSize: 10 * 1024 * 1024, files: 1 } }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload profile photo — Endpoints.UPLOADS.PROFILE_PHOTO' })
   @ApiBody({ schema: { type: 'object', properties: { photo: { type: 'string', format: 'binary' } } } })
@@ -47,7 +53,7 @@ export class UploadsController {
    */
   @Post('gallery')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('photo', { storage: upload }))
+  @UseInterceptors(FileInterceptor('photo', { storage: upload, limits: { fileSize: 10 * 1024 * 1024, files: 1 } }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload gallery photo — Endpoints.UPLOADS.GALLERY_PHOTO' })
   @ApiBody({ schema: { type: 'object', properties: { photo: { type: 'string', format: 'binary' } } } })
@@ -73,7 +79,7 @@ export class UploadsController {
    */
   @Post('kyc/identity')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('document', { storage: upload }))
+  @UseInterceptors(FileInterceptor('document', { storage: upload, limits: { fileSize: 10 * 1024 * 1024, files: 1 } }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload KYC identity document' })
   async uploadKycIdentity(@CurrentCompanion() c: JwtPayload, @UploadedFile() file: Express.Multer.File) {
@@ -85,7 +91,7 @@ export class UploadsController {
    */
   @Post('kyc/selfie')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('video', { storage: upload }))
+  @UseInterceptors(FileInterceptor('video', { storage: upload, limits: { fileSize: 10 * 1024 * 1024, files: 1 } }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload KYC selfie video' })
   async uploadKycSelfie(@CurrentCompanion() c: JwtPayload, @UploadedFile() file: Express.Multer.File) {
@@ -97,7 +103,7 @@ export class UploadsController {
    */
   @Post('kyc/address')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('document', { storage: upload }))
+  @UseInterceptors(FileInterceptor('document', { storage: upload, limits: { fileSize: 10 * 1024 * 1024, files: 1 } }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload KYC address document' })
   async uploadKycAddress(@CurrentCompanion() c: JwtPayload, @UploadedFile() file: Express.Multer.File) {
@@ -109,7 +115,7 @@ export class UploadsController {
    */
   @Post('kyc/police')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('document', { storage: upload }))
+  @UseInterceptors(FileInterceptor('document', { storage: upload, limits: { fileSize: 10 * 1024 * 1024, files: 1 } }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload police verification certificate' })
   async uploadKycPolice(@CurrentCompanion() c: JwtPayload, @UploadedFile() file: Express.Multer.File) {
@@ -121,7 +127,7 @@ export class UploadsController {
    */
   @Post('kyc/pan')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('document', { storage: upload }))
+  @UseInterceptors(FileInterceptor('document', { storage: upload, limits: { fileSize: 10 * 1024 * 1024, files: 1 } }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload PAN card document' })
   async uploadKycPan(@CurrentCompanion() c: JwtPayload, @UploadedFile() file: Express.Multer.File) {
@@ -133,7 +139,7 @@ export class UploadsController {
    */
   @Post('kyc/bank')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('document', { storage: upload }))
+  @UseInterceptors(FileInterceptor('document', { storage: upload, limits: { fileSize: 10 * 1024 * 1024, files: 1 } }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload Bank passbook or cancelled cheque document' })
   async uploadKycBank(@CurrentCompanion() c: JwtPayload, @UploadedFile() file: Express.Multer.File) {
@@ -145,7 +151,7 @@ export class UploadsController {
    */
   @Post('evidence')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('document', { storage: upload }))
+  @UseInterceptors(FileInterceptor('document', { storage: upload, limits: { fileSize: 10 * 1024 * 1024, files: 1 } }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload incident/dispute evidence file' })
   async uploadEvidence(@CurrentCompanion() c: JwtPayload, @UploadedFile() file: Express.Multer.File) {

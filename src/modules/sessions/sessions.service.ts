@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { InternalBridgeService } from '../internal/internal-bridge.service';
 
 // ── Valid session status transition map ─────────────────────────────────────
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -22,68 +23,11 @@ export class SessionsService {
   constructor(
     private prisma: PrismaService,
     private notificationsGateway: NotificationsGateway,
+    @Optional() private internalBridgeService?: InternalBridgeService,
   ) {}
 
   // ── GET /companion/sessions/upcoming ─────────────────────────────────────
   async getUpcoming(companionId: string) {
-    // Only seed if no real sessions exist (check by non-seed customerId)
-    const realCount = await this.prisma.session.count({
-      where: {
-        companionId,
-        NOT: { customerId: { startsWith: 'cust_seed_' } },
-      },
-    });
-
-    const totalCount = await this.prisma.session.count({ where: { companionId } });
-
-    // DEMO-SEED GUARD: Only auto-seed in development/test when ENABLE_DEMO_SEEDING=true
-    const enableDemoSeeding = process.env.ENABLE_DEMO_SEEDING === 'true' && process.env.NODE_ENV !== 'production';
-    if (totalCount === 0 && enableDemoSeeding) {
-      const now = new Date();
-      await this.prisma.session.createMany({
-        data: [
-          {
-            companionId,
-            customerId: 'cust_seed_3',
-            status: 'upcoming',
-            category: 'cafe_conversation',
-            customerInitials: 'AS',
-            customerTrustScore: 95,
-            customerVerified: true,
-            customerSafetyConsent: true,
-            venueName: 'Café Coffee Day - MP Nagar',
-            venueArea: 'MP Nagar',
-            venueCity: 'Bhopal',
-            scheduledStart: new Date(now.getTime() + 3600000 * 3),
-            scheduledEnd: new Date(now.getTime() + 3600000 * 5),
-            durationMinutes: 120,
-            baseEarning: 749.0,
-            estimatedTotal: 749.0,
-            sessionPassCode: 'AR-642',
-          },
-          {
-            companionId,
-            customerId: 'cust_seed_4',
-            status: 'upcoming',
-            category: 'city_walk',
-            customerInitials: 'RK',
-            customerTrustScore: 91,
-            customerVerified: true,
-            customerSafetyConsent: true,
-            venueName: 'Upper Lake Walkway',
-            venueArea: 'Shamla Hills',
-            venueCity: 'Bhopal',
-            scheduledStart: new Date(now.getTime() + 3600000 * 24),
-            scheduledEnd: new Date(now.getTime() + 3600000 * 25.5),
-            durationMinutes: 90,
-            baseEarning: 800.0,
-            estimatedTotal: 800.0,
-            sessionPassCode: 'RK-109',
-          },
-        ],
-      });
-    }
-
     const sessions = await this.prisma.session.findMany({
       where: {
         companionId,
@@ -186,9 +130,9 @@ export class SessionsService {
     const session = await this.findSessionOrThrow(companionId, sessionId);
     this.guardTransition(session.status, 'active');
 
-    const isBypass = passCode === '0000';
-    const match = isBypass || session.sessionPassCode === passCode;
-    if (!match) throw new BadRequestException('Invalid session pass code');
+    if (!session.sessionPassCode || typeof passCode !== 'string' || session.sessionPassCode !== passCode) {
+      throw new BadRequestException('Invalid session pass code');
+    }
 
     const updated = await this.prisma.session.update({
       where: { id: sessionId },
@@ -205,6 +149,14 @@ export class SessionsService {
       `Your session with ${session.customerInitials} is now active. Have a great time!`,
       { sessionId },
     );
+
+    // S2S cross-backend sync to Customer Backend
+    if (session.requestId) {
+      await this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
+        status: 'in_progress',
+        sessionId: session.id,
+      }).catch(() => this.logger.warn('Failed to sync session start to Customer Backend.'));
+    }
 
     return { ...this.toSessionResponse(updated), verified: true };
   }
@@ -313,6 +265,15 @@ export class SessionsService {
     });
 
     await this._finalizeEarnings(companionId, sessionId, confirmed, session);
+
+    // S2S cross-backend sync to Customer Backend
+    if (session.requestId) {
+      await this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
+        status: 'completed',
+        sessionId: session.id,
+      }).catch(() => this.logger.warn('Failed to sync session completion to Customer Backend.'));
+    }
+
     return this.toSessionResponse(updated);
   }
 
@@ -339,6 +300,16 @@ export class SessionsService {
     );
 
     this.logger.log(`Session ${sessionId} cancelled by companion ${companionId}`);
+
+    // S2S cross-backend sync to Customer Backend
+    if (session.requestId) {
+      await this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
+        status: 'cancelled',
+        reason: cancelReasonFull,
+        sessionId: session.id,
+      }).catch(() => this.logger.warn('Failed to sync session cancellation to Customer Backend.'));
+    }
+
     return this.toSessionResponse(updated);
   }
 
@@ -393,6 +364,15 @@ export class SessionsService {
     });
 
     await this._finalizeEarnings(companionId, sessionId, confirmed, session);
+
+    // S2S cross-backend sync to Customer Backend
+    if (session.requestId) {
+      await this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
+        status: 'completed',
+        sessionId: session.id,
+      }).catch(() => this.logger.warn('Failed to sync session completion to Customer Backend.'));
+    }
+
     return this.toSessionResponse(updated);
   }
 
@@ -415,13 +395,40 @@ export class SessionsService {
   }
 
   // ── POST /companion/sessions/:sessionId/rate-customer ─────────────────────
-  async rateCustomer(companionId: string, sessionId: string, rating: number, feedback?: string) {
+  async rateCustomer(
+    companionId: string,
+    sessionId: string,
+    rating: number,
+    feedback?: string,
+    highlights?: string[],
+  ) {
     if (rating < 1 || rating > 5) throw new BadRequestException('Rating must be 1–5');
-    await this.findSessionOrThrow(companionId, sessionId);
+    const session = await this.findSessionOrThrow(companionId, sessionId);
     await this.prisma.session.update({
       where: { id: sessionId },
       data: { customerRating: rating, customerFeedback: feedback },
     });
+
+    const bookingId = session.requestId || sessionId;
+
+    // Notify Customer Backend (S2S)
+    await this.notifyCustomerBackendOfSessionUpdate(bookingId, {
+      status: 'customer_rated',
+      customerRating: rating,
+      customerFeedback: feedback,
+      highlights,
+    }).catch(() => {});
+
+    // Notify Admin Backend (S2S)
+    this.notifyAdminBackendOfReview({
+      bookingId,
+      byCompanionId: companionId,
+      toCustomerId: session.customerId,
+      rating,
+      text: feedback,
+      tagCodes: highlights,
+    }).catch(() => {});
+
     return { sessionId, customerRating: rating, message: 'Customer rated successfully' };
   }
 
@@ -440,7 +447,8 @@ export class SessionsService {
   async getCallToken(companionId: string, sessionId: string) {
     const session = await this.findSessionOrThrow(companionId, sessionId);
     if (!['upcoming', 'checked_in', 'active'].includes(session.status)) throw new BadRequestException('Session is not active');
-    return { token: 'mock-jwt-token-for-webrtc-call', channel: `session-${sessionId}` };
+    const callToken = Buffer.from(JSON.stringify({ sessionId, companionId, ts: Date.now() })).toString('base64url');
+    return { token: callToken, channel: `session-${sessionId}` };
   }
 
   async updateLocation(companionId: string, sessionId: string, lat: number, lng: number) {
@@ -488,13 +496,17 @@ export class SessionsService {
     data?: Record<string, any>,
   ) {
     try {
+      const route = data?.route || (data?.sessionId ? 'CPN_097_SessionDetail' : undefined);
+      const params = data?.params || (data?.sessionId ? { sessionId: data.sessionId } : undefined);
+      const enrichedData = data ? { ...data, ...(route ? { route, params } : {}) } : undefined;
+
       const notif = await this.prisma.notification.create({
         data: {
           companionId,
           type: type as any,
           title,
           body,
-          data: data ? JSON.stringify(data) : undefined,
+          data: enrichedData ? JSON.stringify(enrichedData) : undefined,
           isRead: false,
         },
       });
@@ -502,13 +514,23 @@ export class SessionsService {
       this.notificationsGateway.emitNotification(companionId, {
         notificationId: notif.id,
         type,
+        category: type,
         title,
         body,
-        data,
+        actionRoute: route ?? null,
+        actionParams: params ?? null,
+        data: enrichedData,
         createdAt: notif.createdAt.toISOString(),
       });
-    } catch (err: any) {
-      this.logger.warn(`Failed to create notification for ${companionId}: ${err.message}`);
+
+      if (data?.sessionId) {
+        this.notificationsGateway.emitSessionUpdated(companionId, {
+          sessionId: data.sessionId,
+          status: type,
+        });
+      }
+    } catch {
+      this.logger.warn('Failed to create a session notification.');
     }
   }
 
@@ -545,7 +567,7 @@ export class SessionsService {
       { sessionId },
     );
 
-    this.logger.log(`Session ${sessionId} finalized. Earning: ₹${confirmed}`);
+    this.logger.log('Session finalized and earnings recorded.');
   }
 
   // Returns EXACT Session interface from store.types.ts
@@ -593,5 +615,83 @@ export class SessionsService {
       notes: session.notes ?? null,
       createdAt: session.createdAt.toISOString(),
     };
+  }
+
+  // ── S2S HELPER: NOTIFY CUSTOMER BACKEND OF SESSION UPDATES ────────────────
+  private async notifyCustomerBackendOfSessionUpdate(bookingId: string, payload: any) {
+    if (this.internalBridgeService) {
+      await this.internalBridgeService.syncBookingStatus({
+        customerBookingId: bookingId,
+        ...payload,
+      });
+      return;
+    }
+
+    const customerBackendUrl = process.env.CUSTOMER_API_URL || 'http://localhost:4002';
+    const internalToken = process.env.INTERNAL_SERVICE_SECRET;
+    if (!internalToken) {
+      this.logger.warn(`Cannot notify customer backend for booking ${bookingId}: S2S secret is not configured`);
+      return;
+    }
+    try {
+      const res = await fetch(`${customerBackendUrl}/api/v1/internal/bookings/${bookingId}/status-update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-service-key': internalToken,
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!res.ok) {
+        this.logger.warn(`Failed to notify customer backend for booking ${bookingId}: ${res.status}`);
+      } else {
+        this.logger.log(`Synced session status ${payload.status} for booking ${bookingId} to customer backend`);
+      }
+    } catch {
+      this.logger.warn('Error connecting to Customer Backend for session status sync.');
+    }
+  }
+
+  // ── S2S HELPER: NOTIFY ADMIN BACKEND OF BOOKING UPDATES ───────────────────
+  private async notifyAdminBackendOfBookingSync(payload: any) {
+    const adminBackendUrl = process.env.ADMIN_API_URL || 'http://admin-backend:4000';
+    const internalToken = process.env.INTERNAL_SERVICE_SECRET;
+    if (!internalToken) return;
+    try {
+      await fetch(`${adminBackendUrl}/api/internal/bookings/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-service-key': internalToken,
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(5000),
+      });
+      this.logger.log(`Synced session ${payload.bookingId} to Admin Backend as ${payload.status}`);
+    } catch {
+      this.logger.warn('Error connecting to Admin Backend for booking sync.');
+    }
+  }
+
+  // ── S2S HELPER: NOTIFY ADMIN BACKEND OF REVIEWS ───────────────────────────
+  private async notifyAdminBackendOfReview(payload: any) {
+    const adminBackendUrl = process.env.ADMIN_API_URL || 'http://admin-backend:4000';
+    const internalToken = process.env.INTERNAL_SERVICE_SECRET;
+    if (!internalToken) return;
+    try {
+      await fetch(`${adminBackendUrl}/api/internal/reviews/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-service-key': internalToken,
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(5000),
+      });
+      this.logger.log(`Synced review for booking ${payload.bookingId} to Admin Backend`);
+    } catch {
+      this.logger.warn('Error connecting to Admin Backend for review sync.');
+    }
   }
 }

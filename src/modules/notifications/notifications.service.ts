@@ -38,41 +38,6 @@ export class NotificationsService {
 
 
   async getNotifications(companionId: string, page = 1, limit = 20) {
-    let count = await this.prisma.notification.count({ where: { companionId } });
-    // DEMO-SEED GUARD: Only auto-seed in development when ENABLE_DEMO_SEEDING=true
-    const enableDemoSeeding = process.env.ENABLE_DEMO_SEEDING === 'true' && process.env.NODE_ENV !== 'production';
-    if (count === 0 && enableDemoSeeding) {
-      const now = new Date();
-      await this.prisma.notification.createMany({
-        data: [
-          {
-            companionId,
-            type: 'request',
-            title: 'New Booking Request from P.M.',
-            body: 'Café Conversation • Today, 6:30 PM • MP Nagar • ₹749. Tap to review...',
-            isRead: false,
-            createdAt: new Date(now.getTime() - 10 * 60 * 1000),
-          },
-          {
-            companionId,
-            type: 'payout',
-            title: 'Payout of ₹3,500 Successful',
-            body: 'Your withdrawal has been processed and transferred to your registered bank account.',
-            isRead: false,
-            createdAt: new Date(now.getTime() - 60 * 60 * 1000),
-          },
-          {
-            companionId,
-            type: 'system',
-            title: 'Welcome to CoBuddy Companion!',
-            body: 'Your profile is live. Complete your first session to unlock the Rising Star badge.',
-            isRead: true,
-            createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
-          },
-        ],
-      });
-    }
-
     const [notifications, total, unreadCount] = await Promise.all([
       this.prisma.notification.findMany({
         where: { companionId },

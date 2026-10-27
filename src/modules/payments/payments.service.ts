@@ -41,9 +41,17 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import axios from 'axios';
 import { PrismaService } from '../../prisma/prisma.service';
+
+function safeCompare(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
 
 // ─── Razorpay API base ───────────────────────────────────────────────────────
 const RAZORPAY_BASE = 'https://api.razorpay.com/v1';
@@ -60,6 +68,12 @@ export class PaymentsService {
   private get razorpayAuth() {
     const cred = Buffer.from(`${this.keyId}:${this.keySecret}`).toString('base64');
     return { Authorization: `Basic ${cred}` };
+  }
+
+  private requirePaymentSecrets() {
+    if (!this.keyId || !this.keySecret || !this.webhookSecret) {
+      throw new BadRequestException('Payment provider is not configured.');
+    }
   }
 
   constructor(
@@ -140,8 +154,8 @@ export class PaymentsService {
         // Return key to React Native SDK — key_id is public
         key:      this.keyId,
       };
-    } catch (err: any) {
-      this.logger.error('Razorpay createOrder failed', err?.response?.data ?? err.message);
+    } catch {
+      this.logger.error('Razorpay order creation failed.');
       throw new InternalServerErrorException('Payment order creation failed');
     }
   }
@@ -158,13 +172,14 @@ export class PaymentsService {
     razorpaySignature: string;
     companionId?:      string;
   }) {
+    this.requirePaymentSecrets();
     // HMAC-SHA256: key = keySecret, data = "orderId|paymentId"
     const body = `${params.razorpayOrderId}|${params.razorpayPaymentId}`;
     const expected = createHmac('sha256', this.keySecret)
       .update(body)
       .digest('hex');
 
-    if (expected !== params.razorpaySignature) {
+    if (!safeCompare(expected, params.razorpaySignature)) {
       this.logger.warn(`Payment signature mismatch for order ${params.razorpayOrderId}`);
       throw new BadRequestException('Invalid payment signature');
     }
@@ -203,12 +218,13 @@ export class PaymentsService {
   // ─────────────────────────────────────────────────────────────────────────
 
   async handleWebhook(rawBody: Buffer, signature: string) {
+    this.requirePaymentSecrets();
     // Verify webhook signature
     const expected = createHmac('sha256', this.webhookSecret)
       .update(rawBody)
       .digest('hex');
 
-    if (expected !== signature) {
+    if (!safeCompare(expected, signature)) {
       this.logger.warn('Webhook signature invalid — rejecting');
       throw new BadRequestException('Invalid webhook signature');
     }
@@ -263,7 +279,7 @@ export class PaymentsService {
           where: { razorpayPayoutId: payout.id },
           data:  { status: 'completed', utrNumber: payout.utr, completedAt: new Date() },
         });
-        this.logger.log(`Payout ${payout.id} processed. UTR: ${payout.utr}`);
+        this.logger.log('Payout status updated from the provider.');
         break;
       }
 
@@ -336,7 +352,7 @@ export class PaymentsService {
         { headers: { ...this.razorpayAuth, 'Content-Type': 'application/json' } },
       );
 
-      this.logger.log(`Payout initiated: ${data.id} ₹${params.amountINR} → ${params.bankName}`);
+      this.logger.log('Payout initiated with the configured payment provider.');
 
       // Update DB with Razorpay payout ID
       await this.prisma.payoutRecord.update({
@@ -349,12 +365,12 @@ export class PaymentsService {
         status:           data.status,
         utr:              data.utr ?? null,
       };
-    } catch (err: any) {
-      this.logger.error('Razorpay payout failed', err?.response?.data ?? err.message);
+    } catch {
+      this.logger.error('Razorpay payout request failed.');
       // Mark payout record as failed
       await this.prisma.payoutRecord.update({
         where: { id: params.payoutRecordId },
-        data:  { status: 'failed', failureReason: err?.response?.data?.error?.description ?? 'Payout failed' },
+        data:  { status: 'failed', failureReason: 'Payout request failed' },
       });
       throw new InternalServerErrorException('Payout initiation failed');
     }
@@ -449,38 +465,9 @@ export class PaymentsService {
     sessionId?:        string;
     companionId?:      string;
   }) {
-    try {
-      if (params.sessionId && params.companionId) {
-        const session = await this.prisma.session.findUnique({
-          where: { id: params.sessionId },
-        });
-        if (session && session.companionId !== params.companionId) {
-          throw new ForbiddenException('Unauthorized: You do not own this session');
-        }
-      }
-
-      const body: Record<string, any> = {
-        speed:  'optimum',  // optimum = instant if available, else 5-7 days
-        notes:  { sessionId: params.sessionId ?? '', reason: params.reason ?? 'Booking cancelled' },
-      };
-      if (params.amountINR) {
-        body.amount = Math.round(params.amountINR * 100);
-      }
-
-      const { data } = await axios.post(
-        `${RAZORPAY_BASE}/payments/${params.razorpayPaymentId}/refund`,
-        body,
-        { headers: { ...this.razorpayAuth, 'Content-Type': 'application/json' } },
-      );
-
-      this.logger.log(`Refund initiated: ${data.id} ₹${(data.amount / 100)}`);
-      return { refundId: data.id, status: data.status, amountINR: data.amount / 100 };
-    } catch (err: any) {
-      if (err instanceof ForbiddenException || err instanceof BadRequestException) {
-        throw err;
-      }
-      this.logger.error('Razorpay refund failed', err?.response?.data ?? err.message);
-      throw new InternalServerErrorException('Refund initiation failed');
-    }
+    void params;
+    throw new BadRequestException(
+      'Refunds are unavailable until a verified payment-to-booking ownership contract is configured. No refund was requested.',
+    );
   }
 }

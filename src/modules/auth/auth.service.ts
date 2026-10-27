@@ -9,7 +9,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
-import { isTestOtpAllowed, isTestPhoneAllowlisted } from '../../common/utils/otp-test.util';
+import { QA_TEST_OTP, isReservedTestOtp, isTestOtpAllowed, isTestPhoneAllowlisted } from '../../common/utils/otp-test.util';
 import * as bcrypt from 'bcrypt';
 import {
   SendOtpDto,
@@ -39,13 +39,11 @@ export class AuthService {
 
     let otp: string;
     if (isAllowlisted) {
-      otp = '12345465';
+      otp = QA_TEST_OTP;
     } else {
-      const smsConfigured = Boolean(this.config.get('SMS_API_KEY') || this.config.get('FAST2SMS_API_KEY'));
-      if (!smsConfigured && this.config.get('NODE_ENV') === 'production') {
-        throw new ServiceUnavailableException('SMS OTP delivery provider is not configured. Please contact support.');
-      }
-      otp = this.generateOtp();
+      throw new ServiceUnavailableException(
+        'SMS OTP delivery is unavailable because no SMS sender is integrated. Please contact support.',
+      );
     }
 
     // Invalidate old OTPs
@@ -63,7 +61,7 @@ export class AuthService {
     this.logger.log(`OTP generated for ${maskedPhone}`);
 
     return {
-      message: 'OTP sent successfully',
+      message: 'QA test OTP prepared; no SMS was sent.',
       expiresInMinutes: expiresIn,
     };
   }
@@ -82,9 +80,11 @@ export class AuthService {
     if (new Date() > session.expiresAt) throw new BadRequestException('OTP has expired');
     if (session.attempts >= maxAttempts) throw new BadRequestException('Too many attempts. Request a new OTP.');
 
-    // Fixed test OTP 12345465 is ONLY accepted for allowlisted QA phones when enabled
+    // Reserved QA codes must never fall through to stored-hash verification.
     const isAllowlistedBypass = isTestOtpAllowed(dto.phone, dto.otp);
-    const valid = isAllowlistedBypass || (await bcrypt.compare(dto.otp, session.otp));
+    const valid = isReservedTestOtp(dto.otp)
+      ? isAllowlistedBypass
+      : await bcrypt.compare(dto.otp, session.otp);
     if (!valid) {
       await this.prisma.oTPSession.update({
         where: { id: session.id },
@@ -139,12 +139,16 @@ export class AuthService {
     if (new Date() > tokenRecord.expiresAt) {
       throw new UnauthorizedException('Refresh token expired');
     }
+    if (tokenRecord.companion.deletedAt || ['deleted', 'suspended', 'deactivated'].includes(tokenRecord.companion.accountStatus)) {
+      throw new UnauthorizedException('Account is not active');
+    }
 
     // Rotate token
-    await this.prisma.refreshToken.update({
-      where: { id: tokenRecord.id },
+    const consumed = await this.prisma.refreshToken.updateMany({
+      where: { id: tokenRecord.id, isRevoked: false },
       data: { isRevoked: true },
     });
+    if (consumed.count !== 1) throw new UnauthorizedException('Refresh token already used');
 
     const tokens = await this.generateTokens(tokenRecord.companion, tokenRecord.deviceId ?? undefined);
     return tokens;
@@ -207,10 +211,6 @@ export class AuthService {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-
-  private generateOtp(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  }
 
   private maskPhone(phone: string): string {
     if (phone.length < 4) return phone;
