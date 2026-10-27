@@ -12,3 +12,26 @@ describe('session pass ownership boundary', () => {
     },
   );
 });
+
+describe('recent booking status reconciliation', () => {
+  it('resends source-of-truth completed states to customer-owned booking records', async () => {
+    const prisma = { session: { findMany: jest.fn().mockResolvedValue([
+      { id: 's1', requestId: 'b1', status: 'completed' },
+      { id: 's2', requestId: 'b2', status: 'active' },
+    ]) } };
+    const bridge = { syncBookingStatus: jest.fn().mockResolvedValue(true) };
+    const service = new SessionsService(prisma as any, {} as any, bridge as any);
+    await service.reconcileRecentBookingStatuses();
+    expect(bridge.syncBookingStatus).toHaveBeenNthCalledWith(1, { customerBookingId: 'b1', sessionId: 's1', status: 'completed' });
+    expect(bridge.syncBookingStatus).toHaveBeenNthCalledWith(2, { customerBookingId: 'b2', sessionId: 's2', status: 'in_progress' });
+  });
+  it('stops the batch on the first unavailable customer callback so it retries later', async () => {
+    const prisma = { session: { findMany: jest.fn().mockResolvedValue([
+      { id: 's1', requestId: 'b1', status: 'completed' },
+      { id: 's2', requestId: 'b2', status: 'completed' },
+    ]) } };
+    const bridge = { syncBookingStatus: jest.fn().mockResolvedValue(false) };
+    await new SessionsService(prisma as any, {} as any, bridge as any).reconcileRecentBookingStatuses();
+    expect(bridge.syncBookingStatus).toHaveBeenCalledTimes(1);
+  });
+});
