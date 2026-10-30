@@ -13,6 +13,7 @@ import { RequestsService } from './requests.service';
 import {
   CreateInternalBookingRequestDto,
   ModifyInternalBookingRequestDto,
+  RespondInternalCounterOfferDto,
 } from './dto/internal-booking-request.dto';
 import { InternalServiceGuard } from '../../common/guards/internal-service.guard';
 
@@ -57,5 +58,16 @@ export class InternalRequestsController {
     @Body() dto: ModifyInternalBookingRequestDto,
   ) {
     return this.requestsService.modifyInternalRequest(bookingId, dto);
+  }
+
+  @Post(':bookingId/counter-response')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Apply a customer response to a companion counter-offer' })
+  @ApiHeader({ name: 'X-Internal-Service-Key', required: true })
+  async respondToCounterOffer(
+    @Param('bookingId') bookingId: string,
+    @Body() dto: RespondInternalCounterOfferDto,
+  ) {
+    return this.requestsService.respondToCustomerCounterOffer(bookingId, dto.action);
   }
 }

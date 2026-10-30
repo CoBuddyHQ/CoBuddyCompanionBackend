@@ -18,12 +18,16 @@ describe('recent booking status reconciliation', () => {
     const prisma = { session: { findMany: jest.fn().mockResolvedValue([
       { id: 's1', requestId: 'b1', status: 'completed' },
       { id: 's2', requestId: 'b2', status: 'active' },
+      { id: 's3', requestId: 'b3', status: 'upcoming', sessionPassCode: '9137' },
     ]) } };
     const bridge = { syncBookingStatus: jest.fn().mockResolvedValue(true) };
     const service = new SessionsService(prisma as any, {} as any, bridge as any);
     await service.reconcileRecentBookingStatuses();
     expect(bridge.syncBookingStatus).toHaveBeenNthCalledWith(1, { customerBookingId: 'b1', sessionId: 's1', status: 'completed' });
     expect(bridge.syncBookingStatus).toHaveBeenNthCalledWith(2, { customerBookingId: 'b2', sessionId: 's2', status: 'in_progress' });
+    expect(bridge.syncBookingStatus).toHaveBeenNthCalledWith(3, {
+      customerBookingId: 'b3', sessionId: 's3', status: 'accepted', sessionPassCode: '9137',
+    });
   });
   it('stops the batch on the first unavailable customer callback so it retries later', async () => {
     const prisma = { session: { findMany: jest.fn().mockResolvedValue([

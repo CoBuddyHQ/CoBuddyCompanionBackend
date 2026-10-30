@@ -349,16 +349,78 @@ export class RequestsService {
     return { success: true, request: this.toRequestResponse(updated) };
   }
 
+  async respondToCustomerCounterOffer(bookingId: string, action: 'accept' | 'decline') {
+    const request = await this.prisma.bookingRequest.findFirst({
+      where: { id: bookingId, status: 'counter_proposed' },
+      select: { companionId: true, expiresAt: true },
+    });
+    if (!request) throw new NotFoundException('Counter offer not found or already handled.');
+    if (request.expiresAt <= new Date()) {
+      throw new BadRequestException('This counter offer has expired.');
+    }
+
+    if (action === 'accept') {
+      return this.acceptRequest(request.companionId, bookingId);
+    }
+    return this.declineRequest(
+      request.companionId,
+      bookingId,
+      'Customer declined the counter-offer.',
+    );
+  }
+
   // ── POST /companion/requests/:requestId/accept ────────────────────────────
   async acceptRequest(companionId: string, requestId: string) {
-    const req = await this.findPendingOrThrow(companionId, requestId);
-    const sessionPassCode = this.generatePassCode(req.customerInitials);
+    const acceptance = await this.prisma.$transaction(async (tx) => {
+      // Serialize acceptance decisions per companion so two simultaneous requests
+      // cannot both reserve overlapping time slots.
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${companionId})::bigint)`;
 
-    const { updated, session, notif } = await this.prisma.$transaction(async (tx) => {
-      const updatedReq = await tx.bookingRequest.update({
-        where: { id: requestId },
-        data: { status: 'accepted', respondedAt: new Date() },
+      const req = await tx.bookingRequest.findFirst({
+        where: { id: requestId, companionId, status: { in: ['pending', 'counter_proposed'] } },
       });
+      if (!req) throw new NotFoundException('Pending booking request not found');
+      const now = new Date();
+      if (req.expiresAt <= now) throw new BadRequestException('This request has expired');
+
+      const acceptedStart = req.status === 'counter_proposed'
+        ? req.counterProposedStart ?? req.proposedStart
+        : req.proposedStart;
+      const acceptedEnd = req.status === 'counter_proposed'
+        ? req.counterProposedEnd ?? req.proposedEnd
+        : req.proposedEnd;
+      const conflict = await tx.session.findFirst({
+        where: {
+          companionId,
+          status: { notIn: ['completed', 'cancelled', 'no_show'] },
+          scheduledStart: { lt: acceptedEnd },
+          scheduledEnd: { gt: acceptedStart },
+        },
+        select: { id: true },
+      });
+      if (conflict) {
+        throw new ConflictException('This time overlaps another accepted companion booking.');
+      }
+
+      const claim = await tx.bookingRequest.updateMany({
+        where: {
+          id: requestId,
+          companionId,
+          status: req.status,
+          expiresAt: { gt: now },
+        },
+        data: {
+          status: 'accepted',
+          respondedAt: now,
+          proposedStart: acceptedStart,
+          proposedEnd: acceptedEnd,
+        },
+      });
+      if (claim.count !== 1) {
+        throw new ConflictException('This booking request was already handled. Refresh and try again.');
+      }
+      const updatedReq = await tx.bookingRequest.findUniqueOrThrow({ where: { id: requestId } });
+      const passCode = this.generatePassCode(req.customerInitials);
 
       const newSession = await tx.session.create({
         data: {
@@ -381,14 +443,14 @@ export class RequestsService {
           venueMeetingPoint: req.venueMeetingPoint,
           venueLandmark: req.venueLandmark,
           isVenueApproved: req.isVenueApproved,
-          scheduledStart: req.proposedStart,
-          scheduledEnd: req.proposedEnd,
+          scheduledStart: acceptedStart,
+          scheduledEnd: acceptedEnd,
           durationMinutes: req.durationMinutes,
           language: req.language,
           baseEarning: req.estimatedEarning,
           bonusEarning: 0,
           estimatedTotal: req.estimatedEarning,
-          sessionPassCode,
+          sessionPassCode: passCode,
         },
       });
 
@@ -397,7 +459,7 @@ export class RequestsService {
           companionId,
           type: 'session',
           title: 'Booking Accepted ✓',
-          body: `You accepted the booking from ${req.customerInitials} at ${req.venueName}. Session created with pass code: ${sessionPassCode}`,
+          body: `You accepted the booking from ${req.customerInitials} at ${req.venueName}. Session created.`,
           data: JSON.stringify({
             sessionId: newSession.id,
             requestId,
@@ -408,8 +470,66 @@ export class RequestsService {
         },
       });
 
-      return { updated: updatedReq, session: newSession, notif: dbNotif };
+      // Find and auto-decline any competing pending requests for this companion that overlap this confirmed slot
+      const conflictingPendingRequests = await tx.bookingRequest.findMany({
+        where: {
+          companionId,
+          id: { not: requestId },
+          status: { in: ['pending', 'counter_proposed'] },
+          proposedStart: { lt: acceptedEnd },
+          proposedEnd: { gt: acceptedStart },
+        },
+      });
+
+      if (conflictingPendingRequests.length > 0) {
+        const autoDeclineReason = 'Companion accepted another confirmed booking for this time slot';
+        await tx.bookingRequest.updateMany({
+          where: {
+            id: { in: conflictingPendingRequests.map((r) => r.id) },
+          },
+          data: {
+            status: 'declined',
+            declineReason: autoDeclineReason,
+            respondedAt: now,
+          },
+        });
+
+        for (const confReq of conflictingPendingRequests) {
+          await tx.notification.create({
+            data: {
+              companionId,
+              type: 'request',
+              title: 'Overlapping Request Auto-Declined',
+              body: `Request from ${confReq.customerInitials} was auto-declined because you confirmed another booking for this time slot.`,
+              data: JSON.stringify({
+                requestId: confReq.id,
+                route: 'CPN_067_Inbox',
+              }),
+              isRead: false,
+            },
+          });
+        }
+      }
+
+      return {
+        updated: updatedReq,
+        session: newSession,
+        notif: dbNotif,
+        sessionPassCode: passCode,
+        acceptedStart,
+        acceptedEnd,
+        conflictingRequests: conflictingPendingRequests,
+      };
     });
+    const { updated, session, notif, sessionPassCode, acceptedStart, acceptedEnd, conflictingRequests } = acceptance as {
+      updated: any;
+      session: any;
+      notif: any;
+      sessionPassCode: string;
+      acceptedStart: Date;
+      acceptedEnd: Date;
+      conflictingRequests: any[];
+    };
 
     this.notificationsGateway.emitNotification(companionId, {
       notificationId: notif.id,
@@ -431,13 +551,30 @@ export class RequestsService {
 
     this.logger.log(`Request ${requestId} accepted → Session ${session.id} created`);
 
-    // S2S cross-backend sync to Customer Backend
+    // S2S cross-backend sync to Customer Backend for accepted booking
     await this.notifyCustomerBackendOfStatusUpdate(requestId, {
       status: 'accepted',
       passCode: sessionPassCode,
       companionId,
       sessionId: session.id,
+      newStart: acceptedStart.toISOString(),
+      newEnd: acceptedEnd.toISOString(),
     });
+
+    // Notify customer backend for any auto-declined competing requests
+    if (conflictingRequests && conflictingRequests.length > 0) {
+      for (const confReq of conflictingRequests) {
+        await this.notifyCustomerBackendOfStatusUpdate(confReq.id, {
+          status: 'declined',
+          reason: 'Companion accepted another confirmed booking for this time slot',
+          companionId,
+        });
+        this.notificationsGateway.emitBookingUpdated(companionId, {
+          requestId: confReq.id,
+          status: 'declined',
+        });
+      }
+    }
 
     return {
       request: this.toRequestResponse(updated),

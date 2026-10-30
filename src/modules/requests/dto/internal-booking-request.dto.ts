@@ -141,3 +141,8 @@ export class ModifyInternalBookingRequestDto {
   @IsString()
   customerNote?: string;
 }
+
+export class RespondInternalCounterOfferDto {
+  @IsIn(['accept', 'decline'])
+  action!: 'accept' | 'decline';
+}

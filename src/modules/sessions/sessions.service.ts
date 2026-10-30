@@ -37,15 +37,16 @@ export class SessionsService {
         where: {
           requestId: { not: null },
           updatedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-          status: { in: ['active', 'extending', 'completed', 'cancelled'] },
+          status: { in: ['upcoming', 'active', 'extending', 'completed', 'cancelled'] },
         },
-        select: { id: true, requestId: true, status: true },
+        select: { id: true, requestId: true, status: true, sessionPassCode: true },
         take: 200,
         orderBy: { updatedAt: 'asc' },
       });
       for (const session of sessions) {
-        let status: 'in_progress' | 'completed' | 'cancelled';
+        let status: 'accepted' | 'in_progress' | 'completed' | 'cancelled';
         switch (session.status) {
+          case 'upcoming': status = 'accepted'; break;
           case 'active':
           case 'extending': status = 'in_progress'; break;
           case 'completed':
@@ -56,6 +57,9 @@ export class SessionsService {
           customerBookingId: session.requestId!,
           sessionId: session.id,
           status,
+          ...(status === 'accepted' && session.sessionPassCode
+            ? { sessionPassCode: session.sessionPassCode }
+            : {}),
         });
         if (!synced) break;
       }
