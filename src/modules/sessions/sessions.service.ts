@@ -21,6 +21,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
 export class SessionsService {
   private readonly logger = new Logger(SessionsService.name);
   private reconciliationRunning = false;
+  private reviewSyncRunning = false;
 
   constructor(
     private prisma: PrismaService,
@@ -67,6 +68,64 @@ export class SessionsService {
       this.logger.warn('Recent booking status reconciliation failed; it will retry on the next interval.');
     } finally {
       this.reconciliationRunning = false;
+    }
+  }
+
+  @Cron('*/30 * * * * *')
+  async reconcilePendingAdminReviews(): Promise<void> {
+    if (this.reviewSyncRunning) return;
+    this.reviewSyncRunning = true;
+    try {
+      const retryBefore = new Date(Date.now() - 60_000);
+      const sessions = await this.prisma.session.findMany({
+        where: {
+          customerRating: { not: null },
+          adminReviewSyncedAt: null,
+          OR: [
+            { adminReviewSyncAttemptedAt: null },
+            { adminReviewSyncAttemptedAt: { lte: retryBefore } },
+          ],
+        },
+        select: {
+          id: true,
+          requestId: true,
+          companionId: true,
+          customerId: true,
+          customerRating: true,
+          customerFeedback: true,
+          customerRatingHighlights: true,
+        },
+        orderBy: { updatedAt: 'asc' },
+        take: 50,
+      });
+
+      for (const session of sessions) {
+        const attemptedAt = new Date();
+        await this.prisma.session.update({
+          where: { id: session.id },
+          data: { adminReviewSyncAttemptedAt: attemptedAt },
+        });
+        try {
+          await this.notifyAdminBackendOfReview({
+            bookingId: session.requestId || session.id,
+            byCompanionId: session.companionId,
+            toCustomerId: session.customerId,
+            rating: session.customerRating,
+            text: session.customerFeedback,
+            tagCodes: session.customerRatingHighlights,
+          });
+          await this.prisma.session.update({
+            where: { id: session.id },
+            data: { adminReviewSyncedAt: new Date() },
+          });
+        } catch {
+          this.logger.warn('Companion rating is queued for Admin sync retry.');
+        }
+      }
+    } catch {
+      this.logger.warn('Could not process pending Admin review syncs.');
+    } finally {
+      this.reviewSyncRunning = false;
     }
   }
 
@@ -450,7 +509,12 @@ export class SessionsService {
     const session = await this.findSessionOrThrow(companionId, sessionId);
     await this.prisma.session.update({
       where: { id: sessionId },
-      data: { customerRating: rating, customerFeedback: feedback },
+      data: {
+        customerRating: rating,
+        customerFeedback: feedback,
+        customerRatingHighlights: highlights || [],
+        adminReviewSyncAttemptedAt: new Date(),
+      },
     });
 
     const bookingId = session.requestId || sessionId;
@@ -464,14 +528,19 @@ export class SessionsService {
     }).catch(() => {});
 
     // Notify Admin Backend (S2S)
-    this.notifyAdminBackendOfReview({
+    void this.notifyAdminBackendOfReview({
       bookingId,
       byCompanionId: companionId,
       toCustomerId: session.customerId,
       rating,
       text: feedback,
       tagCodes: highlights,
-    }).catch(() => {});
+    }).then(() => this.prisma.session.update({
+      where: { id: sessionId },
+      data: { adminReviewSyncedAt: new Date() },
+    })).catch(() => {
+      this.logger.warn('Companion rating is queued for Admin sync retry.');
+    });
 
     return { sessionId, customerRating: rating, message: 'Customer rated successfully' };
   }
@@ -724,9 +793,9 @@ export class SessionsService {
   private async notifyAdminBackendOfReview(payload: any) {
     const adminBackendUrl = process.env.ADMIN_API_URL || 'http://admin-backend:4000';
     const internalToken = process.env.INTERNAL_SERVICE_SECRET;
-    if (!internalToken) return;
+    if (!internalToken) throw new Error('Admin review sync is not configured.');
     try {
-      await fetch(`${adminBackendUrl}/api/internal/reviews/sync`, {
+      const response = await fetch(`${adminBackendUrl}/api/internal/reviews/sync`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -735,9 +804,18 @@ export class SessionsService {
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(5000),
       });
+      if (!response.ok) throw new Error(`Admin returned HTTP ${response.status}`);
+      const envelope: unknown = await response.json();
+      if (!envelope || typeof envelope !== 'object') throw new Error('Invalid Admin response');
+      const record = envelope as Record<string, unknown>;
+      const result = record.data && typeof record.data === 'object'
+        ? record.data as Record<string, unknown>
+        : record;
+      if (result.success !== true) throw new Error('Admin did not confirm the review sync');
       this.logger.log(`Synced review for booking ${payload.bookingId} to Admin Backend`);
     } catch {
-      this.logger.warn('Error connecting to Admin Backend for review sync.');
+      this.logger.warn('Admin review sync did not complete.');
+      throw new Error('Admin review sync did not complete.');
     }
   }
 }

@@ -114,7 +114,9 @@ export class UploadsService {
     } else if (this.config.get('AWS_ACCESS_KEY_ID') && this.config.get('AWS_SECRET_ACCESS_KEY')) {
       url = await this.uploadToS3(file, fileKey);
     } else {
-      const base = this.config.get<string>('PUBLIC_MEDIA_BASE_URL');
+      const base =
+        this.config.get<string>('PUBLIC_MEDIA_BASE_URL') ||
+        (this.config.get('NODE_ENV') !== 'production' ? 'http://10.0.2.2:4401' : null);
       if (!base || !/^https?:\/\//.test(base)) {
         throw new ServiceUnavailableException('PUBLIC_MEDIA_BASE_URL is required for local public uploads');
       }

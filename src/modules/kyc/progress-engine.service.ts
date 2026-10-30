@@ -164,7 +164,7 @@ export class ProgressEngineService {
     const nextStep = (currIdx >= 0 && currIdx < this.MODULES.length - 1) ? this.MODULES[currIdx + 1].id : 'done';
 
     const actualProfileStatus = companion?.profileStatus || 'draft';
-    const isSubmitted = actualProfileStatus === 'submitted' || actualProfileStatus === 'under_review';
+    const isSubmitted = actualProfileStatus === 'submitted' || actualProfileStatus === 'under_review' || actualProfileStatus === 'published';
 
     return {
       profile: companion,

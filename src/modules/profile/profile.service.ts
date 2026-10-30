@@ -564,7 +564,7 @@ export class ProfileService {
     const updated = await this.prisma.companion.update({
       where: { id: companionId },
       data: {
-        profileStatus: 'published',
+        profileStatus: 'submitted',
         // Authentication test settings never grant identity-review approval.
         verificationStatus: 'pending_review',
       },

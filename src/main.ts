@@ -2,6 +2,9 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, RequestMethod, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as express from 'express';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -96,11 +99,19 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // ── STATIC PUBLIC UPLOADS (LOCAL STORAGE) ───────────────────────────────────
+  const uploadsPublicDir = path.resolve(process.cwd(), 'uploads', 'public');
+  if (!fs.existsSync(uploadsPublicDir)) {
+    fs.mkdirSync(uploadsPublicDir, { recursive: true });
+  }
+  app.use('/uploads/public', express.static(uploadsPublicDir));
+
   // ── GLOBAL PREFIX ─────────────────────────────────────────────────────────
   app.setGlobalPrefix('api/v1', {
     exclude: [
       { path: '', method: RequestMethod.GET },
       { path: 'health', method: RequestMethod.GET },
+      { path: 'uploads/public/(.*)', method: RequestMethod.GET },
     ],
   });
 

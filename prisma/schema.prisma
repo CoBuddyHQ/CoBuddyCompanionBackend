@@ -530,6 +530,9 @@ model Session {
   notes                    String?       @db.Text
   customerRating           Int?
   customerFeedback         String?
+  customerRatingHighlights String[]      @default([])
+  adminReviewSyncedAt      DateTime?
+  adminReviewSyncAttemptedAt DateTime?
   createdAt                DateTime      @default(now())
   updatedAt                DateTime      @updatedAt
 
