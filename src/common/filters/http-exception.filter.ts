@@ -40,9 +40,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
         if (typeof payload.error === 'string') error = payload.error;
       }
       error = this.statusToError(status);
+      if (status >= 500) {
+        this.logger.error(`[Server Error ${status}] ${message}`, exception.stack);
+      }
     } else if (exception instanceof Error) {
       // Provider/db errors can include credentials, identifiers or submitted PII.
       message = 'Internal server error';
+      this.logger.error(`[Unhandled Error] ${exception.message}`, exception.stack);
     }
     this.logger.warn(`[HTTP ${status}] ${metadata}`);
 

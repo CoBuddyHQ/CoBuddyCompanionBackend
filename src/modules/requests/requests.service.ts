@@ -374,7 +374,7 @@ export class RequestsService {
     const acceptance = await this.prisma.$transaction(async (tx) => {
       // Serialize acceptance decisions per companion so two simultaneous requests
       // cannot both reserve overlapping time slots.
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${companionId})::bigint)`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${companionId})::bigint)`;
 
       const req = await tx.bookingRequest.findFirst({
         where: { id: requestId, companionId, status: { in: ['pending', 'counter_proposed'] } },
