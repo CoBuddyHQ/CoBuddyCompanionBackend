@@ -12,6 +12,85 @@ export class InternalService {
     private notificationsGateway: NotificationsGateway,
   ) {}
 
+  private normalizeCategory(raw: string): any {
+    if (!raw) return null;
+    const lower = raw.toLowerCase().trim().replace(/[\s\-_]+/g, '_');
+    const mapping: Record<string, string> = {
+      cafe_conversation: 'cafe_conversation',
+      cafe: 'cafe_conversation',
+      coffee: 'cafe_conversation',
+      coffee_meetups: 'cafe_conversation',
+      cafe_hopping: 'cafe_conversation',
+      coffee_cafe_hopping: 'cafe_conversation',
+      'int_3': 'cafe_conversation',
+      'int-3': 'cafe_conversation',
+      city_walk: 'city_walk',
+      city_walks: 'city_walk',
+      city: 'city_walk',
+      city_guide_walk: 'city_walk',
+      city_walks_photography: 'city_walk',
+      'int_7': 'city_walk',
+      'int-7': 'city_walk',
+      art_culture: 'art_culture',
+      art: 'art_culture',
+      art_galleries: 'art_culture',
+      art_galleries_museums: 'art_culture',
+      museums: 'art_culture',
+      'int_2': 'art_culture',
+      'int-2': 'art_culture',
+      food_experience: 'food_experience',
+      food: 'food_experience',
+      food_tastings: 'food_experience',
+      food_tastings_fine_dining: 'food_experience',
+      dining: 'food_experience',
+      italian_cuisine: 'food_experience',
+      'int_1': 'food_experience',
+      'int-1': 'food_experience',
+      shopping_assistance: 'shopping_assistance',
+      shopping: 'shopping_assistance',
+      shopping_style_guide: 'shopping_assistance',
+      shopping_lifestyle: 'shopping_assistance',
+      'int_10': 'shopping_assistance',
+      'int-10': 'shopping_assistance',
+      events: 'events',
+      live_music: 'events',
+      live_music_events: 'events',
+      concerts: 'events',
+      nightlife: 'events',
+      nightlife_events: 'events',
+      'int_5': 'events',
+      'int-5': 'events',
+      'int_8': 'events',
+      'int-8': 'events',
+      bookstore: 'bookstore',
+      bookstores: 'bookstore',
+      study: 'bookstore',
+      study_buddy: 'bookstore',
+      bookstores_literature: 'bookstore',
+      'int_9': 'bookstore',
+      'int-9': 'bookstore',
+      wellness_walk: 'wellness_walk',
+      fitness: 'wellness_walk',
+      fitness_workout: 'wellness_walk',
+      fitness_morning_walks: 'wellness_walk',
+      workout: 'wellness_walk',
+      parks: 'wellness_walk',
+      'int_6': 'wellness_walk',
+      'int-6': 'wellness_walk',
+      movies: 'movies',
+      movie: 'movies',
+      cinema: 'movies',
+      movies_cinema: 'movies',
+      movie_buffs: 'movies',
+      'int_4': 'movies',
+      'int-4': 'movies',
+      business_networking: 'business_networking',
+      networking: 'business_networking',
+      networking_biz: 'business_networking',
+    };
+    return mapping[lower] || mapping[raw.toLowerCase().trim()] || null;
+  }
+
   // ── GET /api/v1/internal/companions ─────────────────────────────────────────
   async getCompanions(query: InternalCompanionQueryDto) {
     const page = Math.max(Number(query.page) || 1, 1);
@@ -38,12 +117,15 @@ export class InternalService {
       ];
     }
     if (query.category) {
-      whereClause.categories = {
-        some: {
-          category: query.category as any,
-        },
-      };
-}
+      const normalized = this.normalizeCategory(query.category);
+      if (normalized) {
+        whereClause.categories = {
+          some: {
+            category: normalized,
+          },
+        };
+      }
+    }
     const [companions, total] = await Promise.all([
       this.prisma.companion.findMany({
         where: whereClause,

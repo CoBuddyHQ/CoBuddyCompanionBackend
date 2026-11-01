@@ -662,6 +662,75 @@ export class ProfileService {
     if (query.city && query.city.trim()) {
       where.city = { contains: query.city.trim(), mode: 'insensitive' };
     }
+    if (query.category && query.category.trim()) {
+      const lower = query.category.toLowerCase().trim().replace(/[\s\-_]+/g, '_');
+      const mapping: Record<string, string> = {
+        cafe_conversation: 'cafe_conversation',
+        cafe: 'cafe_conversation',
+        coffee: 'cafe_conversation',
+        coffee_meetups: 'cafe_conversation',
+        cafe_hopping: 'cafe_conversation',
+        'int_3': 'cafe_conversation',
+        'int-3': 'cafe_conversation',
+        city_walk: 'city_walk',
+        city_walks: 'city_walk',
+        city: 'city_walk',
+        'int_7': 'city_walk',
+        'int-7': 'city_walk',
+        art_culture: 'art_culture',
+        art: 'art_culture',
+        art_galleries: 'art_culture',
+        museums: 'art_culture',
+        'int_2': 'art_culture',
+        'int-2': 'art_culture',
+        food_experience: 'food_experience',
+        food: 'food_experience',
+        food_tastings: 'food_experience',
+        dining: 'food_experience',
+        italian_cuisine: 'food_experience',
+        'int_1': 'food_experience',
+        'int-1': 'food_experience',
+        shopping_assistance: 'shopping_assistance',
+        shopping: 'shopping_assistance',
+        shopping_lifestyle: 'shopping_assistance',
+        'int_10': 'shopping_assistance',
+        'int-10': 'shopping_assistance',
+        events: 'events',
+        live_music: 'events',
+        concerts: 'events',
+        nightlife: 'events',
+        'int_5': 'events',
+        'int-5': 'events',
+        'int_8': 'events',
+        'int-8': 'events',
+        bookstore: 'bookstore',
+        bookstores: 'bookstore',
+        study: 'bookstore',
+        study_buddy: 'bookstore',
+        'int_9': 'bookstore',
+        'int-9': 'bookstore',
+        wellness_walk: 'wellness_walk',
+        fitness: 'wellness_walk',
+        workout: 'wellness_walk',
+        parks: 'wellness_walk',
+        'int_6': 'wellness_walk',
+        'int-6': 'wellness_walk',
+        movies: 'movies',
+        movie: 'movies',
+        cinema: 'movies',
+        movie_buffs: 'movies',
+        'int_4': 'movies',
+        'int-4': 'movies',
+      };
+      const cat = mapping[lower] || mapping[query.category.toLowerCase().trim()];
+      if (cat) {
+        where.categories = {
+          some: {
+            category: cat as any,
+          },
+        };
+      }
+    }
     if (query.gender && query.gender.toLowerCase() !== 'any') {
       where.gender = { equals: query.gender.trim(), mode: 'insensitive' };
     }
