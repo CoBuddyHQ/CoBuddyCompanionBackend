@@ -159,10 +159,12 @@ export class RequestsService {
     const proposedStart = new Date(dto.proposedStart);
     const proposedEnd = new Date(dto.proposedEnd);
     const expiresAt = new Date(dto.expiresAt);
-    if (!Number.isFinite(proposedStart.getTime()) || !Number.isFinite(proposedEnd.getTime()) || proposedEnd <= proposedStart) {
+    const now = new Date();
+    if (!Number.isFinite(proposedStart.getTime()) || !Number.isFinite(proposedEnd.getTime()) ||
+        proposedStart <= now || proposedEnd <= proposedStart) {
       throw new BadRequestException('A valid booking time range is required.');
     }
-    if (!Number.isFinite(expiresAt.getTime()) || expiresAt <= new Date()) {
+    if (!Number.isFinite(expiresAt.getTime()) || expiresAt <= now) {
       throw new BadRequestException('Booking request expiry must be in the future.');
     }
     if (dto.customerSafetyConsent !== true || !Number.isFinite(dto.estimatedEarning) || dto.estimatedEarning <= 0) {
