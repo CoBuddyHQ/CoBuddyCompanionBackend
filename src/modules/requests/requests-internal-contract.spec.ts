@@ -2,6 +2,8 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import { RequestsService } from './requests.service';
 
 describe('RequestsService internal booking contract', () => {
+  const futureStart = new Date(Date.now() + 60 * 60 * 1000);
+  const futureEnd = new Date(futureStart.getTime() + 60 * 60 * 1000);
   const valid = {
     bookingId: 'booking-1',
     companionId: 'companion-1',
@@ -11,11 +13,11 @@ describe('RequestsService internal booking contract', () => {
     customerSafetyConsent: true,
     category: 'cafe_conversation',
     venueName: 'Venue selected by customer',
-    proposedStart: '2026-11-01T10:00:00.000Z',
-    proposedEnd: '2026-11-01T11:00:00.000Z',
+    proposedStart: futureStart.toISOString(),
+    proposedEnd: futureEnd.toISOString(),
     durationMinutes: 60,
     estimatedEarning: 1200,
-    expiresAt: '2026-11-01T09:55:00.000Z',
+    expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
   };
 
   const fixture = (overrides: Record<string, unknown> = {}) => {
@@ -35,6 +37,17 @@ describe('RequestsService internal booking contract', () => {
       .rejects.toBeInstanceOf(BadRequestException);
     await expect(service.createInternalRequest({ ...input, estimatedEarning: 0 } as any))
       .rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects an internal booking whose proposed start is in the past', async () => {
+    const { prisma, service, input } = fixture();
+    const pastStart = new Date(Date.now() - 60 * 60 * 1000);
+    await expect(service.createInternalRequest({
+      ...input,
+      proposedStart: pastStart.toISOString(),
+      proposedEnd: new Date(pastStart.getTime() + 60 * 60 * 1000).toISOString(),
+    } as any)).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
