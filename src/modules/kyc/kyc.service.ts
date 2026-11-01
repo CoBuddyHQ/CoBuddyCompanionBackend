@@ -1,11 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, ServiceUnavailableException, Optional } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProgressEngineService } from './progress-engine.service';
+import { InternalBridgeService } from '../internal/internal-bridge.service';
 import { BasicDetailsDto, SaveDeclarationDto, SubmitGovernmentIdDto, UpdateGovernmentIdTypeDto, SubmitSelfieDto, SaveAddressDto, SavePanDto, SaveBankDto, VerifyBankDto, SaveUpiDto } from './dto/kyc.dto';
 
 @Injectable()
 export class KycService {
-  constructor(private prisma: PrismaService, private progressEngine: ProgressEngineService) {}
+  constructor(
+    private prisma: PrismaService,
+    private progressEngine: ProgressEngineService,
+    @Optional() private internalBridgeService?: InternalBridgeService,
+  ) {}
 
   // ─── GET /companion/kyc/status ───────────────────────────────────────────────
   // Matches VerificationHubScreen — returns full KYC status
@@ -405,6 +410,39 @@ export class KycService {
       where: { id: companionId },
       data: updateData,
     });
+
+    // S2S Sync to Admin Verification Queue & Companion Applications pipeline
+    if (this.internalBridgeService) {
+      this.prisma.companion.findUnique({ where: { id: companionId } }).then((comp) => {
+        const fullName = comp?.displayName || 'Companion';
+        const nameParts = fullName.trim().split(/\s+/);
+        const firstName = kyc.legalFirstName || nameParts[0] || 'Companion';
+        const lastName = kyc.legalLastName || nameParts.slice(1).join(' ') || 'Partner';
+
+        this.internalBridgeService?.syncVerificationCaseToAdmin({
+          applicantId: companionId,
+          applicantType: 'COMPANION',
+          applicantName: comp?.displayName || `${firstName} ${lastName}`,
+          applicantPhone: comp?.phone,
+          cityName: comp?.city || 'Bengaluru',
+          documentType: kyc.identityDocumentType || 'AADHAAR',
+          idDocumentUrl: kyc.identityDocumentUrl || '',
+          selfieUrl: kyc.selfieImageUrl || '',
+          backgroundDeclarationUrl: (kyc.declarationConsents as any)?.declarationUrl || '',
+          status: 'PENDING_MANUAL_REVIEW',
+        }).catch(() => {});
+
+        this.internalBridgeService?.syncCompanionApplicationToAdmin({
+          companionId,
+          firstName,
+          lastName,
+          phone: comp?.phone || '',
+          email: comp?.email || undefined,
+          cityName: comp?.city || 'Bengaluru',
+          applicationStatus: 'PENDING',
+        }).catch(() => {});
+      }).catch(() => {});
+    }
 
     return { success: true, onboardingStatus: await this.progressEngine.getOnboardingStatus(companionId),
       message: 'Your application has been submitted for review. We will notify you within 2–3 business days.',

@@ -1,3 +1,4 @@
+import { ServiceUnavailableException } from '@nestjs/common';
 import { SessionsService } from './sessions.service';
 
 describe('session pass ownership boundary', () => {
@@ -101,5 +102,21 @@ describe('pending companion review synchronization', () => {
     expect(prisma.session.update).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ adminReviewSyncAttemptedAt: expect.any(Date) }),
     }));
+  });
+});
+
+describe('extension approval and payment boundary', () => {
+  it.each(['requestExtension', 'confirmExtension'] as const)('%s makes no session change without customer approval and payment', async method => {
+    const prisma = {
+      session: { findFirst: jest.fn(), update: jest.fn() },
+      earningsTransaction: { create: jest.fn() },
+    };
+    const service = new SessionsService(prisma as any, {} as any);
+
+    await expect(service[method]('companion-1', 'session-1', 30))
+      .rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(prisma.session.findFirst).not.toHaveBeenCalled();
+    expect(prisma.session.update).not.toHaveBeenCalled();
+    expect(prisma.earningsTransaction.create).not.toHaveBeenCalled();
   });
 });

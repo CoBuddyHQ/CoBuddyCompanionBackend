@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, Logger, Optional } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, Optional, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { InternalBridgeService } from '../internal/internal-bridge.service';
@@ -8,13 +8,13 @@ import { Cron } from '@nestjs/schedule';
 const VALID_TRANSITIONS: Record<string, string[]> = {
   upcoming:    ['pre_arrival', 'cancelled', 'no_show', 'checked_in', 'active', 'completed'],
   pre_arrival: ['checked_in', 'cancelled', 'no_show', 'active', 'completed'],
-  checked_in:  ['active', 'cancelled', 'extending', 'completed'],
-  active:      ['extending', 'completed', 'disputed'],
-  extending:   ['active', 'completed', 'disputed'],
-  completed:   [],
-  cancelled:   [],
-  no_show:     [],
-  disputed:    [],
+  checked_in:  ['checked_in', 'active', 'cancelled', 'extending', 'completed'],
+  active:      ['active', 'extending', 'completed', 'disputed', 'cancelled'],
+  extending:   ['active', 'completed', 'disputed', 'cancelled'],
+  completed:   ['completed'],
+  cancelled:   ['cancelled'],
+  no_show:     ['no_show'],
+  disputed:    ['disputed'],
 };
 
 @Injectable()
@@ -214,6 +214,9 @@ export class SessionsService {
   // ── POST /companion/sessions/:sessionId/checkin ───────────────────────────
   async checkIn(companionId: string, sessionId: string) {
     const session = await this.findSessionOrThrow(companionId, sessionId);
+    if (['checked_in', 'active', 'extending'].includes(session.status)) {
+      return this.toSessionResponse(session);
+    }
     this.guardTransition(session.status, 'checked_in');
 
     const updated = await this.prisma.session.update({
@@ -231,17 +234,32 @@ export class SessionsService {
   // ── POST /companion/sessions/:sessionId/verify-customer ───────────────────
   async verifyCustomer(companionId: string, sessionId: string, passCode: string) {
     const session = await this.findSessionOrThrow(companionId, sessionId);
+
+    // Idempotent: If already active, return success without failing
+    if (session.status === 'active') {
+      if (session.requestId) {
+        await this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
+          status: 'in_progress',
+          sessionId: session.id,
+          startedAt: session.checkInTime?.toISOString(),
+        }).catch(() => this.logger.warn('Failed to sync session start to Customer Backend.'));
+      }
+      return { ...this.toSessionResponse(session), verified: true };
+    }
+
     this.guardTransition(session.status, 'active');
 
     if (!session.sessionPassCode || typeof passCode !== 'string' || session.sessionPassCode !== passCode) {
       throw new BadRequestException('Invalid session pass code');
     }
 
+    const sessionStartTime = new Date();
+
     const updated = await this.prisma.session.update({
       where: { id: sessionId },
       data: {
         status: 'active',
-        checkInTime: session.checkInTime ?? new Date(),
+        checkInTime: sessionStartTime,
       },
     });
 
@@ -258,6 +276,7 @@ export class SessionsService {
       await this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
         status: 'in_progress',
         sessionId: session.id,
+        startedAt: sessionStartTime.toISOString(),
       }).catch(() => this.logger.warn('Failed to sync session start to Customer Backend.'));
     }
 
@@ -267,6 +286,18 @@ export class SessionsService {
   // ── POST /companion/sessions/:sessionId/verify-selfie ─────────────────────
   async verifyBySelfie(companionId: string, sessionId: string, selfieUrl?: string) {
     const session = await this.findSessionOrThrow(companionId, sessionId);
+
+    // Idempotent: If already active, return success without failing
+    if (session.status === 'active') {
+      if (session.requestId) {
+        await this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
+          status: 'in_progress',
+          sessionId: session.id,
+        }).catch(() => this.logger.warn('Failed to sync session start to Customer Backend.'));
+      }
+      return { ...this.toSessionResponse(session), verified: true, method: 'selfie' };
+    }
+
     this.guardTransition(session.status, 'active');
 
     const updated = await this.prisma.session.update({
@@ -277,83 +308,42 @@ export class SessionsService {
         notes: session.notes ? `${session.notes}\nVerified via venue selfie.` : 'Verified via venue selfie.',
       },
     });
+
+    if (session.requestId) {
+      await this.notifyCustomerBackendOfSessionUpdate(session.requestId, {
+        status: 'in_progress',
+        sessionId: session.id,
+      }).catch(() => this.logger.warn('Failed to sync session start to Customer Backend.'));
+    }
+
     return { ...this.toSessionResponse(updated), verified: true, method: 'selfie' };
   }
 
   // ── POST /companion/sessions/:sessionId/extend/request ───────────────────
-  async requestExtension(companionId: string, sessionId: string, extraMinutes: number) {
-    const session = await this.findSessionOrThrow(companionId, sessionId);
-    if (!['active', 'checked_in', 'extending'].includes(session.status)) {
-      throw new BadRequestException('Can only extend active sessions');
-    }
+  async requestExtension(_companionId: string, _sessionId: string, extraMinutes: number) {
     if (extraMinutes < 30 || extraMinutes > 180) throw new BadRequestException('Extension must be 30–180 minutes');
-
-    this.guardTransition(session.status, 'extending');
-    await this.prisma.session.update({
-      where: { id: sessionId },
-      data: { status: 'extending' },
-    });
-
-    await this.createNotification(
-      companionId, 'session',
-      'Extension Requested',
-      `You requested a ${extraMinutes}-minute extension. Waiting for customer approval.`,
-      { sessionId, extraMinutes },
+    throw new ServiceUnavailableException(
+      'Session extensions are unavailable until customer approval and payment processing are connected. No session or earnings state was changed.',
     );
-
-    return {
-      sessionId,
-      extraMinutes,
-      status: 'extending',
-      message: 'Extension request sent to customer for approval.',
-    };
   }
 
   // ── POST /companion/sessions/:sessionId/extend/confirm ────────────────────
-  async confirmExtension(companionId: string, sessionId: string, extraMinutes: number) {
-    const session = await this.findSessionOrThrow(companionId, sessionId);
-    const newEnd = new Date(session.scheduledEnd.getTime() + extraMinutes * 60 * 1000);
-    const extensionEarning = this.calcExtensionEarning(session, extraMinutes);
-
-    const updated = await this.prisma.session.update({
-      where: { id: sessionId },
-      data: {
-        scheduledEnd: newEnd,
-        durationMinutes: session.durationMinutes + extraMinutes,
-        status: 'active',
-        bonusEarning: { increment: extensionEarning },
-        estimatedTotal: { increment: extensionEarning },
-      },
-    });
-
-    // Create extension earnings transaction
-    await this.prisma.earningsTransaction.create({
-      data: {
-        companionId,
-        sessionId,
-        type: 'extension_earning',
-        status: 'pending_review',
-        amount: extensionEarning,
-        customerInitials: session.customerInitials,
-        description: `Extension +${extraMinutes}min — ${session.venueName}`,
-        payoutEligibleAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
-      },
-    });
-
-    await this.createNotification(
-      companionId, 'session',
-      `Extension Confirmed ✓ (+${extraMinutes} min)`,
-      `Your session has been extended. New end time updated. +₹${extensionEarning} added to earnings.`,
-      { sessionId },
+  async confirmExtension(_companionId: string, _sessionId: string, extraMinutes: number) {
+    if (extraMinutes < 30 || extraMinutes > 180) throw new BadRequestException('Extension must be 30–180 minutes');
+    throw new ServiceUnavailableException(
+      'An extension cannot be confirmed without customer approval and verified payment. No duration or earnings were changed.',
     );
-
-    return this.toSessionResponse(updated);
   }
 
   // ── POST /companion/sessions/:sessionId/end-early ─────────────────────────
   async endEarly(companionId: string, sessionId: string, reason?: string) {
     const session = await this.findSessionOrThrow(companionId, sessionId);
-    if (session.status !== 'active') throw new BadRequestException('No active session');
+    if (session.status === 'completed') {
+      return this.toSessionResponse(session);
+    }
+    if (!['active', 'extending', 'checked_in'].includes(session.status)) {
+      throw new BadRequestException('No active session');
+    }
 
     const confirmed = Number(session.estimatedTotal);
     const updated = await this.prisma.session.update({
@@ -383,6 +373,9 @@ export class SessionsService {
   // ── POST /companion/sessions/:sessionId/cancel ────────────────────────────
   async cancelSession(companionId: string, sessionId: string, reason: string, details?: string) {
     const session = await this.findSessionOrThrow(companionId, sessionId);
+    if (session.status === 'cancelled') {
+      return this.toSessionResponse(session);
+    }
     this.guardTransition(session.status, 'cancelled');
 
     const cancelReasonFull = details ? `${reason}: ${details}` : reason;
@@ -452,6 +445,9 @@ export class SessionsService {
   // ── POST /companion/sessions/:sessionId/complete ──────────────────────────
   async completeSession(companionId: string, sessionId: string) {
     const session = await this.findSessionOrThrow(companionId, sessionId);
+    if (session.status === 'completed') {
+      return this.toSessionResponse(session);
+    }
     const validStatuses = ['upcoming', 'checked_in', 'active', 'extending'];
     if (!validStatuses.includes(session.status)) throw new BadRequestException('Session is not active');
 
@@ -593,11 +589,6 @@ export class SessionsService {
     });
     if (!session) throw new NotFoundException('Session not found');
     return session;
-  }
-
-  private calcExtensionEarning(session: any, extraMinutes: number): number {
-    const ratePerMinute = Number(session.baseEarning) / Math.max(session.durationMinutes, 1);
-    return Math.round(ratePerMinute * extraMinutes);
   }
 
   /** Create DB notification + emit via WebSocket */

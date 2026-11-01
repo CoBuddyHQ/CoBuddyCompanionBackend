@@ -41,12 +41,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
       error = this.statusToError(status);
       if (status >= 500) {
-        this.logger.error(`[Server Error ${status}] ${message}`, exception.stack);
+        message = 'Internal server error';
+        error = 'INTERNAL_SERVER_ERROR';
+        // Provider and database exception messages/stacks can contain secrets or PII.
+        this.logger.error(`[Server Error ${status}] Unexpected server exception.`);
       }
     } else if (exception instanceof Error) {
       // Provider/db errors can include credentials, identifiers or submitted PII.
       message = 'Internal server error';
-      this.logger.error(`[Unhandled Error] ${exception.message}`, exception.stack);
+      this.logger.error('[Unhandled Error] Unexpected server exception.');
     }
     this.logger.warn(`[HTTP ${status}] ${metadata}`);
 

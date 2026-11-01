@@ -48,4 +48,48 @@ export class InternalController {
   ) {
     return this.internalService.createInternalReview(companionId, dto);
   }
+
+  @Post('sessions/:bookingId/complete')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Internal S2S completion of a session by booking ID' })
+  @ApiHeader({ name: 'X-Internal-Service-Key', required: true })
+  async completeSession(
+    @Param('bookingId') bookingId: string,
+    @Body() body?: { tip?: number; notes?: string },
+  ) {
+    return this.internalService.completeSessionByBooking(bookingId, body);
+  }
+
+  @Post('sessions/:bookingId/extend')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Internal S2S extension of a session by booking ID' })
+  @ApiHeader({ name: 'X-Internal-Service-Key', required: true })
+  async extendSession(
+    @Param('bookingId') bookingId: string,
+    @Body() body: { extraMinutes: number },
+  ) {
+    return this.internalService.extendSessionByBooking(bookingId, body?.extraMinutes || 30);
+  }
+
+  @Post('companions/:id/verification-decision')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Internal S2S verification decision from Admin' })
+  @ApiHeader({ name: 'X-Internal-Service-Key', required: true })
+  async updateVerificationDecision(
+    @Param('id') companionId: string,
+    @Body() body: { status: 'approved' | 'rejected'; reason?: string },
+  ) {
+    return this.internalService.updateVerificationDecision(companionId, body);
+  }
+
+  @Post('companions/:id/ban')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Internal S2S ban/unban companion from Admin' })
+  @ApiHeader({ name: 'X-Internal-Service-Key', required: true })
+  async updateBanStatus(
+    @Param('id') companionId: string,
+    @Body() body: { isBanned: boolean; reason?: string },
+  ) {
+    return this.internalService.updateBanStatus(companionId, body);
+  }
 }

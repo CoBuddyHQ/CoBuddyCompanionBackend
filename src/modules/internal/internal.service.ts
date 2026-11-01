@@ -1,12 +1,16 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { InternalCompanionQueryDto } from './dto/internal.dto';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 @Injectable()
 export class InternalService {
   private readonly logger = new Logger(InternalService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsGateway: NotificationsGateway,
+  ) {}
 
   // ── GET /api/v1/internal/companions ─────────────────────────────────────────
   async getCompanions(query: InternalCompanionQueryDto) {
@@ -253,4 +257,174 @@ export class InternalService {
     };
   }
 
+  // ── S2S: COMPLETE SESSION BY BOOKING ID ──────────────────────────────────────
+  async completeSessionByBooking(bookingId: string, payload?: { tip?: number; notes?: string }) {
+    const session = await this.prisma.session.findFirst({
+      where: {
+        OR: [{ requestId: bookingId }, { id: bookingId }],
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException(`Session for booking ${bookingId} not found`);
+    }
+
+    if (session.status === 'completed') {
+      return { success: true, alreadyCompleted: true, session };
+    }
+
+    const confirmed = Number(session.estimatedTotal);
+    const updated = await this.prisma.session.update({
+      where: { id: session.id },
+      data: {
+        status: 'completed',
+        checkOutTime: new Date(),
+        completedAt: new Date(),
+        confirmedEarning: confirmed,
+        notes: payload?.notes || (session.notes ? `${session.notes}\nCompleted by customer` : 'Completed by customer'),
+      },
+    });
+
+    // Finalize companion earnings idempotently
+    const existingTx = await this.prisma.earningsTransaction.findFirst({
+      where: { sessionId: session.id, type: 'session_earning' },
+    });
+    if (!existingTx) {
+      await this.prisma.earningsTransaction.create({
+        data: {
+          companionId: session.companionId,
+          sessionId: session.id,
+          type: 'session_earning',
+          status: 'pending_review',
+          amount: confirmed,
+          customerInitials: session.customerInitials,
+          description: `Session: ${session.category.replace(/_/g, ' ')} — ${session.venueName}`,
+          payoutEligibleAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+        },
+      });
+
+      await this.prisma.companion.update({
+        where: { id: session.companionId },
+        data: { totalSessions: { increment: 1 } },
+      });
+
+      await this.prisma.notification.create({
+        data: {
+          companionId: session.companionId,
+          type: 'payout' as any,
+          title: `Session Completed — ₹${confirmed} Earned 🎉`,
+          body: `Your earnings of ₹${confirmed} are now in 48h review.`,
+          isRead: false,
+        },
+      }).catch(() => {});
+    }
+
+    try {
+      this.notificationsGateway?.emitSessionUpdated(session.companionId, {
+        sessionId: session.id,
+        status: 'completed',
+      });
+    } catch {}
+
+    this.logger.log(`[S2S] Session ${session.id} for booking ${bookingId} completed by customer.`);
+    return { success: true, session: updated };
+  }
+
+  // ── S2S: EXTEND SESSION BY BOOKING ID ────────────────────────────────────────
+  async extendSessionByBooking(_bookingId: string, extraMinutes: number) {
+    if (!Number.isInteger(extraMinutes) || extraMinutes < 30 || extraMinutes > 180) {
+      throw new BadRequestException('Extension must be 30–180 minutes');
+    }
+    throw new ServiceUnavailableException(
+      'Internal session extension is disabled until customer approval and verified payment are available. No session or earnings state was changed.',
+    );
+  }
+
+  // ── S2S: Admin Verification Decision (Approve / Reject) ──
+  async updateVerificationDecision(companionId: string, payload: { status: 'approved' | 'rejected'; reason?: string }) {
+    const companion = await this.prisma.companion.findUnique({ where: { id: companionId } });
+    if (!companion) throw new NotFoundException('Companion not found');
+
+    const isApproved = payload.status === 'approved';
+    const updated = await this.prisma.companion.update({
+      where: { id: companionId },
+      data: {
+        verificationStatus: isApproved ? 'approved' : 'rejected',
+        profileStatus: isApproved ? 'published' : 'draft',
+      },
+    });
+
+    // Also update companionKYC status if exists
+    await this.prisma.companionKYC.updateMany({
+      where: { companionId },
+      data: {
+        rejectionReason: isApproved ? null : (payload.reason || 'Verification rejected by administrator'),
+        rejectedAt: isApproved ? null : new Date(),
+      },
+    }).catch(() => {});
+
+    // Notify companion
+    const notif = await this.prisma.notification.create({
+      data: {
+        companionId,
+        type: 'system',
+        title: isApproved ? 'Profile Verified & Published! 🎉' : 'Verification Update',
+        body: isApproved
+          ? 'Congratulations! Your profile has been approved and is now live for bookings.'
+          : `Your verification submission was not approved: ${payload.reason || 'Please check requirements and re-apply.'}`,
+        isRead: false,
+      },
+    }).catch(() => null);
+
+    if (notif) {
+      try {
+        this.notificationsGateway?.emitNotification(companionId, notif);
+      } catch {}
+    }
+
+    this.logger.log(`[S2S Admin] Verification decision for companion ${companionId}: ${payload.status}`);
+    return { success: true, companion: updated };
+  }
+
+  // ── S2S: Admin Ban / Unban Companion ──
+  async updateBanStatus(companionId: string, payload: { isBanned: boolean; reason?: string }) {
+    const companion = await this.prisma.companion.findUnique({ where: { id: companionId } });
+    if (!companion) throw new NotFoundException('Companion not found');
+
+    const newStatus = payload.isBanned ? 'suspended' : 'active';
+    const updated = await this.prisma.companion.update({
+      where: { id: companionId },
+      data: {
+        accountStatus: newStatus,
+      },
+    });
+
+    if (payload.isBanned) {
+      // Immediately revoke all active refresh tokens to force logout
+      await this.prisma.refreshToken.updateMany({
+        where: { companionId, isRevoked: false },
+        data: { isRevoked: true },
+      }).catch(() => {});
+
+      // Notify companion via push/in-app
+      const notif = await this.prisma.notification.create({
+        data: {
+          companionId,
+          type: 'safety',
+          title: 'Account Suspended',
+          body: `Your account has been suspended: ${payload.reason || 'Violation of CoBuddy policies.'}`,
+          isRead: false,
+        },
+      }).catch(() => null);
+
+      if (notif) {
+        try {
+          this.notificationsGateway?.emitNotification(companionId, notif);
+        } catch {}
+      }
+    }
+
+    this.logger.log(`[S2S Admin] Ban status for companion ${companionId} set to: ${newStatus}`);
+    return { success: true, accountStatus: newStatus };
+  }
 }

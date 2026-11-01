@@ -40,6 +40,7 @@ function createHarness(overrides: { conflict?: boolean; counter?: boolean } = {}
   const acceptedRequest = { ...request, status: 'accepted' };
   const tx = {
     $queryRaw: jest.fn().mockResolvedValue([]),
+    $executeRaw: jest.fn().mockResolvedValue(1),
     bookingRequest: {
       findFirst: jest.fn().mockResolvedValue(request),
       findMany: jest.fn().mockResolvedValue([]),
@@ -69,7 +70,7 @@ describe('companion booking acceptance', () => {
     const { service, tx } = createHarness({ conflict: true });
 
     await expect(service.acceptRequest('companion-1', 'request-1')).rejects.toBeInstanceOf(ConflictException);
-    expect(tx.$queryRaw).toHaveBeenCalled();
+    expect(tx.$executeRaw).toHaveBeenCalled();
     expect(tx.bookingRequest.updateMany).not.toHaveBeenCalled();
     expect(tx.session.create).not.toHaveBeenCalled();
   });

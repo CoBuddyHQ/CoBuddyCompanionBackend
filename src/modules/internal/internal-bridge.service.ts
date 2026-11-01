@@ -12,6 +12,8 @@ export interface BookingStatusSyncPayload {
   companionId?: string;
   sessionId?: string;
   companionEarnings?: number;
+  startedAt?: string;
+  extraMinutes?: number;
 }
 
 @Injectable()
@@ -20,6 +22,10 @@ export class InternalBridgeService {
 
   private get customerApiUrl(): string {
     return (process.env.CUSTOMER_API_URL || 'http://localhost:4002').replace(/\/+$/, '');
+  }
+
+  private get adminApiUrl(): string {
+    return (process.env.ADMIN_API_URL || 'http://localhost:4000').replace(/\/+$/, '');
   }
 
   private get internalSecret(): string {
@@ -90,6 +96,74 @@ export class InternalBridgeService {
       this.logger.error(
         `[S2S Bridge] [${correlationId}] Network/timeout error syncing status to Customer Backend.`
       );
+      return false;
+    }
+  }
+
+  /**
+   * Syncs a companion's KYC submission directly to Admin Verification Queue.
+   */
+  async syncVerificationCaseToAdmin(payload: {
+    applicantId: string;
+    applicantType: 'COMPANION' | 'CUSTOMER';
+    applicantName?: string;
+    applicantPhone?: string;
+    cityName?: string;
+    documentType?: string;
+    idDocumentUrl?: string;
+    selfieUrl?: string;
+    backgroundDeclarationUrl?: string;
+    status?: string;
+  }): Promise<boolean> {
+    if (!this.internalSecret) return false;
+    const url = `${this.adminApiUrl}/api/internal/verification/cases/sync`;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Service-Key': this.internalSecret,
+          'X-Correlation-Id': crypto.randomUUID(),
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(5000),
+      });
+      return res.ok;
+    } catch (e: any) {
+      this.logger.warn(`Failed to sync verification case to Admin: ${e.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Syncs a companion's application / onboarding record to Admin Companion Applications pipeline.
+   */
+  async syncCompanionApplicationToAdmin(payload: {
+    companionId: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email?: string;
+    cityName?: string;
+    portfolioUrls?: string[];
+    applicationStatus?: string;
+  }): Promise<boolean> {
+    if (!this.internalSecret) return false;
+    const url = `${this.adminApiUrl}/api/internal/companion-applications/sync`;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Service-Key': this.internalSecret,
+          'X-Correlation-Id': crypto.randomUUID(),
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(5000),
+      });
+      return res.ok;
+    } catch (e: any) {
+      this.logger.warn(`Failed to sync companion application to Admin: ${e.message}`);
       return false;
     }
   }
