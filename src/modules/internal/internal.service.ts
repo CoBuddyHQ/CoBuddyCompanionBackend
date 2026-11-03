@@ -469,13 +469,22 @@ export class InternalService {
   }
 
   // ── S2S: Admin Ban / Unban Companion ──
-  async updateBanStatus(companionId: string, payload: { isBanned: boolean; reason?: string }) {
-    const companion = await this.prisma.companion.findUnique({ where: { id: companionId } });
+  async updateBanStatus(companionId: string, payload: { isBanned: boolean; reason?: string; phone?: string }) {
+    let companion = await this.prisma.companion.findUnique({ where: { id: companionId } });
+    if (!companion && payload.phone) {
+      companion = await this.prisma.companion.findUnique({ where: { phone: payload.phone } });
+    }
+    if (!companion) {
+      companion = await this.prisma.companion.findFirst({
+        where: { OR: [{ id: companionId }, { phone: companionId }] },
+      });
+    }
     if (!companion) throw new NotFoundException('Companion not found');
 
+    const targetId = companion.id;
     const newStatus = payload.isBanned ? 'suspended' : 'active';
     const updated = await this.prisma.companion.update({
-      where: { id: companionId },
+      where: { id: targetId },
       data: {
         accountStatus: newStatus,
       },
@@ -484,14 +493,14 @@ export class InternalService {
     if (payload.isBanned) {
       // Immediately revoke all active refresh tokens to force logout
       await this.prisma.refreshToken.updateMany({
-        where: { companionId, isRevoked: false },
+        where: { companionId: targetId, isRevoked: false },
         data: { isRevoked: true },
       }).catch(() => {});
 
       // Notify companion via push/in-app
       const notif = await this.prisma.notification.create({
         data: {
-          companionId,
+          companionId: targetId,
           type: 'safety',
           title: 'Account Suspended',
           body: `Your account has been suspended: ${payload.reason || 'Violation of CoBuddy policies.'}`,
@@ -501,13 +510,13 @@ export class InternalService {
 
       if (notif) {
         try {
-          this.notificationsGateway?.emitNotification(companionId, notif);
+          this.notificationsGateway?.emitNotification(targetId, notif);
         } catch {}
       }
     }
 
-    this.logger.log(`[S2S Admin] Ban status for companion ${companionId} set to: ${newStatus}`);
-    return { success: true, accountStatus: newStatus };
+    this.logger.log(`[S2S Admin] Ban status for companion ${targetId} set to: ${newStatus}`);
+    return { success: true, accountStatus: newStatus, companion: updated };
   }
 
   // ── S2S: Inbound Support Message from Admin ──
