@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException, Logger, Optional, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, Optional, ServiceUnavailableException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { InternalBridgeService } from '../internal/internal-bridge.service';
+import { SessionGateway } from './session.gateway';
 import { Cron } from '@nestjs/schedule';
 
 // ── Valid session status transition map ─────────────────────────────────────
@@ -27,6 +28,8 @@ export class SessionsService {
     private prisma: PrismaService,
     private notificationsGateway: NotificationsGateway,
     @Optional() private internalBridgeService?: InternalBridgeService,
+    @Optional() @Inject(forwardRef(() => SessionGateway))
+    private sessionGateway?: SessionGateway,
   ) {}
 
   @Cron('*/15 * * * * *')
@@ -573,7 +576,8 @@ export class SessionsService {
       }
 
       const convData = await convRes.json();
-      const conversationId = convData.id || convData.conversationId;
+      const convPayload = convData.data || convData;
+      const conversationId = convPayload.id || convPayload.conversationId;
 
       // 2. Fetch messages from canonical store
       const msgRes = await fetch(
@@ -593,11 +597,20 @@ export class SessionsService {
       }
 
       const msgData = await msgRes.json();
-      return (msgData.messages || []).map((m: any) => ({
+      const msgPayload = msgData.data || msgData;
+      const rawList = Array.isArray(msgPayload)
+        ? msgPayload
+        : Array.isArray(msgPayload.data)
+        ? msgPayload.data
+        : Array.isArray(msgPayload.messages)
+        ? msgPayload.messages
+        : [];
+      return rawList.map((m: any) => ({
         id: m.id,
         conversationId,
         senderId: m.senderId,
         senderType: m.senderType,
+        sender: m.senderType === 'companion' ? 'companion' : 'customer',
         senderName: m.senderName,
         text: m.text,
         attachmentUrl: m.attachmentUrl,
@@ -642,7 +655,8 @@ export class SessionsService {
     }
 
     const convData = await convRes.json();
-    const conversationId = convData.id || convData.conversationId;
+    const convPayload = convData.data || convData;
+    const conversationId = convPayload.id || convPayload.conversationId;
 
     // 2. Persist message in canonical database
     const msgRes = await fetch(
@@ -666,8 +680,9 @@ export class SessionsService {
       throw new BadRequestException(`Failed to persist chat message: ${errText}`);
     }
 
-    const savedMsg = await msgRes.json();
-    return {
+    const savedMsgRaw = await msgRes.json();
+    const savedMsg = savedMsgRaw.data || savedMsgRaw;
+    const resultMsg = {
       id: savedMsg.id,
       conversationId,
       senderId: companionId,
@@ -677,6 +692,12 @@ export class SessionsService {
       timestamp: savedMsg.createdAt,
       createdAt: savedMsg.createdAt,
     };
+
+    if (this.sessionGateway) {
+      this.sessionGateway.emitToSession(sessionId, 'receive_message', resultMsg);
+    }
+
+    return resultMsg;
   }
 
   async getCallToken(companionId: string, sessionId: string) {

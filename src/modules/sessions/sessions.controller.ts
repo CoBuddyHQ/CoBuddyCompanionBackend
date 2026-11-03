@@ -291,8 +291,9 @@ export class SessionsController {
   sendChatMessage(
     @CurrentCompanion() c: JwtPayload,
     @Param('sessionId') sessionId: string,
-    @Body('text') text: string,
+    @Body() body: { text?: string; message?: string },
   ) {
+    const text = body?.text || body?.message || '';
     return this.sessionsService.sendChatMessage(c.sub, sessionId, text);
   }
 
