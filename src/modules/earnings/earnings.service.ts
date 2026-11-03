@@ -195,7 +195,14 @@ export class EarningsService {
         ? `•••• ${bankAccount.slice(-4)}`
         : '•••• 4321';
 
-      const utrNumber = `UTR${Date.now()}${Math.floor(100 + Math.random() * 900)}`;
+      const isProduction = process.env.NODE_ENV === 'production';
+      // In production, payouts must enter 'requested' queue until verified by banking/RazorpayX provider.
+      // Only mock development environments auto-complete payouts.
+      const initialStatus = isProduction ? 'requested' : (process.env.AUTO_COMPLETE_PAYOUTS === 'false' ? 'requested' : 'completed');
+      const utrNumber = initialStatus === 'completed'
+        ? `UTR${Date.now()}${Math.floor(100 + Math.random() * 900)}`
+        : null;
+      const completedAt = initialStatus === 'completed' ? new Date() : null;
 
       const payout = await tx.payoutRecord.create({
         data: {
@@ -203,10 +210,10 @@ export class EarningsService {
           amount,
           platformFee: 0,
           maskedBank,
-          status: 'completed',
+          status: initialStatus as any,
           utrNumber,
           requestedAt: new Date(),
-          completedAt: new Date(),
+          completedAt,
         },
       });
 
@@ -215,14 +222,14 @@ export class EarningsService {
           companionId,
           payoutId: payout.id,
           type: 'payout_transfer',
-          status: 'approved',
+          status: initialStatus === 'completed' ? 'approved' : 'pending_review',
           amount: -amount,
           description: `Payout withdrawal to bank account ${maskedBank}`,
           payoutEligibleAt: new Date(),
         },
       });
 
-      this.logger.log(`Payout of ₹${amount} recorded for companion ${companionId} (UTR: ${utrNumber})`);
+      this.logger.log(`Payout request of ₹${amount} recorded for companion ${companionId} (status: ${initialStatus}, UTR: ${utrNumber || 'PENDING_TRANSFER'})`);
 
       return this.toPayoutResponse(payout);
     });
