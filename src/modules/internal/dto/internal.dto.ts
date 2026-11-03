@@ -106,6 +106,18 @@ export class InternalCompanionQueryDto {
   search?: string;
 
   @IsOptional()
+  minRating?: number;
+
+  @IsOptional()
+  maxPrice?: number;
+
+  @IsOptional()
+  maxDistance?: number;
+
+  @IsOptional()
+  isOnline?: boolean | string;
+
+  @IsOptional()
   page?: number;
 
   @IsOptional()

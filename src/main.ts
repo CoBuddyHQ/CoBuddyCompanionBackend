@@ -42,6 +42,9 @@ function validateEnvironment(): void {
     if (!process.env.ADMIN_API_URL) {
       invalidProductionConfig.push('ADMIN_API_URL is required for live customer campaigns');
     }
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      invalidProductionConfig.push('RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are required for production payout processing');
+    }
     if (invalidProductionConfig.length > 0) {
       logger.error(`Startup blocked: Invalid production configuration: ${invalidProductionConfig.join(', ')}`);
       process.exit(1);

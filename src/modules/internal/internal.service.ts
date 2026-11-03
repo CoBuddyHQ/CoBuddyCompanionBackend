@@ -119,6 +119,15 @@ export class InternalService {
         { bio: { contains: query.search, mode: 'insensitive' } },
       ];
     }
+    if (query.minRating && Number(query.minRating) > 0) {
+      whereClause.rating = { gte: Number(query.minRating) };
+    }
+    if (query.maxPrice && Number(query.maxPrice) > 0) {
+      whereClause.hourlyRate = { lte: Number(query.maxPrice) };
+    }
+    if (query.isOnline === true || query.isOnline === 'true') {
+      whereClause.isOnline = true;
+    }
     if (query.category) {
       const normalized = this.normalizeCategory(query.category);
       if (normalized) {
@@ -384,7 +393,7 @@ export class InternalService {
           amount: confirmed,
           customerInitials: session.customerInitials,
           description: `Session: ${session.category.replace(/_/g, ' ')} — ${session.venueName}`,
-          payoutEligibleAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+          payoutEligibleAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h hold — clears within 24 hours
         },
       });
 

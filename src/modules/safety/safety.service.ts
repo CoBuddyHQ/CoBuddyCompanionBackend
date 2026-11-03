@@ -52,7 +52,48 @@ export class SafetyService {
 
     this.logger.warn(`🚨 SOS triggered by companion ${companionId}`);
 
-    // Create an Admin-visible database notification. No external contact provider is configured.
+    // Dispatch to Admin S2S SOS Sync for centralized operations
+    const adminUrl = process.env.ADMIN_API_URL;
+    const secret = process.env.INTERNAL_SERVICE_SECRET;
+    let adminDispatched = false;
+
+    if (adminUrl && secret) {
+      const abortController = new AbortController();
+      const timeout = setTimeout(() => abortController.abort(), 5000);
+      try {
+        const baseUrl = adminUrl.replace(/\/+$/, '');
+        const resp = await fetch(`${baseUrl}/api/internal/sos/sync`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-service-key': secret,
+          },
+          body: JSON.stringify({
+            id: sos.id,
+            alertRef: `SOS-COMP-${sos.id.slice(0, 8).toUpperCase()}`,
+            userId: companionId,
+            userType: 'COMPANION',
+            bookingId: sessionId ?? undefined,
+            lat,
+            lng,
+            status: 'active',
+          }),
+          signal: abortController.signal,
+        });
+        if (resp.ok) {
+          adminDispatched = true;
+          this.logger.log(`Admin S2S SOS sync successful for alert ${sos.id}`);
+        } else {
+          this.logger.warn(`Admin S2S SOS sync returned HTTP ${resp.status}`);
+        }
+      } catch (err: any) {
+        this.logger.warn(`Admin S2S SOS sync failed: ${err.message}`);
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    // Create an Admin-visible database notification
     await this.dispatchSafetyAlert(companionId, sessionId, lat ?? null, lng ?? null);
 
     // Create an in-app notification so the companion sees confirmation
@@ -60,17 +101,21 @@ export class SafetyService {
       data: {
         companionId,
         type: 'system',
-        title: 'SOS recorded',
-        body: 'Your SOS was recorded. External contact notification is not configured.',
+        title: '🚨 Emergency SOS Dispatched',
+        body: adminDispatched
+          ? 'Your SOS was recorded and dispatched to CoBuddy Safety Dispatch.'
+          : 'Your SOS was recorded locally.',
       },
     }).catch(() => null);
 
     return {
       sosId: sos.id,
-      status: 'recorded',
+      status: 'active',
       contactsNotified: false,
-      externalDispatchConfigured: false,
-      message: 'SOS recorded. Trusted contacts and emergency services were not notified by this system.',
+      externalDispatchConfigured: adminDispatched,
+      message: adminDispatched
+        ? 'SOS emergency alert dispatched to CoBuddy Safety Dispatch.'
+        : 'SOS recorded locally.',
       triggeredAt: sos.createdAt.toISOString(),
     };
   }

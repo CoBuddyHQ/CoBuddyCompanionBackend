@@ -804,7 +804,7 @@ export class SessionsService {
         amount: confirmed,
         customerInitials: session.customerInitials,
         description: `Session: ${session.category.replace(/_/g, ' ')} — ${session.venueName}`,
-        payoutEligibleAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48h hold
+        payoutEligibleAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h hold — clears within 24 hours of session completion
       },
     });
 
