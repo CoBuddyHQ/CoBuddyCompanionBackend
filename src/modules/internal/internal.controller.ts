@@ -92,4 +92,15 @@ export class InternalController {
   ) {
     return this.internalService.updateBanStatus(companionId, body);
   }
+
+  @Post('tickets/:id/messages')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Internal S2S message from Admin for companion support ticket' })
+  @ApiHeader({ name: 'X-Internal-Service-Key', required: true })
+  async addTicketMessage(
+    @Param('id') ticketId: string,
+    @Body() body: { message: string; senderType?: string; senderName?: string },
+  ) {
+    return this.internalService.addSupportTicketMessage(ticketId, body);
+  }
 }

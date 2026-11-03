@@ -167,4 +167,68 @@ export class InternalBridgeService {
       return false;
     }
   }
+
+  /**
+   * Syncs a companion support ticket to Admin Backend.
+   */
+  async syncTicketToAdmin(payload: {
+    ticketId: string;
+    userId: string;
+    userName?: string;
+    userType: 'COMPANION';
+    categoryCode: string;
+    subject: string;
+    message: string;
+    priority?: string;
+  }): Promise<boolean> {
+    if (!this.internalSecret) return false;
+    const url = `${this.adminApiUrl}/api/internal/tickets/sync`;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Service-Key': this.internalSecret,
+          'X-Correlation-Id': crypto.randomUUID(),
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(5000),
+      });
+      return res.ok;
+    } catch (e: any) {
+      this.logger.warn(`Failed to sync companion ticket to Admin: ${e.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Syncs a companion ticket message to Admin Backend.
+   */
+  async syncTicketMessageToAdmin(
+    ticketId: string,
+    payload: {
+      senderId: string;
+      senderType: 'COMPANION';
+      message: string;
+    },
+  ): Promise<boolean> {
+    if (!this.internalSecret) return false;
+    const url = `${this.adminApiUrl}/api/internal/tickets/${encodeURIComponent(ticketId)}/messages/sync`;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Service-Key': this.internalSecret,
+          'X-Correlation-Id': crypto.randomUUID(),
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(5000),
+      });
+      return res.ok;
+    } catch (e: any) {
+      this.logger.warn(`Failed to sync companion ticket message to Admin: ${e.message}`);
+      return false;
+    }
+  }
 }

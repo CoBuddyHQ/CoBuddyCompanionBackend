@@ -4,9 +4,10 @@ import { SupportService } from './support.service';
 import { SupportGateway } from './support.gateway';
 import { AuthModule } from '../auth/auth.module';
 import { WsJwtGuard } from '../../common/guards/ws-jwt.guard';
+import { InternalModule } from '../internal/internal.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, InternalModule],
   controllers: [SupportController],
   providers: [SupportService, SupportGateway, WsJwtGuard],
   exports: [SupportService],

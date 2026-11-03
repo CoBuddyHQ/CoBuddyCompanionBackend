@@ -18,7 +18,7 @@ export class SupportController {
   @Get('tickets/:ticketId') @ApiOperation({ summary: 'Get ticket detail' })
   getTicket(@CurrentCompanion() c: JwtPayload, @Param('ticketId') id: string) { return this.supportService.getTicket(c.sub, id); }
 
-  @Post('tickets/create') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Create support ticket' })
+  @Post(['tickets', 'tickets/create']) @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Create support ticket' })
   createTicket(@CurrentCompanion() c: JwtPayload, @Body() dto: any) { return this.supportService.createTicket(c.sub, dto); }
 
   @Get('chat/:ticketId') @ApiOperation({ summary: 'Get chat history for a ticket' })

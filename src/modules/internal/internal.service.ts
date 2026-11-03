@@ -509,4 +509,34 @@ export class InternalService {
     this.logger.log(`[S2S Admin] Ban status for companion ${companionId} set to: ${newStatus}`);
     return { success: true, accountStatus: newStatus };
   }
+
+  // ── S2S: Inbound Support Message from Admin ──
+  async addSupportTicketMessage(
+    ticketId: string,
+    payload: { message: string; senderType?: string; senderName?: string },
+  ) {
+    const ticket = await this.prisma.supportTicket.findUnique({
+      where: { id: ticketId },
+    });
+    if (!ticket) throw new NotFoundException('Support ticket not found');
+
+    const created = await this.prisma.ticketMessage.create({
+      data: {
+        ticketId: ticket.id,
+        sender: 'agent',
+        text: payload.message,
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        id: created.id,
+        ticketId: ticket.id,
+        sender: 'agent',
+        text: created.text,
+        createdAt: created.createdAt,
+      },
+    };
+  }
 }

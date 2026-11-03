@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { InternalBridgeService } from '../internal/internal-bridge.service';
 
 @Injectable()
 export class SupportService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private internalBridge: InternalBridgeService,
+  ) {}
 
   async getTickets(companionId: string) {
     const tickets = await this.prisma.supportTicket.findMany({
@@ -72,6 +76,36 @@ export class SupportService {
         status: 'OPEN',
       },
     });
+
+    if (dto.description) {
+      await this.prisma.ticketMessage.create({
+        data: {
+          ticketId: ticket.id,
+          sender: 'me',
+          text: dto.description,
+        },
+      }).catch(() => {});
+    }
+
+    // Lookup companion name for Admin
+    const companion = await this.prisma.companion.findUnique({
+      where: { id: companionId },
+      select: { displayName: true, phone: true },
+    });
+    const userName = companion?.displayName || companion?.phone || 'Companion';
+
+    // S2S sync to Admin
+    this.internalBridge.syncTicketToAdmin({
+      ticketId: ticket.id,
+      userId: companionId,
+      userName,
+      userType: 'COMPANION',
+      categoryCode: dto.category,
+      subject: dto.subject,
+      message: dto.description,
+      priority: dto.priority || 'MEDIUM',
+    }).catch(() => {});
+
     return {
       ticketId: ticket.id,
       message: 'Support ticket created successfully.',
@@ -99,6 +133,14 @@ export class SupportService {
         text: message,
       },
     });
+
+    // S2S sync to Admin
+    this.internalBridge.syncTicketMessageToAdmin(ticket.id, {
+      senderId: companionId,
+      senderType: 'COMPANION',
+      message,
+    }).catch(() => {});
+
     return {
       message: 'Reply sent',
       data: {
