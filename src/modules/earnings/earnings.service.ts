@@ -171,59 +171,61 @@ export class EarningsService {
     // Auto-clear eligible pending earnings before checking balance
     await this.autoClearEligibleEarnings(companionId);
 
-    const eligibleTxs = await this.prisma.earningsTransaction.findMany({
-      where: { companionId, status: { in: ['payout_eligible', 'approved'] } },
+    return this.prisma.$transaction(async (tx) => {
+      const eligibleTxs = await tx.earningsTransaction.findMany({
+        where: { companionId, status: { in: ['payout_eligible', 'approved'] } },
+      });
+      const availableBalance = eligibleTxs.reduce((sum, t) => sum + Number(t.amount), 0);
+
+      if (amount > availableBalance) {
+        throw new BadRequestException(
+          `Requested amount (₹${amount}) exceeds available withdrawal balance (₹${Math.max(0, availableBalance)}).`,
+        );
+      }
+
+      const [companion, kyc] = await Promise.all([
+        tx.companion.findUnique({ where: { id: companionId } }),
+        tx.companionKYC.findUnique({ where: { companionId } }),
+      ]);
+
+      if (!companion) throw new NotFoundException('Companion not found.');
+
+      const bankAccount = (kyc as any)?.bankAccount;
+      const maskedBank = bankAccount && bankAccount.length >= 4
+        ? `•••• ${bankAccount.slice(-4)}`
+        : '•••• 4321';
+
+      const utrNumber = `UTR${Date.now()}${Math.floor(100 + Math.random() * 900)}`;
+
+      const payout = await tx.payoutRecord.create({
+        data: {
+          companionId,
+          amount,
+          platformFee: 0,
+          maskedBank,
+          status: 'completed',
+          utrNumber,
+          requestedAt: new Date(),
+          completedAt: new Date(),
+        },
+      });
+
+      await tx.earningsTransaction.create({
+        data: {
+          companionId,
+          payoutId: payout.id,
+          type: 'payout_transfer',
+          status: 'approved',
+          amount: -amount,
+          description: `Payout withdrawal to bank account ${maskedBank}`,
+          payoutEligibleAt: new Date(),
+        },
+      });
+
+      this.logger.log(`Payout of ₹${amount} recorded for companion ${companionId} (UTR: ${utrNumber})`);
+
+      return this.toPayoutResponse(payout);
     });
-    const availableBalance = eligibleTxs.reduce((sum, t) => sum + Number(t.amount), 0);
-
-    if (amount > availableBalance) {
-      throw new BadRequestException(
-        `Requested amount (₹${amount}) exceeds available withdrawal balance (₹${Math.max(0, availableBalance)}).`,
-      );
-    }
-
-    const [companion, kyc] = await Promise.all([
-      this.prisma.companion.findUnique({ where: { id: companionId } }),
-      this.prisma.companionKYC.findUnique({ where: { companionId } }),
-    ]);
-
-    if (!companion) throw new NotFoundException('Companion not found.');
-
-    const bankAccount = (kyc as any)?.bankAccount;
-    const maskedBank = bankAccount && bankAccount.length >= 4
-      ? `•••• ${bankAccount.slice(-4)}`
-      : '•••• 4321';
-
-    const utrNumber = `UTR${Date.now()}${Math.floor(100 + Math.random() * 900)}`;
-
-    const payout = await this.prisma.payoutRecord.create({
-      data: {
-        companionId,
-        amount,
-        platformFee: 0,
-        maskedBank,
-        status: 'completed',
-        utrNumber,
-        requestedAt: new Date(),
-        completedAt: new Date(),
-      },
-    });
-
-    await this.prisma.earningsTransaction.create({
-      data: {
-        companionId,
-        payoutId: payout.id,
-        type: 'payout_transfer',
-        status: 'approved',
-        amount: -amount,
-        description: `Payout withdrawal to bank account ${maskedBank}`,
-        payoutEligibleAt: new Date(),
-      },
-    });
-
-    this.logger.log(`Payout of ₹${amount} recorded for companion ${companionId} (UTR: ${utrNumber})`);
-
-    return this.toPayoutResponse(payout);
   }
 
   // ── GET /companion/earnings/payout/history ────────────────────────────────
