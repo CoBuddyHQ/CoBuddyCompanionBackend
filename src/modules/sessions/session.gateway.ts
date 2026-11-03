@@ -9,10 +9,11 @@ import {
   WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { UseGuards, Logger } from '@nestjs/common';
+import { UseGuards, Logger, Inject, forwardRef } from '@nestjs/common';
 import { WsJwtGuard } from '../../common/guards/ws-jwt.guard';
 import { PrismaService } from '../../prisma/prisma.service';
 import { getCompanionSocketIdentity } from '../../common/types/companion-socket';
+import { SessionsService } from './sessions.service';
 
 @WebSocketGateway({
   namespace: '/sessions',
@@ -34,7 +35,17 @@ export class SessionGateway
   private readonly logger = new Logger(SessionGateway.name);
   private readonly connectedClients = new Map<string, Socket>();
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => SessionsService))
+    private sessionsService: SessionsService,
+  ) {}
+
+  emitToSession(sessionId: string, event: string, payload: any) {
+    if (this.server) {
+      this.server.to(`session_${sessionId}`).emit(event, payload);
+    }
+  }
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected to SessionGateway: ${client.id}`);
@@ -105,14 +116,11 @@ export class SessionGateway
     }
     const room = `session_${payload.sessionId}`;
 
-    const message = {
-      id: `msg-${Date.now()}`,
-      senderId: companion.sub,
-      senderType: 'companion',
-      text: payload.text,
-      attachmentUrl: payload.attachmentUrl,
-      timestamp: new Date().toISOString(),
-    };
+    const message = await this.sessionsService.sendChatMessage(
+      companion.sub,
+      payload.sessionId,
+      payload.text.trim(),
+    );
 
     this.server.to(room).emit('receive_message', message);
     return { success: true, message };

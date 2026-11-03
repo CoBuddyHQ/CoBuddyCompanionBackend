@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, Logger, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException, ServiceUnavailableException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { InternalCompanionQueryDto } from './dto/internal.dto';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { SessionGateway } from '../sessions/session.gateway';
 
 @Injectable()
 export class InternalService {
@@ -10,6 +11,8 @@ export class InternalService {
   constructor(
     private prisma: PrismaService,
     private notificationsGateway: NotificationsGateway,
+    @Inject(forwardRef(() => SessionGateway))
+    private sessionGateway?: SessionGateway,
   ) {}
 
   private normalizeCategory(raw: string): any {
@@ -547,5 +550,36 @@ export class InternalService {
         createdAt: created.createdAt,
       },
     };
+  }
+
+  // ── S2S: Inbound Chat Message Relay from Customer Backend ──
+  async handleChatRelay(body: { bookingId: string; conversationId: string; message: any }) {
+    if (!body?.bookingId) {
+      throw new BadRequestException('bookingId is required for chat relay');
+    }
+    const session = await this.prisma.session.findFirst({
+      where: {
+        OR: [{ requestId: body.bookingId }, { id: body.bookingId }],
+      },
+      select: { id: true },
+    });
+
+    if (session && this.sessionGateway) {
+      this.sessionGateway.emitToSession(session.id, 'receive_message', {
+        id: body.message.id,
+        conversationId: body.conversationId,
+        senderId: body.message.senderId,
+        senderType: body.message.senderType,
+        senderName: body.message.senderName,
+        text: body.message.text,
+        attachmentUrl: body.message.attachmentUrl,
+        attachmentType: body.message.attachmentType,
+        timestamp: body.message.createdAt || new Date().toISOString(),
+      });
+      this.logger.log(`[S2S Chat Relay] Relayed message ${body.message.id} to session ${session.id} room`);
+      return { success: true, sessionId: session.id };
+    }
+    this.logger.warn(`[S2S Chat Relay] No session found matching bookingId ${body.bookingId}`);
+    return { success: false, reason: 'Session not found' };
   }
 }

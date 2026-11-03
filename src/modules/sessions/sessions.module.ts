@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { SessionsController } from './sessions.controller';
 import { SessionsService } from './sessions.service';
 import { SessionGateway } from './session.gateway';
@@ -8,9 +8,9 @@ import { InternalModule } from '../internal/internal.module';
 import { WsJwtGuard } from '../../common/guards/ws-jwt.guard';
 
 @Module({
-  imports: [AuthModule, NotificationsModule, InternalModule],
+  imports: [AuthModule, NotificationsModule, forwardRef(() => InternalModule)],
   controllers: [SessionsController],
   providers: [SessionsService, SessionGateway, WsJwtGuard],
-  exports: [SessionsService],
+  exports: [SessionsService, SessionGateway],
 })
 export class SessionsModule {}

@@ -543,14 +543,140 @@ export class SessionsService {
 
   // ── IN-SESSION COMMUNICATIONS & TRACKING ───────────────────────────────────
   async getChatHistory(companionId: string, sessionId: string) {
-    await this.findSessionOrThrow(companionId, sessionId);
-    return [];
+    const session = await this.findSessionOrThrow(companionId, sessionId);
+    const bookingId = session.requestId || session.id;
+    const customerBackendUrl = (process.env.CUSTOMER_API_URL || 'http://customer-backend:4002').replace(/\/+$/, '');
+    const internalSecret = process.env.INTERNAL_SERVICE_SECRET;
+
+    if (!internalSecret) {
+      this.logger.warn('INTERNAL_SERVICE_SECRET not configured for chat history');
+      return [];
+    }
+
+    try {
+      // 1. Get or create conversation via S2S
+      const convRes = await fetch(
+        `${customerBackendUrl}/api/v1/internal/chat/companion/${companionId}/booking/${bookingId}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Internal-Service-Key': internalSecret,
+          },
+          signal: AbortSignal.timeout(5000),
+        },
+      );
+
+      if (!convRes.ok) {
+        this.logger.warn(`Failed to get conversation for booking ${bookingId}: ${convRes.status}`);
+        return [];
+      }
+
+      const convData = await convRes.json();
+      const conversationId = convData.id || convData.conversationId;
+
+      // 2. Fetch messages from canonical store
+      const msgRes = await fetch(
+        `${customerBackendUrl}/api/v1/internal/chat/companion/${companionId}/conversations/${conversationId}/messages`,
+        {
+          method: 'GET',
+          headers: {
+            'X-Internal-Service-Key': internalSecret,
+          },
+          signal: AbortSignal.timeout(5000),
+        },
+      );
+
+      if (!msgRes.ok) {
+        this.logger.warn(`Failed to fetch messages for conversation ${conversationId}: ${msgRes.status}`);
+        return [];
+      }
+
+      const msgData = await msgRes.json();
+      return (msgData.messages || []).map((m: any) => ({
+        id: m.id,
+        conversationId,
+        senderId: m.senderId,
+        senderType: m.senderType,
+        senderName: m.senderName,
+        text: m.text,
+        attachmentUrl: m.attachmentUrl,
+        attachmentType: m.attachmentType,
+        timestamp: m.createdAt,
+        createdAt: m.createdAt,
+      }));
+    } catch (err: any) {
+      this.logger.error(`Error fetching chat history from customer backend: ${err.message}`);
+      return [];
+    }
   }
 
-  async sendChatMessage(companionId: string, sessionId: string, text: string) {
+  async sendChatMessage(companionId: string, sessionId: string, text: string, clientMessageId?: string) {
     const session = await this.findSessionOrThrow(companionId, sessionId);
-    if (!['upcoming', 'checked_in', 'active'].includes(session.status)) throw new BadRequestException('Session is not active');
-    return { success: true, text, sentAt: new Date().toISOString() };
+    if (!['upcoming', 'checked_in', 'active'].includes(session.status)) {
+      throw new BadRequestException('Session is not active for messaging');
+    }
+    const bookingId = session.requestId || session.id;
+    const customerBackendUrl = (process.env.CUSTOMER_API_URL || 'http://customer-backend:4002').replace(/\/+$/, '');
+    const internalSecret = process.env.INTERNAL_SERVICE_SECRET;
+
+    if (!internalSecret) {
+      throw new ServiceUnavailableException('Chat service is temporarily unconfigured');
+    }
+
+    // 1. Ensure conversation exists
+    const convRes = await fetch(
+      `${customerBackendUrl}/api/v1/internal/chat/companion/${companionId}/booking/${bookingId}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Service-Key': internalSecret,
+        },
+        signal: AbortSignal.timeout(5000),
+      },
+    );
+
+    if (!convRes.ok) {
+      throw new BadRequestException('Failed to establish booking conversation with customer service');
+    }
+
+    const convData = await convRes.json();
+    const conversationId = convData.id || convData.conversationId;
+
+    // 2. Persist message in canonical database
+    const msgRes = await fetch(
+      `${customerBackendUrl}/api/v1/internal/chat/companion/${companionId}/conversations/${conversationId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Service-Key': internalSecret,
+        },
+        body: JSON.stringify({
+          text,
+          clientMessageId: clientMessageId || `comp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        }),
+        signal: AbortSignal.timeout(5000),
+      },
+    );
+
+    if (!msgRes.ok) {
+      const errText = await msgRes.text();
+      throw new BadRequestException(`Failed to persist chat message: ${errText}`);
+    }
+
+    const savedMsg = await msgRes.json();
+    return {
+      id: savedMsg.id,
+      conversationId,
+      senderId: companionId,
+      senderType: 'companion',
+      text: savedMsg.text,
+      attachmentUrl: savedMsg.attachmentUrl,
+      timestamp: savedMsg.createdAt,
+      createdAt: savedMsg.createdAt,
+    };
   }
 
   async getCallToken(companionId: string, sessionId: string) {

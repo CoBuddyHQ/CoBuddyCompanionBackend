@@ -103,4 +103,14 @@ export class InternalController {
   ) {
     return this.internalService.addSupportTicketMessage(ticketId, body);
   }
+
+  @Post('chat/relay')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Internal S2S chat message relay from Customer Backend' })
+  @ApiHeader({ name: 'X-Internal-Service-Key', required: true })
+  async handleChatRelay(
+    @Body() body: { bookingId: string; conversationId: string; message: any },
+  ) {
+    return this.internalService.handleChatRelay(body);
+  }
 }
