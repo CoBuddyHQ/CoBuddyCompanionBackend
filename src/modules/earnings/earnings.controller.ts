@@ -38,6 +38,16 @@ export class EarningsController {
     return this.earningsService.getSummary(c.sub);
   }
 
+  /** POST /companion/earnings/clear-eligible — Reconcile and clear pending earnings past hold window */
+  @Post('clear-eligible')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Auto-clear eligible pending earnings that have passed clearance hold' })
+  async clearEligible(@CurrentCompanion() c: JwtPayload) {
+    const cleared = await this.earningsService.autoClearEligibleEarnings(c.sub);
+    const summary = await this.earningsService.getSummary(c.sub);
+    return { success: true, clearedCount: cleared, summary };
+  }
+
   /** GET /companion/earnings/transactions — Endpoints.EARNINGS.TRANSACTIONS */
   @Get('transactions')
   @ApiOperation({ summary: 'Get transaction history — returns Transaction[]' })

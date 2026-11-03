@@ -10,9 +10,51 @@ export class EarningsService {
     private paymentsService: PaymentsService,
   ) {}
 
+  /**
+   * Auto-clears pending earnings transactions whose clearance window (payoutEligibleAt)
+   * has passed, or whose session was completed more than 24 hours ago.
+   */
+  async autoClearEligibleEarnings(companionId?: string): Promise<number> {
+    const now = new Date();
+    const where: any = {
+      status: 'pending_review',
+      OR: [
+        { payoutEligibleAt: { lte: now } },
+        {
+          payoutEligibleAt: null,
+          createdAt: { lte: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+        },
+      ],
+    };
+    if (companionId) {
+      where.companionId = companionId;
+    }
+
+    try {
+      const eligible = await this.prisma.earningsTransaction.findMany({
+        where,
+        select: { id: true, amount: true, companionId: true },
+      });
+
+      if (eligible.length > 0) {
+        await this.prisma.earningsTransaction.updateMany({
+          where: { id: { in: eligible.map((e) => e.id) } },
+          data: { status: 'payout_eligible' },
+        });
+
+        this.logger.log(`Auto-cleared ${eligible.length} earnings transaction(s) eligible for payout.`);
+      }
+      return eligible.length;
+    } catch (err: any) {
+      this.logger.warn(`Failed to auto-clear eligible earnings: ${err.message}`);
+      return 0;
+    }
+  }
+
   // ── GET /companion/earnings/summary — returns EarningsSummary interface ────
 
   async getSummary(companionId: string) {
+    await this.autoClearEligibleEarnings(companionId);
     const [transactions, pendingTxs, companion, allEarningTxs] = await Promise.all([
       this.prisma.earningsTransaction.findMany({
         where: { companionId, status: { in: ['payout_eligible', 'approved'] } },
@@ -89,6 +131,7 @@ export class EarningsService {
   // ── GET /companion/earnings/transactions ──────────────────────────────────
 
   async getTransactions(companionId: string, page = 1, limit = 20) {
+    await this.autoClearEligibleEarnings(companionId);
     const [txs, total] = await Promise.all([
       this.prisma.earningsTransaction.findMany({
         where: { companionId },
@@ -258,6 +301,7 @@ export class EarningsService {
   // PendingEarningsScreen — lists earnings in 48h hold window.
 
   async getPendingEarnings(companionId: string) {
+    await this.autoClearEligibleEarnings(companionId);
     const txs = await this.prisma.earningsTransaction.findMany({
       where: { companionId, status: 'pending_review' },
       orderBy: { createdAt: 'desc' },
