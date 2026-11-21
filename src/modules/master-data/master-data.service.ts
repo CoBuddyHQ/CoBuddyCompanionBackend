@@ -6,9 +6,9 @@ export class MasterDataService {
   private cache: any = null;
   private expiresAt = 0;
 
-  async getBundle() {
+  async getBundle(refresh?: boolean) {
     const now = Date.now();
-    if (this.cache && this.expiresAt > now) {
+    if (!refresh && this.cache && this.expiresAt > now) {
       return this.cache;
     }
 
@@ -28,7 +28,7 @@ export class MasterDataService {
         const body: any = await res.json();
         const data = body?.data || body;
         this.cache = data;
-        this.expiresAt = now + 5 * 60 * 1000;
+        this.expiresAt = now + 30 * 1000;
         return data;
       }
     } catch (err: any) {

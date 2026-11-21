@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { MasterDataService } from './master-data.service';
 
@@ -10,8 +10,8 @@ export class MasterDataController {
   @Get()
   @ApiOperation({ summary: 'Get live Admin master data bundle (cities, categories, languages, etc.)' })
   @ApiResponse({ status: 200, description: 'Master data bundle returned successfully' })
-  async getBundle() {
-    return this.masterDataService.getBundle();
+  async getBundle(@Query('refresh') refresh?: string) {
+    return this.masterDataService.getBundle(refresh === 'true' || refresh === '1');
   }
 }
 
@@ -23,7 +23,7 @@ export class PublicMasterDataController {
   @Get()
   @ApiOperation({ summary: 'Get live Admin master data bundle for companions' })
   @ApiResponse({ status: 200, description: 'Master data bundle returned successfully' })
-  async getBundle() {
-    return this.masterDataService.getBundle();
+  async getBundle(@Query('refresh') refresh?: string) {
+    return this.masterDataService.getBundle(refresh === 'true' || refresh === '1');
   }
 }
