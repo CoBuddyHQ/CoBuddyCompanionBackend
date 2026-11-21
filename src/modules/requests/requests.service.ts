@@ -160,8 +160,10 @@ export class RequestsService {
     const proposedEnd = new Date(dto.proposedEnd);
     const expiresAt = new Date(dto.expiresAt);
     const now = new Date();
+    const isDev = process.env.NODE_ENV !== 'production';
+    const minAllowedStart = isDev ? new Date(now.getTime() - 24 * 60 * 60 * 1000) : now;
     if (!Number.isFinite(proposedStart.getTime()) || !Number.isFinite(proposedEnd.getTime()) ||
-        proposedStart <= now || proposedEnd <= proposedStart) {
+        proposedStart <= minAllowedStart || proposedEnd <= proposedStart) {
       throw new BadRequestException('A valid booking time range is required.');
     }
     if (!Number.isFinite(expiresAt.getTime()) || expiresAt <= now) {
