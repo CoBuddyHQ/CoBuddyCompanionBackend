@@ -22,6 +22,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { InternalModule } from './modules/internal/internal.module';
+import { MasterDataModule } from './modules/master-data/master-data.module';
 
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -55,6 +56,7 @@ import { AppController } from './app.controller';
     SettingsModule,
     PaymentsModule,
     InternalModule,
+    MasterDataModule,
   ],
   controllers: [AppController],
   providers: [
