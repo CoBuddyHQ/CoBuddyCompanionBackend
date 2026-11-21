@@ -162,7 +162,11 @@ export class UploadsService {
       orderBy: { sortOrder: 'asc' },
     });
 
-    return { galleryPhotos: photos.map(p => p.url) };
+    return {
+      photoUrl: url,
+      url,
+      galleryPhotos: photos.map(p => p.url),
+    };
   }
 
   async streamPrivateFile(companionId: string, fileId: string, res: Response) {
