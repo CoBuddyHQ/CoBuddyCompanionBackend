@@ -32,6 +32,37 @@ export class InternalBridgeService {
     return process.env.INTERNAL_SERVICE_SECRET || '';
   }
 
+  private cachedMasterBundle: any = null;
+
+  /**
+   * Fetches the complete master data bundle from Admin Backend.
+   */
+  async getMasterDataBundle(): Promise<any> {
+    const url = `${this.adminApiUrl}/api/internal/master-data/bundle`;
+    try {
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-Internal-Service-Key': this.internalSecret,
+          'X-Correlation-Id': crypto.randomUUID(),
+        },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        const json: any = await res.json();
+        this.cachedMasterBundle = json.data || json;
+        return this.cachedMasterBundle;
+      }
+    } catch (e: any) {
+      this.logger.warn(`Failed to fetch master data bundle from Admin: ${e.message}`);
+    }
+    return this.cachedMasterBundle;
+  }
+
+  getCachedMasterBundle(): any {
+    return this.cachedMasterBundle;
+  }
+
   /**
    * Dispatches authenticated S2S status synchronization callback to Customer Backend.
    * Includes X-Internal-Service-Key, X-Correlation-Id, and 5000ms timeout.

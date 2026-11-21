@@ -1,12 +1,26 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ProfileService } from './profile.service';
+import { InternalBridgeService } from '../internal/internal-bridge.service';
 
 @ApiTags('Public Companions Discovery')
 @Controller('companions/public')
 export class PublicCompanionController {
 
-  constructor(private readonly profileService: ProfileService) {}
+  constructor(
+    private readonly profileService: ProfileService,
+    private readonly internalBridgeService: InternalBridgeService,
+  ) {}
+
+  @Get('master-data')
+  @ApiOperation({ summary: 'Get live master data bundle (cities, areas, interests, categories, languages) from Admin' })
+  async getMasterData() {
+    const bundle = await this.internalBridgeService.getMasterDataBundle();
+    return {
+      success: true,
+      data: bundle,
+    };
+  }
 
   @Get()
   @ApiOperation({ summary: 'List approved, verified active companions for customer discovery' })
