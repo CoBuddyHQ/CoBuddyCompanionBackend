@@ -611,6 +611,14 @@ export class ProfileService {
       isAvailable: companion.isAvailable ?? false,
       isOnline: companion.isOnline ?? false,
       photoUrl: companion.photoUrl ?? null,
+      galleryPhotos: companion.galleryPhotos
+        ? companion.galleryPhotos.map((p: any) => p.url || p)
+        : (
+            await this.prisma.companionPhoto.findMany({
+              where: { companionId: companion.id },
+              orderBy: { sortOrder: 'asc' },
+            })
+          ).map((p) => p.url),
       joinedAt: companion.createdAt ? new Date(companion.createdAt).toISOString() : new Date().toISOString(),
       interestTags: companion.interestTags ?? [],
       interests: companion.interestTags ?? [],
